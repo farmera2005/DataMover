@@ -10,6 +10,12 @@ public sealed record RowChange(
     JsonObject? After,
     DateTimeOffset? SourceTs = null)
 {
+    public const string SnapshotStartSeq = "snapshot_start_seq";
+
+    /// <summary>The marker that ends a snapshot; see <see cref="ChangeOp.SnapshotComplete"/>.</summary>
+    public static RowChange SnapshotCompleted(long snapshotStartSeq) =>
+        new(ChangeOp.SnapshotComplete, new JsonObject(), null, new JsonObject { [SnapshotStartSeq] = snapshotStartSeq });
+
     public ChangeEnvelope ToEnvelope(string siteId, string sourceId, string table, long seq, DateTimeOffset captureTs) => new()
     {
         SiteId = siteId,

@@ -40,6 +40,10 @@ public sealed record AgentConfig
     public MaintenanceWindow? MaintenanceWindow { get; init; }
     public required EventHubTarget EventHub { get; init; }
     public BufferSettings Buffer { get; init; } = new();
+    /// <summary>The site's time zone, for the maintenance window and the nightly delete reconciliation.</summary>
+    public string SiteTimeZone { get; init; } = "America/New_York";
+    /// <summary>Local time each night when polling tables are checked for deleted keys.</summary>
+    public TimeOnly DeleteReconcileAt { get; init; } = new(2, 30);
     public int ConfigPollSeconds { get; init; } = 60;
     public int HeartbeatSeconds { get; init; } = 30;
     public IReadOnlyList<SourceConfig> Sources { get; init; } = [];
@@ -47,8 +51,8 @@ public sealed record AgentConfig
     public IReadOnlyList<AgentCommand> Commands { get; init; } = [];
 }
 
-/// <summary>Local daily window (site time) when the agent may self-update.</summary>
-public sealed record MaintenanceWindow(TimeOnly Start, TimeOnly End, string TimeZone = "America/New_York");
+/// <summary>Daily window, in <see cref="AgentConfig.SiteTimeZone"/>, when the agent may self-update.</summary>
+public sealed record MaintenanceWindow(TimeOnly Start, TimeOnly End);
 
 /// <summary>
 /// Where an agent sends change batches. The SAS token is Send-only, scoped to this hub and this agent,

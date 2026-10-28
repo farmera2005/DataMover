@@ -22,6 +22,9 @@ public sealed class InMemorySource
     internal object Gate { get; } = new();
     public long CurrentVersion { get { lock (Gate) return _version; } }
 
+    /// <summary>Oldest change version still kept, like Change Tracking retention; older checkpoints have expired.</summary>
+    public long MinValidVersion { get; set; }
+
     public void CreateTable(string name)
     {
         lock (Gate)
@@ -36,6 +39,12 @@ public sealed class InMemorySource
 
     internal Table Get(string name) =>
         _tables.TryGetValue(name, out var table) ? table : throw new InvalidOperationException($"No table {name}.");
+
+    /// <summary>Ids currently in the table.</summary>
+    public IReadOnlyList<int> Ids(string table)
+    {
+        lock (Gate) return Get(table).Rows.Keys.ToList();
+    }
 
     public void Upsert(string table, int id, IReadOnlyDictionary<string, object?> values)
     {

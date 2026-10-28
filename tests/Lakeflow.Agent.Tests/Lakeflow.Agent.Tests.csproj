@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
+    <PackageReference Include="Xunit.SkippableFact" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Lakeflow.Agent\Lakeflow.Agent.csproj" />
+    <ProjectReference Include="..\Lakeflow.Testing\Lakeflow.Testing.csproj" />
+    <ProjectReference Include="..\Lakeflow.Connectors.SqlServer.Tests\Lakeflow.Connectors.SqlServer.Tests.csproj" />
+  </ItemGroup>
+</Project>

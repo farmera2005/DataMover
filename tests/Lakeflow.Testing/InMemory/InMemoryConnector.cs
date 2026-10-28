@@ -71,6 +71,8 @@ public sealed class InMemoryConnector(InMemorySource source) : ISourceConnector,
         ThrowIfFailing();
         ReadCalls++;
         var from = long.Parse(checkpoint.Position, CultureInfo.InvariantCulture);
+        if (table.Method == CaptureMethod.ChangeTracking && from < source.MinValidVersion)
+            throw new CheckpointExpiredException($"Checkpoint {from} is older than retention ({source.MinValidVersion}).");
         lock (source.Gate)
         {
             var t = source.Get(table.Table.Name);

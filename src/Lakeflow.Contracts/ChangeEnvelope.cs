@@ -10,6 +10,12 @@ public enum ChangeOp
     Delete,
     /// <summary>Row copied by an initial snapshot or resnapshot (treated as an upsert downstream).</summary>
     Snapshot,
+    /// <summary>
+    /// Control marker sent when a snapshot finishes. <c>key</c> is empty and <c>after</c> holds
+    /// <c>snapshot_start_seq</c>: every row that still exists was sent with that seq or later, so silver deletes
+    /// the site's rows of this table whose latest seq is lower (rows deleted while the table was not tracked).
+    /// </summary>
+    SnapshotComplete,
 }
 
 /// <summary>

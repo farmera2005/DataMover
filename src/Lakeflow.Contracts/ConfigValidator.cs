@@ -33,7 +33,7 @@ public static partial class ConfigValidator
         if (config.HeartbeatSeconds is < 5 or > 300) errors.Add("heartbeat_seconds must be 5–300.");
         if (string.IsNullOrWhiteSpace(config.EventHub.FullyQualifiedNamespace)) errors.Add("event_hub namespace is required.");
         if (string.IsNullOrWhiteSpace(config.EventHub.HubName)) errors.Add("event_hub hub_name is required.");
-        if (config.Buffer.CapBytes < 100L * 1024 * 1024) errors.Add("buffer cap_bytes must be at least 100 MB.");
+        if (config.Buffer.CapBytes < 10L * 1024 * 1024) errors.Add("buffer cap_bytes must be at least 10 MB.");
         if (config.Buffer.AlertPercent is < 1 or > 99) errors.Add("buffer alert_percent must be 1–99.");
         if (config.Buffer.SendBatchMaxEvents is < 1 or > 5000) errors.Add("buffer send_batch_max_events must be 1–5000.");
 
