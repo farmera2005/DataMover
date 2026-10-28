@@ -122,3 +122,23 @@ public sealed record AgentEventDto(Guid EventId, string AgentId, string SiteId, 
 
 /// <summary>Validation problems, returned with 400.</summary>
 public sealed record ProblemList(IReadOnlyList<string> Errors);
+
+/// <summary>A nightly source-versus-silver check, as the Fabric notebook recorded it.</summary>
+public sealed record ReconciliationResult
+{
+    public required DateTimeOffset CheckedUtc { get; init; }
+    public required string SiteId { get; init; }
+    public required string SourceId { get; init; }
+    public required string SourceSystem { get; init; }
+    public required string Table { get; init; }
+    public required string SilverTable { get; init; }
+    public long AsOfSeq { get; init; }
+    public long SourceRows { get; init; }
+    public long SilverRows { get; init; }
+    public string? SourceChecksum { get; init; }
+    public string? SilverChecksum { get; init; }
+    public long RowDiff { get; init; }
+    public double MismatchPercent { get; init; }
+    /// <summary><c>ok</c>, <c>within_tolerance</c> (0.1% or less) or <c>mismatch</c>.</summary>
+    public required string Status { get; init; }
+}

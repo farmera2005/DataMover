@@ -41,6 +41,9 @@ else if (builder.Environment.IsDevelopment()) builder.Services.AddSingleton<IKey
 else throw new InvalidOperationException("KeyVault:VaultUri must be set outside Development.");
 builder.Services.AddSingleton<AgentCertificates>();
 builder.Services.AddScoped<ConfigBuilder>();
+var fabric = builder.Configuration.GetSection("Fabric").Get<FabricOptions>() ?? new FabricOptions();
+if (string.IsNullOrEmpty(fabric.SqlEndpointConnectionString)) builder.Services.AddSingleton<IReconciliationSource, NoReconciliation>();
+else builder.Services.AddSingleton<IReconciliationSource>(new SqlEndpointReconciliation(fabric));
 builder.Services.AddHostedService<Retention>();
 
 builder.Services.AddLakeflowAuth(builder.Configuration);

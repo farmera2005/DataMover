@@ -4,6 +4,7 @@ using Lakeflow.ControlApi.Security;
 using Lakeflow.ControlApi.Services;
 using Lakeflow.Contracts;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
 namespace Lakeflow.ControlApi.Endpoints;
@@ -23,6 +24,8 @@ public static class ConsoleEndpoints
         var operate = app.MapGroup("").RequireAuthorization(Policies.Operator);
 
         read.MapGet("/status", StatusAsync);
+        read.MapGet("/reconciliation", async (string? siteId, IReconciliationSource source, CancellationToken ct) =>
+            await source.LatestAsync(siteId, ct));
         read.MapGet("/sites", async (LakeflowDb db, CancellationToken ct) =>
             (await db.Sites.OrderBy(s => s.SiteId).ToListAsync(ct)).Select(ToDto));
         read.MapGet("/sites/{siteId}", async Task<Results<Ok<SiteDto>, NotFound>> (string siteId, LakeflowDb db, CancellationToken ct) =>
@@ -111,8 +114,19 @@ public static class ConsoleEndpoints
                 : TypedResults.NotFound());
     }
 
-    private static async Task<Ok<FleetStatus>> StatusAsync(LakeflowDb db, TimeProvider time, CancellationToken ct)
+    private static async Task<Ok<FleetStatus>> StatusAsync(LakeflowDb db, TimeProvider time, IReconciliationSource reconciliation,
+        ILogger<FleetStatus> log, CancellationToken ct)
     {
+        IReadOnlyList<ReconciliationResult> checks = [];
+        try
+        {
+            checks = await reconciliation.LatestAsync(null, ct);
+        }
+        catch (SqlException ex)
+        {
+            // The fleet view must not go down with the lakehouse.
+            log.LogWarning("Reconciliation results unavailable: {Error}", ex.Message);
+        }
         var now = time.GetUtcNow();
         var sites = await db.Sites.OrderBy(s => s.Name).ToListAsync(ct);
         var agents = await db.Agents.Where(a => a.RevokedUtc == null).ToListAsync(ct);
@@ -125,7 +139,8 @@ public static class ConsoleEndpoints
             var (health, reasons) = FleetHealth.Evaluate(agent is not null, heartbeat, agent?.LastHeartbeatUtc, now, (sourceId, table) =>
                 tables.FirstOrDefault(t => t.SiteId == site.SiteId && t.SourceId == sourceId && t.TableName == table) is { } t
                     ? new FleetHealth.TableThresholds(t.LagWarningMinutes, t.LagCriticalMinutes)
-                    : new FleetHealth.TableThresholds(15, 60));
+                    : new FleetHealth.TableThresholds(15, 60),
+                checks.Where(c => c.SiteId == site.SiteId));
             result.Add(new SiteStatus
             {
                 SiteId = site.SiteId, Name = site.Name, Latitude = site.Latitude, Longitude = site.Longitude,

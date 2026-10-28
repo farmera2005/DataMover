@@ -1,0 +1,12 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "Notebook",
+    "displayName": "lakeflow_maintenance",
+    "description": "Monthly: purge silver tombstones past the replay window, OPTIMIZE and VACUUM bronze and silver."
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "f38989d2-806d-597b-a632-54f25dbeb67c"
+  }
+}

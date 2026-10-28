@@ -16,7 +16,7 @@ public static class FleetHealth
 
     public static (Health Health, IReadOnlyList<string> Reasons) Evaluate(
         bool hasAgent, Heartbeat? heartbeat, DateTimeOffset? lastHeartbeatUtc, DateTimeOffset now,
-        Func<string, string, TableThresholds> thresholds)
+        Func<string, string, TableThresholds> thresholds, IEnumerable<ReconciliationResult>? reconciliation = null)
     {
         var red = new List<string>();
         var amber = new List<string>();
@@ -41,6 +41,10 @@ public static class FleetHealth
             if (heartbeat.BufferPercent > BufferWarningPercent) amber.Add($"Local buffer {heartbeat.BufferPercent:F0}% full.");
             if (!heartbeat.EventHubReachable) amber.Add($"Event Hubs unreachable: {heartbeat.LastError}");
         }
+        // Spec: a row-count mismatch over 0.1% in the nightly reconciliation is a warning.
+        foreach (var check in reconciliation ?? [])
+            if (check.Status == "mismatch")
+                amber.Add($"{check.SourceId}/{check.Table} reconciliation: source {check.SourceRows} rows, silver {check.SilverRows} ({check.MismatchPercent:F2}%).");
         var health = red.Count > 0 ? Health.Red : amber.Count > 0 ? Health.Amber : Health.Green;
         return (health, [.. red, .. amber]);
     }

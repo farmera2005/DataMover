@@ -43,8 +43,8 @@ public sealed record AgentConfig
     public BufferSettings Buffer { get; init; } = new();
     /// <summary>The site's time zone, for the maintenance window and the nightly delete reconciliation.</summary>
     public string SiteTimeZone { get; init; } = "America/New_York";
-    /// <summary>Local time each night when polling tables are checked for deleted keys.</summary>
-    public TimeOnly DeleteReconcileAt { get; init; } = new(2, 30);
+    /// <summary>Local time each night for the reconciliation: row counts and key checksums for every table, deletes for polling tables.</summary>
+    public TimeOnly ReconcileAt { get; init; } = new(2, 30);
     public int ConfigPollSeconds { get; init; } = 60;
     public int HeartbeatSeconds { get; init; } = 30;
     public IReadOnlyList<SourceConfig> Sources { get; init; } = [];

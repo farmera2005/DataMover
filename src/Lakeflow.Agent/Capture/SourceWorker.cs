@@ -233,7 +233,7 @@ internal sealed class SourceWorker : IAsyncDisposable
         var zone = TimeZoneInfo.FindSystemTimeZoneById(agent.SiteTimeZone);
         var local = TimeZoneInfo.ConvertTime(now, zone);
         var today = DateOnly.FromDateTime(local.DateTime);
-        return (record.LastReconciled is null || record.LastReconciled < today) && TimeOnly.FromDateTime(local.DateTime) >= agent.DeleteReconcileAt;
+        return (record.LastReconciled is null || record.LastReconciled < today) && TimeOnly.FromDateTime(local.DateTime) >= agent.ReconcileAt;
     }
 
     /// <summary>

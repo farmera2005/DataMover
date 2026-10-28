@@ -1,0 +1,12 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "Notebook",
+    "displayName": "lakeflow_bronze_to_silver",
+    "description": "Every 5 minutes: raw Eventstream events -> bronze change tables -> silver current state, and reconciliation."
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "7f5044e1-4f61-58dc-b4b5-dbfdd9c683b2"
+  }
+}

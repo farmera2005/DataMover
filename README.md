@@ -10,7 +10,7 @@ Phase 1 (pilot: one grain site, SQL Server), built step by step:
 - [x] 2. SQL Server connector (Change Tracking, rowversion polling, timestamp polling), integration tests against SQL Server in Docker
 - [x] 3. Agent pipeline: SQLite buffer, checkpoints, Event Hubs sender, simulated 24-hour outage
 - [x] 4. Control API: enroll, config, heartbeat, commands (see docs/control-api.md)
-- [ ] 5. Fabric notebooks: bronze-to-silver MERGE, nightly reconciliation
+- [x] 5. Fabric notebooks: bronze-to-silver MERGE, nightly reconciliation (see fabric/README.md)
 - [ ] 6. Console: sign-in, fleet overview, site detail, source setup wizard
 - [ ] 7. Bicep infrastructure and the agent MSI
 
@@ -25,7 +25,7 @@ src/Lakeflow.Connectors.SqlServer/
                           see docs/sqlserver-source-setup.md
 src/Lakeflow.Agent/        Windows service: encrypted SQLite buffer (SQLCipher, key under DPAPI), per-table checkpoints and
                           seq, capture workers (throttled, one connection per source, back-off), schema drift
-                          handling, nightly delete reconciliation, Event Hubs delivery with back-off, heartbeat,
+                          handling, nightly reconciliation, Event Hubs delivery with back-off, heartbeat,
                           commands, Serilog JSON logs (14 days)
 src/Lakeflow.ControlApi/   ASP.NET Core + EF Core (Azure SQL): enrollment and agent certificates, config with SAS tokens,
                           heartbeat, events, commands, sealed credentials, fleet status, audit; Entra ID for the console
@@ -36,6 +36,8 @@ tests/Lakeflow.Connectors.SqlServer.Tests/   contract suite x3 capture methods +
 tests/Lakeflow.Agent.Tests/      pipeline on simulated time: 24-hour outage gate, buffer cap, failures, commands; SQL Server end-to-end
 tests/Lakeflow.ControlApi.Tests/ the API in-process on SQL Server: enrollment, certificate and role checks, config, audit,
                                  credentials, status; the real agent enrolling and running against it
+fabric/                   bronze-to-silver MERGE and reconciliation: a Python package tested on local Spark + Delta,
+                          and the Fabric notebooks generated from it (see fabric/README.md)
 ```
 
 ## Build and test
@@ -65,6 +67,7 @@ through JSON), an added column captured automatically, and dropped/retyped colum
 - **Resnapshots** (command, capture-method change, or Change Tracking retention passing the checkpoint) end with a
   `snapshot_complete` envelope carrying `snapshot_start_seq`. Silver must delete the site's rows of that table whose
   latest `seq` is lower: they were deleted while the table was not being tracked.
-- **Polling tables** find deletes with a key reconciliation each night at 02:30 site time.
+- **Nightly reconciliation** (02:30 site time): every table's keys are read once; polling tables get their deletes
+  from it, and a `reconcile` envelope carries the source row count and key checksum for silver to compare against.
 - **Schema drift:** added columns flow on (older rows simply lack them); a dropped or retyped column blocks the table
   until an operator resumes it (accepting the new schema) or resnapshots it.

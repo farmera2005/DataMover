@@ -23,7 +23,7 @@ namespace Lakeflow.ControlApi.Tests;
 /// and Entra ID replaced by a local signing key, so console calls carry real, validated JWTs with app roles.
 /// Agent calls carry their client certificate the way App Service forwards it.
 /// </summary>
-public sealed class ApiFactory : WebApplicationFactory<Program>
+public class ApiFactory : WebApplicationFactory<Program>
 {
     public const string Issuer = "https://login.test/lakeflow/v2.0";
     public const string Audience = "api://lakeflow-control-test";
@@ -37,6 +37,8 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
     public DevelopmentKeyMaterial Keys { get; } = new();
     public RsaSecurityKey SigningKey { get; } = new(RSA.Create(2048)) { KeyId = "test" };
     public string DatabaseName { get; } = $"lakeflow_api_{DateTime.UtcNow:yyyyMMddHHmmss}_{RandomNumberGenerator.GetHexString(4).ToLowerInvariant()}";
+
+    public string ConnectionStringForTests => ConnectionString;
 
     private string ConnectionString => new SqlConnectionStringBuilder(Environment.GetEnvironmentVariable("MSSQL_TEST_CONNECTION"))
     {
