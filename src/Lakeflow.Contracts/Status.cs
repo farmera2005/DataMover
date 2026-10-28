@@ -62,7 +62,7 @@ public sealed record Heartbeat
 
 public enum EventSeverity { Info, Warning, Error, Critical }
 
-public enum AgentEventKind { Error, Audit, CommandResult, SchemaChange, Snapshot, Update }
+public enum AgentEventKind { Error, Audit, CommandResult, SchemaChange, Snapshot, Update, CredentialStored }
 
 /// <summary>Error and audit events posted to <c>POST /agents/{id}/events</c>.</summary>
 public sealed record AgentEvent

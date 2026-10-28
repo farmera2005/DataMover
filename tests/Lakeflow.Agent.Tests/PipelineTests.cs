@@ -32,7 +32,24 @@ public class PipelineTests
         Assert.Single(received, e => e.Op == ChangeOp.SnapshotComplete);
         Assert.Equal(received.Select(e => e.Seq).Order(), received.Select(e => e.Seq));
         Assert.All(received, e => Assert.Equal("stmarys", e.SiteId));
+        Assert.All(h.Sender.Hubs, hub => Assert.Equal("grain", hub));
         Assert.Contains(received, e => e.Op == ChangeOp.Delete && e.Key["id"]!.GetValue<int>() == 6);
+    }
+
+    [Fact]
+    public async Task Each_source_goes_to_its_divisions_hub()
+    {
+        await using var h = await Harness.StartAsync();
+        h.Source("cw", "Tickets").Upsert("Tickets", 1, Row("grain"));
+        h.Source("kahler", "Batches").Upsert("Batches", 1, Row("agronomy"));
+        var kahler = Harness.SourceConfig("kahler", CaptureMethod.ChangeTracking, "Batches") with { Division = Division.Agronomy, SourceSystem = "kahler" };
+        Assert.True(await h.Pipeline.ApplyConfigAsync(Harness.Config(Harness.SourceConfig("cw", CaptureMethod.ChangeTracking, "Tickets"), kahler)));
+        await h.RunAsync(TimeSpan.FromSeconds(10));
+
+        var routed = h.Sender.Received.Zip(h.Sender.Hubs).ToList();
+        Assert.All(routed.Where(r => r.First.SourceId == "cw"), r => Assert.Equal("grain", r.Second));
+        Assert.All(routed.Where(r => r.First.SourceId == "kahler"), r => Assert.Equal("agronomy", r.Second));
+        Assert.Contains(routed, r => r.Second == "agronomy");
     }
 
     [Fact]
@@ -176,7 +193,7 @@ public class PipelineTests
 
         await h.RestartAsync();
         Assert.Equal(1, h.Pipeline.Config!.ConfigVersion);
-        Assert.Equal("sas", h.Sender.Target!.SasToken);
+        Assert.Equal("sas", h.Sender.Targets[0].SasToken);
     }
 
     [Fact]

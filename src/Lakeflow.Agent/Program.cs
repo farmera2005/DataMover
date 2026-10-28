@@ -1,5 +1,6 @@
 using Lakeflow.Agent;
 using Lakeflow.Agent.Capture;
+using Lakeflow.Agent.Control;
 using Lakeflow.Agent.Delivery;
 using Lakeflow.Agent.Storage;
 using Microsoft.Extensions.DependencyInjection;
@@ -32,8 +33,13 @@ try
     builder.Services.AddSingleton<Lakeflow.Contracts.ICredentialStore, StoreCredentials>();
     builder.Services.AddSingleton<IConnectorFactory, ConnectorFactory>();
     builder.Services.AddSingleton<IEventSender, EventHubsSender>();
-    builder.Services.AddSingleton(sp => pipeline = ActivatorUtilities.CreateInstance<AgentPipeline>(sp,
-        typeof(AgentPipeline).Assembly.GetName().Version?.ToString(3) ?? "0.0.0"));
+    var version = typeof(AgentPipeline).Assembly.GetName().Version?.ToString(3) ?? "0.0.0";
+    builder.Services.AddSingleton(sp => pipeline = ActivatorUtilities.CreateInstance<AgentPipeline>(sp, version));
+    builder.Services.AddSingleton(ControlApiClient.DefaultHandler);
+    builder.Services.AddSingleton(sp => ActivatorUtilities.CreateInstance<ControlLoop>(sp, Path.Combine(dataDirectory, "logs"),
+        // Exit with an error so the Windows service recovery settings start the service again.
+        (Action)(() => { Environment.ExitCode = 1; sp.GetRequiredService<IHostApplicationLifetime>().StopApplication(); })));
+    builder.Services.AddSingleton(sp => ActivatorUtilities.CreateInstance<EnrollmentFile>(sp, dataDirectory, version));
     builder.Services.AddHostedService<AgentService>();
     await builder.Build().RunAsync();
     return 0;

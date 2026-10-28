@@ -22,7 +22,7 @@ public sealed record TableRecord(
     long? SnapshotStartSeq);
 
 /// <summary>A buffered envelope waiting for Event Hubs to acknowledge it.</summary>
-public sealed record OutboxEvent(long Id, string SourceId, string Table, string PartitionKey, long Seq, DateTimeOffset CaptureTs, byte[] Payload);
+public sealed record OutboxEvent(long Id, string Hub, string SourceId, string Table, string PartitionKey, long Seq, DateTimeOffset CaptureTs, byte[] Payload);
 
 public sealed record BufferStats(long Bytes, long Count, DateTimeOffset? Oldest);
 
@@ -89,7 +89,7 @@ public sealed class LocalStore : IDisposable
         Exec("""
             CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS outbox (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id INTEGER PRIMARY KEY AUTOINCREMENT, hub TEXT NOT NULL,
                 source_id TEXT NOT NULL, table_name TEXT NOT NULL, partition_key TEXT NOT NULL,
                 seq INTEGER NOT NULL, capture_ts INTEGER NOT NULL, payload BLOB NOT NULL, bytes INTEGER NOT NULL);
             CREATE INDEX IF NOT EXISTS outbox_table ON outbox (source_id, table_name, id);
@@ -109,6 +109,7 @@ public sealed class LocalStore : IDisposable
                 PRIMARY KEY (source_id, table_name, key)) WITHOUT ROWID;
             CREATE TABLE IF NOT EXISTS agent_events (id INTEGER PRIMARY KEY AUTOINCREMENT, body TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS credentials (name TEXT PRIMARY KEY, value BLOB NOT NULL);
+            CREATE TABLE IF NOT EXISTS handled (id TEXT PRIMARY KEY, kind TEXT NOT NULL, at INTEGER NOT NULL);
             """);
         var version = Scalar<long?>("SELECT CAST(value AS INTEGER) FROM meta WHERE key = 'schema_version'");
         if (version is > SchemaVersion) throw new InvalidOperationException($"Store schema {version} is newer than this agent ({SchemaVersion}).");
@@ -201,8 +202,9 @@ public sealed class LocalStore : IDisposable
     /// </summary>
     /// <param name="next">New checkpoint, or null to leave it (reconciliation deletes).</param>
     /// <param name="caughtUp">The read reached the end of the source's changes.</param>
+    /// <param name="hub">Division hub the changes go to (see <see cref="HubKey"/>).</param>
     /// <returns>Bytes added to the buffer.</returns>
-    public long Append(string siteId, string sourceId, string table, IReadOnlyList<RowChange> changes, Checkpoint? next,
+    public long Append(string siteId, string hub, string sourceId, string table, IReadOnlyList<RowChange> changes, Checkpoint? next,
         bool caughtUp, bool trackKeys, DateTimeOffset now)
     {
         lock (_lock)
@@ -212,7 +214,7 @@ public sealed class LocalStore : IDisposable
             var seq = Scalar<long>("SELECT last_seq FROM tables WHERE source_id = $s AND table_name = $t", ("$s", sourceId), ("$t", table));
             long bytes = 0;
             using (var insert = Command(
-                "INSERT INTO outbox (source_id, table_name, partition_key, seq, capture_ts, payload, bytes) VALUES ($s, $t, $p, $seq, $ts, $payload, $bytes)"))
+                "INSERT INTO outbox (hub, source_id, table_name, partition_key, seq, capture_ts, payload, bytes) VALUES ($h, $s, $t, $p, $seq, $ts, $payload, $bytes)"))
             using (var upsertKey = Command("INSERT OR IGNORE INTO row_keys VALUES ($s, $t, $k)"))
             using (var deleteKey = Command("DELETE FROM row_keys WHERE source_id = $s AND table_name = $t AND key = $k"))
             {
@@ -222,7 +224,7 @@ public sealed class LocalStore : IDisposable
                     var envelope = change.ToEnvelope(siteId, sourceId, table, ++seq, now);
                     var payload = EnvelopeJson.SerializeToUtf8(envelope);
                     bytes += payload.Length;
-                    Run(insert, ("$s", sourceId), ("$t", table), ("$p", partitionKey), ("$seq", seq),
+                    Run(insert, ("$h", hub), ("$s", sourceId), ("$t", table), ("$p", partitionKey), ("$seq", seq),
                         ("$ts", now.ToUnixTimeMilliseconds()), ("$payload", payload), ("$bytes", payload.Length));
                     if (trackKeys && change.Op != ChangeOp.SnapshotComplete)
                         Run(change.Op == ChangeOp.Delete ? deleteKey : upsertKey, ("$s", sourceId), ("$t", table), ("$k", ColumnValues.KeyText(change.Key)));
@@ -243,23 +245,26 @@ public sealed class LocalStore : IDisposable
 
     // ---- outbox ----
 
+    /// <summary>How the outbox names a division's hub.</summary>
+    public static string HubKey(Division division) => LakeNames.HubName(division);
+
     /// <summary>Oldest buffered events, at most <paramref name="maxEvents"/> and (after the first) <paramref name="maxBytes"/>.</summary>
     public IReadOnlyList<OutboxEvent> Peek(int maxEvents, long maxBytes)
     {
         lock (_lock)
         {
             using var command = Command(
-                "SELECT id, source_id, table_name, partition_key, seq, capture_ts, payload, bytes FROM outbox ORDER BY id LIMIT $n",
+                "SELECT id, hub, source_id, table_name, partition_key, seq, capture_ts, payload, bytes FROM outbox ORDER BY id LIMIT $n",
                 ("$n", maxEvents));
             using var reader = command.ExecuteReader();
             var events = new List<OutboxEvent>();
             long total = 0;
             while (reader.Read())
             {
-                total += reader.GetInt64(7);
+                total += reader.GetInt64(8);
                 if (events.Count > 0 && total > maxBytes) break;
-                events.Add(new OutboxEvent(reader.GetInt64(0), reader.GetString(1), reader.GetString(2), reader.GetString(3),
-                    reader.GetInt64(4), DateTimeOffset.FromUnixTimeMilliseconds(reader.GetInt64(5)), (byte[])reader[6]));
+                events.Add(new OutboxEvent(reader.GetInt64(0), reader.GetString(1), reader.GetString(2), reader.GetString(3), reader.GetString(4),
+                    reader.GetInt64(5), DateTimeOffset.FromUnixTimeMilliseconds(reader.GetInt64(6)), (byte[])reader[7]));
             }
             return events;
         }
@@ -443,6 +448,42 @@ public sealed class LocalStore : IDisposable
         {
             var value = Scalar<string?>("SELECT value FROM meta WHERE key = 'config'");
             return value is null ? null : EnvelopeJson.Deserialize<AgentConfig>(_protector.Unprotect(Convert.FromBase64String(value)));
+        }
+    }
+
+    // ---- enrollment identity and control API ----
+
+    /// <summary>The agent's certificate and private key (PFX), protected like every other secret here.</summary>
+    public void SaveIdentity(byte[] pfx, string controlApi)
+    {
+        var protectedPfx = Convert.ToBase64String(_protector.Protect(pfx));
+        lock (_lock)
+        {
+            using var tx = _db.BeginTransaction();
+            Exec("INSERT OR REPLACE INTO meta VALUES ('identity', $v)", ("$v", protectedPfx));
+            Exec("INSERT OR REPLACE INTO meta VALUES ('control_api', $v)", ("$v", controlApi));
+            tx.Commit();
+        }
+    }
+
+    public (byte[] Pfx, string ControlApi)? LoadIdentity()
+    {
+        lock (_lock)
+        {
+            var pfx = Scalar<string?>("SELECT value FROM meta WHERE key = 'identity'");
+            var api = Scalar<string?>("SELECT value FROM meta WHERE key = 'control_api'");
+            return pfx is null || api is null ? null : (_protector.Unprotect(Convert.FromBase64String(pfx)), api);
+        }
+    }
+
+    /// <summary>Remembers a command or credential already acted on, so a lost acknowledgement never runs it twice.</summary>
+    public bool MarkHandled(string kind, Guid id, DateTimeOffset now)
+    {
+        lock (_lock)
+        {
+            Exec("DELETE FROM handled WHERE at < $old", ("$old", now.AddDays(-30).ToUnixTimeMilliseconds()));
+            using var command = Command("INSERT OR IGNORE INTO handled VALUES ($id, $k, $at)", ("$id", id.ToString()), ("$k", kind), ("$at", now.ToUnixTimeMilliseconds()));
+            return command.ExecuteNonQuery() == 1;
         }
     }
 

@@ -10,13 +10,17 @@ public class ConfigTests
         AgentId = "agent-stmarys",
         SiteId = "stmarys",
         ConfigVersion = 3,
-        EventHub = new EventHubTarget
-        {
-            FullyQualifiedNamespace = "lakeflow.servicebus.windows.net",
-            HubName = "grain",
-            SasToken = "SharedAccessSignature sr=...",
-            SasExpiresUtc = DateTimeOffset.UtcNow.AddHours(24),
-        },
+        EventHubs =
+        [
+            new EventHubTarget
+            {
+                Division = Division.Grain,
+                FullyQualifiedNamespace = "lakeflow.servicebus.windows.net",
+                HubName = "grain",
+                SasToken = "SharedAccessSignature sr=...",
+                SasExpiresUtc = DateTimeOffset.UtcNow.AddHours(24),
+            },
+        ],
         Sources =
         [
             new SourceConfig
@@ -88,6 +92,15 @@ public class ConfigTests
     }
 
     [Fact]
+    public void Every_source_division_needs_a_hub()
+    {
+        var config = Valid();
+        var agronomy = config.Sources[0] with { SourceId = "kahler", Division = Division.Agronomy };
+        Assert.Contains(ConfigValidator.Validate(config with { Sources = [.. config.Sources, agronomy] }),
+            e => e.Contains("no event hub for division Agronomy"));
+    }
+
+    [Fact]
     public void Table_commands_need_a_target()
     {
         var config = Valid() with
@@ -105,7 +118,7 @@ public class ConfigTests
         Assert.Equal(config.Sources[0].Tables[1].WatermarkColumn, copy.Sources[0].Tables[1].WatermarkColumn);
         Assert.Equal(CaptureMethod.TimestampPolling, copy.Sources[0].Tables[1].Method);
         Assert.Contains("\"engine\":\"sql_server\"", EnvelopeJson.Serialize(config));
-        Assert.DoesNotContain("SharedAccessSignature", config.EventHub.ToString());
+        Assert.DoesNotContain("SharedAccessSignature", config.EventHubs[0].ToString());
     }
 
     [Theory]

@@ -7,41 +7,60 @@ using Lakeflow.Contracts;
 namespace Lakeflow.Agent.Delivery;
 
 /// <summary>
-/// Azure Event Hubs over AMQP on WebSockets (outbound HTTPS 443 only), authenticated with the agent's Send-only
-/// SAS token for its own hub.
+/// Azure Event Hubs over AMQP on WebSockets (outbound HTTPS 443 only), one producer per division hub, each
+/// authenticated with the agent's Send-only SAS token for that hub.
 /// </summary>
 public sealed class EventHubsSender : IEventSender
 {
-    private EventHubProducerClient? _client;
-    private AzureSasCredential? _credential;
-    private EventHubTarget? _target;
+    private sealed record Producer(EventHubTarget Target, AzureSasCredential Credential, EventHubProducerClient Client);
 
-    public void UpdateTarget(EventHubTarget target)
+    private readonly Dictionary<string, Producer> _producers = new(StringComparer.Ordinal);
+    private readonly object _lock = new();
+
+    public void UpdateTargets(IReadOnlyList<EventHubTarget> targets)
     {
-        if (_client is not null && _target is not null
-            && _target.FullyQualifiedNamespace == target.FullyQualifiedNamespace && _target.HubName == target.HubName)
+        var retired = new List<EventHubProducerClient>();
+        lock (_lock)
         {
-            if (_target.SasToken != target.SasToken) _credential!.Update(target.SasToken);
-            _target = target;
-            return;
+            var wanted = targets.ToDictionary(t => LocalStore.HubKey(t.Division));
+            foreach (var key in _producers.Keys.Where(k => !wanted.ContainsKey(k)).ToList())
+            {
+                retired.Add(_producers[key].Client);
+                _producers.Remove(key);
+            }
+            foreach (var (key, target) in wanted)
+            {
+                if (_producers.TryGetValue(key, out var current)
+                    && current.Target.FullyQualifiedNamespace == target.FullyQualifiedNamespace && current.Target.HubName == target.HubName)
+                {
+                    if (current.Target.SasToken != target.SasToken) current.Credential.Update(target.SasToken);
+                    _producers[key] = current with { Target = target };
+                    continue;
+                }
+                if (current is not null) retired.Add(current.Client);
+                var credential = new AzureSasCredential(target.SasToken);
+                var client = new EventHubProducerClient(target.FullyQualifiedNamespace, target.HubName, credential, new EventHubProducerClientOptions
+                {
+                    ConnectionOptions = new EventHubConnectionOptions { TransportType = EventHubsTransportType.AmqpWebSockets },
+                    // The delivery loop owns retries and back-off; fail fast here.
+                    RetryOptions = new EventHubsRetryOptions { MaximumRetries = 1, TryTimeout = TimeSpan.FromSeconds(30) },
+                    Identifier = "lakeflow-agent",
+                });
+                _producers[key] = new Producer(target, credential, client);
+            }
         }
-        var old = _client;
-        _credential = new AzureSasCredential(target.SasToken);
-        _client = new EventHubProducerClient(target.FullyQualifiedNamespace, target.HubName, _credential, new EventHubProducerClientOptions
-        {
-            ConnectionOptions = new EventHubConnectionOptions { TransportType = EventHubsTransportType.AmqpWebSockets },
-            // The delivery loop owns retries and back-off; fail fast here.
-            RetryOptions = new EventHubsRetryOptions { MaximumRetries = 1, TryTimeout = TimeSpan.FromSeconds(30) },
-            Identifier = "lakeflow-agent",
-        });
-        _target = target;
-        if (old is not null) _ = old.DisposeAsync().AsTask();
+        foreach (var client in retired) _ = client.DisposeAsync().AsTask();
     }
 
-    public async Task<int> SendAsync(string partitionKey, IReadOnlyList<OutboxEvent> events, CancellationToken cancellationToken)
+    public async Task<int> SendAsync(string hub, string partitionKey, IReadOnlyList<OutboxEvent> events, CancellationToken cancellationToken)
     {
-        var client = _client ?? throw new InvalidOperationException("No Event Hubs target configured yet.");
-        using var batch = await client.CreateBatchAsync(new CreateBatchOptions { PartitionKey = partitionKey }, cancellationToken);
+        Producer producer;
+        lock (_lock)
+        {
+            if (!_producers.TryGetValue(hub, out producer!))
+                throw new InvalidOperationException($"No Event Hubs target for hub '{hub}' in the current config.");
+        }
+        using var batch = await producer.Client.CreateBatchAsync(new CreateBatchOptions { PartitionKey = partitionKey }, cancellationToken);
         var added = 0;
         foreach (var outboxEvent in events)
         {
@@ -58,12 +77,18 @@ public sealed class EventHubsSender : IEventSender
             }
             added++;
         }
-        await client.SendAsync(batch, cancellationToken);
+        await producer.Client.SendAsync(batch, cancellationToken);
         return added;
     }
 
     public async ValueTask DisposeAsync()
     {
-        if (_client is not null) await _client.DisposeAsync();
+        List<Producer> producers;
+        lock (_lock)
+        {
+            producers = [.. _producers.Values];
+            _producers.Clear();
+        }
+        foreach (var producer in producers) await producer.Client.DisposeAsync();
     }
 }

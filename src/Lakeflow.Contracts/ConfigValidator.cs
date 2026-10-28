@@ -31,8 +31,12 @@ public static partial class ConfigValidator
         if (config.ConfigVersion < 1) errors.Add("config_version must be 1 or more.");
         if (config.ConfigPollSeconds is < 10 or > 3600) errors.Add("config_poll_seconds must be 10–3600.");
         if (config.HeartbeatSeconds is < 5 or > 300) errors.Add("heartbeat_seconds must be 5–300.");
-        if (string.IsNullOrWhiteSpace(config.EventHub.FullyQualifiedNamespace)) errors.Add("event_hub namespace is required.");
-        if (string.IsNullOrWhiteSpace(config.EventHub.HubName)) errors.Add("event_hub hub_name is required.");
+        foreach (var hub in config.EventHubs)
+        {
+            if (string.IsNullOrWhiteSpace(hub.FullyQualifiedNamespace)) errors.Add($"event_hubs {hub.Division}: namespace is required.");
+            if (string.IsNullOrWhiteSpace(hub.HubName)) errors.Add($"event_hubs {hub.Division}: hub_name is required.");
+        }
+        if (config.EventHubs.GroupBy(h => h.Division).Any(g => g.Count() > 1)) errors.Add("event_hubs lists a division twice.");
         if (config.Buffer.CapBytes < 10L * 1024 * 1024) errors.Add("buffer cap_bytes must be at least 10 MB.");
         if (config.Buffer.AlertPercent is < 1 or > 99) errors.Add("buffer alert_percent must be 1–99.");
         if (config.Buffer.SendBatchMaxEvents is < 1 or > 5000) errors.Add("buffer send_batch_max_events must be 1–5000.");
@@ -44,6 +48,7 @@ public static partial class ConfigValidator
             CheckId(errors, "source_id", source.SourceId);
             CheckId(errors, $"{where} source_system", source.SourceSystem);
             if (!sourceIds.Add(source.SourceId)) errors.Add($"{where} is listed twice.");
+            if (config.HubFor(source.Division) is null) errors.Add($"{where}: no event hub for division {source.Division}.");
             if (string.IsNullOrWhiteSpace(source.Connection.Host)) errors.Add($"{where}: host is required.");
             if (source.Connection.Port is < 1 or > 65535) errors.Add($"{where}: port must be 1–65535.");
             if (source.Engine != SourceEngine.Files && source.Engine != SourceEngine.Access

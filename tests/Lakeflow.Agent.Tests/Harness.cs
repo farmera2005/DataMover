@@ -81,11 +81,21 @@ public sealed class Harness : IAsyncDisposable
         AgentId = "agent-test",
         SiteId = "stmarys",
         ConfigVersion = 1,
-        EventHub = new EventHubTarget
-        {
-            FullyQualifiedNamespace = "test.servicebus.windows.net", HubName = "grain",
-            SasToken = "sas", SasExpiresUtc = DateTimeOffset.MaxValue,
-        },
+        EventHubs =
+        [
+            new EventHubTarget
+            {
+                Division = Division.Grain,
+                FullyQualifiedNamespace = "test.servicebus.windows.net", HubName = "grain",
+                SasToken = "sas", SasExpiresUtc = DateTimeOffset.MaxValue,
+            },
+            new EventHubTarget
+            {
+                Division = Division.Agronomy,
+                FullyQualifiedNamespace = "test.servicebus.windows.net", HubName = "agronomy",
+                SasToken = "sas", SasExpiresUtc = DateTimeOffset.MaxValue,
+            },
+        ],
         Sources = sources,
     };
 

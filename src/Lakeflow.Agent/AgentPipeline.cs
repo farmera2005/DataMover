@@ -50,7 +50,7 @@ public sealed class AgentPipeline : IAsyncDisposable
         await _captureGate.WaitAsync();
         try
         {
-            _sender.UpdateTarget(config.EventHub);
+            _sender.UpdateTargets(config.EventHubs);
             var wanted = config.Sources.ToDictionary(s => s.SourceId, StringComparer.Ordinal);
             foreach (var gone in _workers.Keys.Where(id => !wanted.ContainsKey(id)).ToList())
             {
@@ -129,6 +129,13 @@ public sealed class AgentPipeline : IAsyncDisposable
             if (sent == 0) break;
         }
         return total;
+    }
+
+    /// <summary>Lets a backed-off source try again now (e.g. once its password has arrived).</summary>
+    public void RetrySourceSoon(string sourceId)
+    {
+        if (_workers.TryGetValue(sourceId, out var worker))
+            foreach (var table in worker.Tables.Keys) worker.RunTableSoon(table);
     }
 
     public async Task<AgentEvent> ExecuteAsync(AgentCommand command)

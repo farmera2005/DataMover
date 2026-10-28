@@ -38,7 +38,8 @@ public sealed record AgentConfig
     /// <summary>Version the console wants this agent on; null keeps the current one.</summary>
     public string? DesiredAgentVersion { get; init; }
     public MaintenanceWindow? MaintenanceWindow { get; init; }
-    public required EventHubTarget EventHub { get; init; }
+    /// <summary>One target per division this site's sources belong to (one hub per division).</summary>
+    public required IReadOnlyList<EventHubTarget> EventHubs { get; init; }
     public BufferSettings Buffer { get; init; } = new();
     /// <summary>The site's time zone, for the maintenance window and the nightly delete reconciliation.</summary>
     public string SiteTimeZone { get; init; } = "America/New_York";
@@ -49,7 +50,16 @@ public sealed record AgentConfig
     public IReadOnlyList<SourceConfig> Sources { get; init; } = [];
     /// <summary>Commands queued since the agent last acknowledged; delivered on the config poll.</summary>
     public IReadOnlyList<AgentCommand> Commands { get; init; } = [];
+    /// <summary>Source passwords entered in the console, sealed to this agent's certificate; delivered until acknowledged.</summary>
+    public IReadOnlyList<SealedCredential> Credentials { get; init; } = [];
+
+    public EventHubTarget? HubFor(Division division) => EventHubs.FirstOrDefault(h => h.Division == division);
 }
+
+/// <param name="Id">Acknowledged by an <see cref="AgentEventKind.CredentialStored"/> event carrying it in <c>details.credential_id</c>.</param>
+/// <param name="Name">The <see cref="ConnectionSettings.CredentialName"/> it fills.</param>
+/// <param name="Sealed">Output of <see cref="SealedSecret.Seal"/>; only this agent's private key opens it.</param>
+public sealed record SealedCredential(Guid Id, string Name, string Sealed);
 
 /// <summary>Daily window, in <see cref="AgentConfig.SiteTimeZone"/>, when the agent may self-update.</summary>
 public sealed record MaintenanceWindow(TimeOnly Start, TimeOnly End);
@@ -60,6 +70,7 @@ public sealed record MaintenanceWindow(TimeOnly Start, TimeOnly End);
 /// </summary>
 public sealed record EventHubTarget
 {
+    public required Division Division { get; init; }
     /// <summary>e.g. <c>lakeflow-prod.servicebus.windows.net</c>.</summary>
     public required string FullyQualifiedNamespace { get; init; }
     public required string HubName { get; init; }

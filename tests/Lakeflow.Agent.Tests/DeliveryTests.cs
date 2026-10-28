@@ -19,6 +19,7 @@ public sealed class DeliveryTests : IDisposable
     public DeliveryTests()
     {
         _store = LocalStore.Open(_dir, new TestProtector());
+        _sender.UpdateTargets(Harness.Config().EventHubs);
         _loop = new DeliveryLoop(_store, _sender, _time, NullLogger<DeliveryLoop>.Instance, new Random(1));
     }
 
@@ -27,7 +28,7 @@ public sealed class DeliveryTests : IDisposable
         var changes = Enumerable.Range(1, count)
             .Select(i => new RowChange(ChangeOp.Insert, new JsonObject { ["id"] = i }, null, new JsonObject { ["id"] = i, ["v"] = new string('x', size) }))
             .ToList();
-        _store.Append("site", "src", table, changes, null, true, false, _time.GetUtcNow());
+        _store.Append("site", "grain", "src", table, changes, null, true, false, _time.GetUtcNow());
     }
 
     [Fact]

@@ -23,7 +23,7 @@ public sealed class LocalStoreTests : IDisposable
     {
         using (var store = LocalStore.Open(_dir, _protector))
         {
-            store.Append("site", "src", "dbo.T", [Change(1, "TICKET-SECRET-4711")], Cp("1"), true, false, Now);
+            store.Append("site", "grain", "src", "dbo.T", [Change(1, "TICKET-SECRET-4711")], Cp("1"), true, false, Now);
             store.SetCredential("cw", "PASSWORD-XYZZY");
             store.SaveConfig(Harness.Config());
         }
@@ -57,7 +57,7 @@ public sealed class LocalStoreTests : IDisposable
     {
         using (var store = LocalStore.Open(_dir, _protector))
         {
-            store.Append("site", "src", "dbo.T", [Change(1, "a"), Change(2, "b")], Cp("7"), true, false, Now);
+            store.Append("site", "grain", "src", "dbo.T", [Change(1, "a"), Change(2, "b")], Cp("7"), true, false, Now);
         }
         using (var store = LocalStore.Open(_dir, _protector))
         {
@@ -69,7 +69,7 @@ public sealed class LocalStoreTests : IDisposable
             store.ResetCheckpoint("src", "dbo.T");
             Assert.Null(store.GetTable("src", "dbo.T").Checkpoint);
             Assert.Equal(3, store.StartSnapshot("src", "dbo.T"));
-            store.Append("site", "src", "dbo.T", [Change(1, "a")], null, false, false, Now);
+            store.Append("site", "grain", "src", "dbo.T", [Change(1, "a")], null, false, false, Now);
             Assert.Equal(3, store.GetTable("src", "dbo.T").LastSeq);
             Assert.Null(store.GetTable("src", "dbo.T").Checkpoint); // null leaves it as it was
 
@@ -82,7 +82,7 @@ public sealed class LocalStoreTests : IDisposable
     public void Outbox_is_drained_only_by_acknowledgement()
     {
         using var store = LocalStore.Open(_dir, _protector);
-        store.Append("site", "src", "dbo.T", Enumerable.Range(1, 5).Select(i => Change(i, "x")).ToList(), Cp("1"), true, false, Now);
+        store.Append("site", "grain", "src", "dbo.T", Enumerable.Range(1, 5).Select(i => Change(i, "x")).ToList(), Cp("1"), true, false, Now);
         var stats = store.GetBufferStats();
         Assert.Equal(5, stats.Count);
         Assert.Equal(Now, stats.Oldest);
@@ -103,7 +103,7 @@ public sealed class LocalStoreTests : IDisposable
     public void Peek_respects_the_byte_budget_but_always_returns_one()
     {
         using var store = LocalStore.Open(_dir, _protector);
-        store.Append("site", "src", "dbo.T", [Change(1, new string('x', 5000)), Change(2, "y")], Cp("1"), true, false, Now);
+        store.Append("site", "grain", "src", "dbo.T", [Change(1, new string('x', 5000)), Change(2, "y")], Cp("1"), true, false, Now);
         Assert.Single(store.Peek(10, 100));
     }
 
@@ -111,8 +111,8 @@ public sealed class LocalStoreTests : IDisposable
     public async Task Finds_keys_no_longer_at_the_source()
     {
         using var store = LocalStore.Open(_dir, _protector);
-        store.Append("site", "src", "dbo.T", Enumerable.Range(1, 6).Select(i => Change(i, "x")).ToList(), Cp("1"), true, trackKeys: true, Now);
-        store.Append("site", "src", "dbo.T", [new RowChange(ChangeOp.Delete, new JsonObject { ["id"] = 6 }, null, null)], Cp("2"), true, trackKeys: true, Now);
+        store.Append("site", "grain", "src", "dbo.T", Enumerable.Range(1, 6).Select(i => Change(i, "x")).ToList(), Cp("1"), true, trackKeys: true, Now);
+        store.Append("site", "grain", "src", "dbo.T", [new RowChange(ChangeOp.Delete, new JsonObject { ["id"] = 6 }, null, null)], Cp("2"), true, trackKeys: true, Now);
         Assert.Equal(5, store.KeyCount("src", "dbo.T"));
 
         var missing = await store.FindMissingKeysAsync("src", "dbo.T", Keys(1, 3, 5), CancellationToken.None);

@@ -199,7 +199,7 @@ internal sealed class SourceWorker : IAsyncDisposable
                 break; // one batch per run; the next run resumes from the stored checkpoint
             }
             var changes = batch!.Next.IsSnapshotComplete ? [.. batch.Changes, RowChange.SnapshotCompleted(startSeq.Value)] : batch.Changes;
-            _store.Append(agent.SiteId, Config.SourceId, name, changes, batch.Next, caughtUp: false, trackKeys, now);
+            _store.Append(agent.SiteId, LocalStore.HubKey(Config.Division), Config.SourceId, name, changes, batch.Next, caughtUp: false, trackKeys, now);
             rows = batch.Changes.Count;
             hasMore = batch.HasMore || !batch.Next.IsSnapshotComplete;
             if (batch.Next.IsSnapshotComplete)
@@ -212,7 +212,7 @@ internal sealed class SourceWorker : IAsyncDisposable
         else
         {
             var batch = await connector.ReadChangesAsync(table, schema, checkpoint, BatchRows, ct);
-            _store.Append(agent.SiteId, Config.SourceId, name, batch.Changes, batch.Next, caughtUp: !batch.HasMore, trackKeys, now);
+            _store.Append(agent.SiteId, LocalStore.HubKey(Config.Division), Config.SourceId, name, batch.Changes, batch.Next, caughtUp: !batch.HasMore, trackKeys, now);
             rows = batch.Changes.Count;
             hasMore = batch.HasMore;
             if (!hasMore && trackKeys && ReconcileDue(agent, record, now))
@@ -241,7 +241,7 @@ internal sealed class SourceWorker : IAsyncDisposable
         var keys = KeyTexts(reader.ReadKeysAsync(table, schema, ct));
         var missing = await _store.FindMissingKeysAsync(Config.SourceId, name, keys, ct);
         var deletes = missing.Select(k => new RowChange(ChangeOp.Delete, JsonNode.Parse(k)!.AsObject(), null, null)).ToList();
-        _store.Append(agent.SiteId, Config.SourceId, name, deletes, next: null, caughtUp: false, trackKeys: true, now);
+        _store.Append(agent.SiteId, LocalStore.HubKey(Config.Division), Config.SourceId, name, deletes, next: null, caughtUp: false, trackKeys: true, now);
         var zone = TimeZoneInfo.FindSystemTimeZoneById(agent.SiteTimeZone);
         _store.SetReconciled(Config.SourceId, name, DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(now, zone).DateTime));
         _log.LogInformation("Delete reconciliation found {Deleted} deleted rows", deletes.Count);

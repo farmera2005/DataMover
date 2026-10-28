@@ -1,20 +1,26 @@
+using Lakeflow.Agent.Control;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Lakeflow.Agent;
 
-/// <summary>Runs capture and delivery on their own loops, so a slow source never delays sending and vice versa.</summary>
-public sealed class AgentService(AgentPipeline pipeline, ILogger<AgentService> log) : BackgroundService
+/// <summary>
+/// Runs capture, delivery and the control-plane exchange on their own loops, so a slow source never delays sending,
+/// and an unreachable control API never stops either.
+/// </summary>
+public sealed class AgentService(AgentPipeline pipeline, ControlLoop control, EnrollmentFile enrollment, ILogger<AgentService> log) : BackgroundService
 {
     private static readonly TimeSpan Tick = TimeSpan.FromSeconds(1);
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        await enrollment.EnrollIfPendingAsync(control, stoppingToken);
         if (!await pipeline.LoadCachedConfigAsync())
-            log.LogWarning("No config yet; waiting for enrollment and the first config from the control API");
+            log.LogWarning("No config yet; waiting for the first config from the control API");
         await Task.WhenAll(
             LoopAsync("capture", pipeline.RunCaptureOnceAsync, stoppingToken),
-            LoopAsync("delivery", async ct => await pipeline.RunDeliveryOnceAsync(ct), stoppingToken));
+            LoopAsync("delivery", async ct => await pipeline.RunDeliveryOnceAsync(ct), stoppingToken),
+            LoopAsync("control", control.RunOnceAsync, stoppingToken));
     }
 
     private async Task LoopAsync(string name, Func<CancellationToken, Task> step, CancellationToken ct)

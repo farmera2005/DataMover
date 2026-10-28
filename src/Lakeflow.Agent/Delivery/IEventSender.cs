@@ -6,14 +6,14 @@ namespace Lakeflow.Agent.Delivery;
 /// <summary>Sends buffered envelopes; returns once the service has acknowledged them.</summary>
 public interface IEventSender : IAsyncDisposable
 {
-    /// <summary>Points the sender at a new hub or SAS token (rotated every 24 hours).</summary>
-    void UpdateTarget(EventHubTarget target);
+    /// <summary>Points the sender at the division hubs and their SAS tokens (rotated every 24 hours).</summary>
+    void UpdateTargets(IReadOnlyList<EventHubTarget> targets);
 
     /// <summary>
-    /// Sends a prefix of <paramref name="events"/> (all with the same partition key) as one batch.
+    /// Sends a prefix of <paramref name="events"/> (all for one hub and partition key) as one batch.
     /// Returns how many were sent and acknowledged; throws when none could be.
     /// </summary>
-    Task<int> SendAsync(string partitionKey, IReadOnlyList<OutboxEvent> events, CancellationToken cancellationToken);
+    Task<int> SendAsync(string hub, string partitionKey, IReadOnlyList<OutboxEvent> events, CancellationToken cancellationToken);
 }
 
 /// <summary>The event can never be accepted (e.g. over the 1 MB Event Hubs limit); retrying will not help.</summary>

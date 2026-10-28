@@ -33,8 +33,8 @@ public sealed class DeliveryLoop(LocalStore store, IEventSender sender, TimeProv
         var sent = 0;
         try
         {
-            // Group by partition key, keeping each key's events in buffer order.
-            foreach (var group in pending.GroupBy(e => e.PartitionKey))
+            // Group by hub and partition key, keeping each key's events in buffer order.
+            foreach (var group in pending.GroupBy(e => (e.Hub, e.PartitionKey)))
             {
                 var events = group.ToList();
                 while (events.Count > 0)
@@ -42,7 +42,7 @@ public sealed class DeliveryLoop(LocalStore store, IEventSender sender, TimeProv
                     int count;
                     try
                     {
-                        count = await sender.SendAsync(group.Key, events, ct);
+                        count = await sender.SendAsync(group.Key.Hub, group.Key.PartitionKey, events, ct);
                     }
                     catch (EventRejectedException rejected)
                     {
