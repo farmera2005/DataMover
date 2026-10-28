@@ -13,6 +13,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lakeflow.Testing", "tests\L
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lakeflow.Contracts.Tests", "tests\Lakeflow.Contracts.Tests\Lakeflow.Contracts.Tests.csproj", "{0A9481D2-B867-48FE-B1DE-D378A4C50E49}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lakeflow.Connectors.SqlServer", "src\Lakeflow.Connectors.SqlServer\Lakeflow.Connectors.SqlServer.csproj", "{94EB7CE6-A628-4A05-A501-3A41D8FCCCD6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lakeflow.Connectors.SqlServer.Tests", "tests\Lakeflow.Connectors.SqlServer.Tests\Lakeflow.Connectors.SqlServer.Tests.csproj", "{AD942728-6D18-42C5-8989-0449943368C7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -34,10 +38,20 @@ Global
 		{0A9481D2-B867-48FE-B1DE-D378A4C50E49}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0A9481D2-B867-48FE-B1DE-D378A4C50E49}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0A9481D2-B867-48FE-B1DE-D378A4C50E49}.Release|Any CPU.Build.0 = Release|Any CPU
+		{94EB7CE6-A628-4A05-A501-3A41D8FCCCD6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{94EB7CE6-A628-4A05-A501-3A41D8FCCCD6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{94EB7CE6-A628-4A05-A501-3A41D8FCCCD6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{94EB7CE6-A628-4A05-A501-3A41D8FCCCD6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AD942728-6D18-42C5-8989-0449943368C7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AD942728-6D18-42C5-8989-0449943368C7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AD942728-6D18-42C5-8989-0449943368C7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AD942728-6D18-42C5-8989-0449943368C7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{4FF28D4E-7FBF-415F-822D-4FDF6FE1B070} = {21A4CA33-AB6E-4ADD-919E-A0F55F62D405}
 		{567A9326-9B59-4819-A9B4-BFC029617C2A} = {EC47B290-605C-4C6D-9960-BE0B65C92098}
 		{0A9481D2-B867-48FE-B1DE-D378A4C50E49} = {EC47B290-605C-4C6D-9960-BE0B65C92098}
+		{94EB7CE6-A628-4A05-A501-3A41D8FCCCD6} = {21A4CA33-AB6E-4ADD-919E-A0F55F62D405}
+		{AD942728-6D18-42C5-8989-0449943368C7} = {EC47B290-605C-4C6D-9960-BE0B65C92098}
 	EndGlobalSection
 EndGlobal

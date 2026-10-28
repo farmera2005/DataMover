@@ -15,12 +15,18 @@ public abstract class ConnectorContractTests : IAsyncLifetime
 
     protected abstract Task<IContractTestBed> CreateBedAsync();
 
-    public async Task InitializeAsync() => Bed = await CreateBedAsync();
+    /// <summary>Why this bed cannot run here (e.g. no test database configured); the tests are skipped.</summary>
+    protected virtual string? SkipReason => null;
+
+    public async Task InitializeAsync()
+    {
+        if (SkipReason is null) Bed = await CreateBedAsync();
+    }
 
     public async Task DisposeAsync()
     {
         foreach (var connector in _connectors) await connector.DisposeAsync();
-        await Bed.DisposeAsync();
+        if (Bed is not null) await Bed.DisposeAsync();
     }
 
     private ISourceConnector Connect()
@@ -32,6 +38,7 @@ public abstract class ConnectorContractTests : IAsyncLifetime
 
     private async Task<(TableConfig Table, ExpectedTable Expected)> NewTableAsync()
     {
+        Skip.If(SkipReason is not null, SkipReason);
         var table = await Bed.CreateTableAsync($"contract_{Interlocked.Increment(ref _tableCounter)}_{Guid.NewGuid():N}"[..30]);
         return (table, new ExpectedTable(Bed, table));
     }
@@ -86,7 +93,7 @@ public abstract class ConnectorContractTests : IAsyncLifetime
             replica.Apply(new RowChange(ChangeOp.Delete, gone, null, null));
     }
 
-    [Fact]
+    [SkippableFact]
     public async Task Schema_reports_columns_and_primary_key()
     {
         var (table, _) = await NewTableAsync();
@@ -98,7 +105,7 @@ public abstract class ConnectorContractTests : IAsyncLifetime
         Assert.True(schema.Find("name")!.Nullable);
     }
 
-    [Fact]
+    [SkippableFact]
     public async Task Snapshot_copies_every_row_in_bounded_batches()
     {
         var (table, expected) = await NewTableAsync();
@@ -111,7 +118,7 @@ public abstract class ConnectorContractTests : IAsyncLifetime
         expected.AssertMatches(replica);
     }
 
-    [Fact]
+    [SkippableFact]
     public async Task Snapshot_of_empty_table_ends_ready_for_changes()
     {
         var (table, expected) = await NewTableAsync();
@@ -125,7 +132,7 @@ public abstract class ConnectorContractTests : IAsyncLifetime
         expected.AssertMatches(replica);
     }
 
-    [Fact]
+    [SkippableFact]
     public async Task Incremental_captures_inserts_and_updates()
     {
         var (table, expected) = await NewTableAsync();
@@ -151,7 +158,7 @@ public abstract class ConnectorContractTests : IAsyncLifetime
         expected.AssertMatches(replica);
     }
 
-    [Fact]
+    [SkippableFact]
     public async Task Deletes_are_captured()
     {
         var (table, expected) = await NewTableAsync();
@@ -170,7 +177,7 @@ public abstract class ConnectorContractTests : IAsyncLifetime
         Assert.Null(replica.Get(3));
     }
 
-    [Fact]
+    [SkippableFact]
     public async Task Changes_made_during_a_snapshot_are_not_lost()
     {
         var (table, expected) = await NewTableAsync();
@@ -198,7 +205,7 @@ public abstract class ConnectorContractTests : IAsyncLifetime
         expected.AssertMatches(replica);
     }
 
-    [Fact]
+    [SkippableFact]
     public async Task Interrupted_snapshot_resumes_from_its_checkpoint()
     {
         var (table, expected) = await NewTableAsync();
@@ -229,7 +236,7 @@ public abstract class ConnectorContractTests : IAsyncLifetime
         expected.AssertMatches(replica);
     }
 
-    [Fact]
+    [SkippableFact]
     public async Task Restarted_connector_resumes_incremental_capture_from_its_checkpoint()
     {
         var (table, expected) = await NewTableAsync();
@@ -261,7 +268,33 @@ public abstract class ConnectorContractTests : IAsyncLifetime
         expected.AssertMatches(replica);
     }
 
-    [Fact]
+    [SkippableFact]
+    public async Task Retrying_from_an_older_checkpoint_returns_the_changes_again()
+    {
+        // The agent stores a checkpoint only after the batch is buffered; if buffering fails it retries from the
+        // old checkpoint on the same connector, and nothing may be held back as "already sent".
+        var (table, expected) = await NewTableAsync();
+        for (var id = 1; id <= 3; id++) await expected.InsertAsync(id, $"row {id}", id);
+        var connector = Connect();
+        var replica = new Replica();
+        var checkpoint = await SnapshotAllAsync(connector, table, replica);
+        await expected.InsertAsync(4, "new", 4m);
+        await expected.UpdateAsync(1, "changed", 1.5m);
+        await Bed.SettleAsync();
+        var schema = await connector.GetSchemaAsync(table.Table, CancellationToken.None);
+
+        // Look-back methods may also repeat unchanged rows; rows 1 and 4 must be there both times.
+        var lost = await connector.ReadChangesAsync(table, schema, checkpoint, 100, CancellationToken.None);
+        Assert.Subset(lost.Changes.Select(c => c.Key["id"]!.GetValue<int>()).ToHashSet(), new HashSet<int> { 1, 4 });
+        var retried = await connector.ReadChangesAsync(table, schema, checkpoint, 100, CancellationToken.None);
+        Assert.Subset(retried.Changes.Select(c => c.Key["id"]!.GetValue<int>()).ToHashSet(), new HashSet<int> { 1, 4 });
+
+        replica.Apply(retried.Changes);
+        await CatchUpAsync(connector, table, retried.Next, replica);
+        expected.AssertMatches(replica);
+    }
+
+    [SkippableFact]
     public async Task Added_column_is_captured_automatically()
     {
         var (table, expected) = await NewTableAsync();
@@ -284,7 +317,7 @@ public abstract class ConnectorContractTests : IAsyncLifetime
         expected.AssertMatches(replica);
     }
 
-    [Fact]
+    [SkippableFact]
     public async Task Dropped_or_retyped_column_is_a_breaking_change()
     {
         var (table, expected) = await NewTableAsync();
