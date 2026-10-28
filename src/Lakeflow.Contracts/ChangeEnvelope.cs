@@ -16,6 +16,11 @@ public enum ChangeOp
     /// the site's rows of this table whose latest seq is lower (rows deleted while the table was not tracked).
     /// </summary>
     SnapshotComplete,
+    /// <summary>
+    /// Control marker sent nightly after a catch-up read. <c>after</c> holds <c>row_count</c> and <c>key_checksum</c>
+    /// (see <see cref="KeyChecksum"/>) of the source table; silver compares them with its own rows at this seq.
+    /// </summary>
+    Reconcile,
 }
 
 /// <summary>
@@ -30,11 +35,18 @@ public sealed record ChangeEnvelope
     public int EnvelopeVersion { get; init; } = CurrentVersion;
     public required string SiteId { get; init; }
     public required string SourceId { get; init; }
+    /// <summary>The site system, shared across sites (names the bronze and silver tables).</summary>
+    public required string SourceSystem { get; init; }
     /// <summary>Source-qualified table name, e.g. <c>dbo.Tickets</c>.</summary>
     public required string Table { get; init; }
     public required ChangeOp Op { get; init; }
-    /// <summary>Primary-key column values; always present.</summary>
+    /// <summary>Primary-key column values; always present (empty for control markers).</summary>
     public required JsonObject Key { get; init; }
+    /// <summary>
+    /// The key as one canonical string (<see cref="ColumnValues.KeyText"/>): what silver matches rows on and
+    /// checksums, independent of how the key object is re-encoded on the way.
+    /// </summary>
+    public required string KeyId { get; init; }
     /// <summary>Row before the change, when the capture method provides it.</summary>
     public JsonObject? Before { get; init; }
     /// <summary>Row after the change; null for deletes.</summary>

@@ -78,7 +78,7 @@ public sealed class SqlServerEndToEndTests : IAsyncDisposable
         Assert.Equal(0, _store.GetBufferStats().Count);
 
         var silver = new Dictionary<int, JsonObject>();
-        foreach (var e in _sender.Received.Where(e => e.Op != ChangeOp.SnapshotComplete).OrderBy(e => e.Seq))
+        foreach (var e in _sender.Received.Where(e => e.Op is not (ChangeOp.SnapshotComplete or ChangeOp.Reconcile)).OrderBy(e => e.Seq))
         {
             var id = e.Key["TicketId"]!.GetValue<int>();
             if (e.Op == ChangeOp.Delete) silver.Remove(id); else silver[id] = e.After!;

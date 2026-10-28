@@ -20,14 +20,18 @@ public sealed class AgentPipeline : IAsyncDisposable
     private readonly ILogger _log;
     private readonly Dictionary<string, SourceWorker> _workers = new(StringComparer.Ordinal);
     private readonly SemaphoreSlim _captureGate = new(1, 1);
+    private readonly Random _random;
     private bool _bufferAlerted;
     private bool _bufferFull;
 
-    public AgentPipeline(LocalStore store, IConnectorFactory factory, IEventSender sender, TimeProvider time, ILoggerFactory loggers, string agentVersion)
+    /// <param name="random">Jitter for retry back-off; tests pass a seeded one for repeatable runs.</param>
+    public AgentPipeline(LocalStore store, IConnectorFactory factory, IEventSender sender, TimeProvider time, ILoggerFactory loggers,
+        string agentVersion, Random? random = null)
     {
         (_store, _factory, _sender, _time, _loggers, AgentVersion) = (store, factory, sender, time, loggers, agentVersion);
+        _random = random ?? Random.Shared;
         _log = loggers.CreateLogger<AgentPipeline>();
-        Delivery = new DeliveryLoop(store, sender, time, loggers.CreateLogger<DeliveryLoop>());
+        Delivery = new DeliveryLoop(store, sender, time, loggers.CreateLogger<DeliveryLoop>(), _random);
     }
 
     public string AgentVersion { get; }
@@ -60,7 +64,7 @@ public sealed class AgentPipeline : IAsyncDisposable
             foreach (var (id, source) in wanted)
             {
                 if (_workers.TryGetValue(id, out var worker)) await worker.UpdateAsync(source);
-                else _workers[id] = new SourceWorker(source, _store, _factory, _time, _loggers.CreateLogger<SourceWorker>());
+                else _workers[id] = new SourceWorker(source, _store, _factory, _time, _loggers.CreateLogger<SourceWorker>(), _random);
             }
             if (Config?.ConfigVersion != config.ConfigVersion) _log.LogInformation("Applied config version {Version}", config.ConfigVersion);
             Config = config;

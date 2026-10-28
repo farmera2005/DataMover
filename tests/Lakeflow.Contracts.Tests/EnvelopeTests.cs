@@ -12,7 +12,7 @@ public class EnvelopeTests
             new JsonObject { ["TicketId"] = 42, ["Net"] = 1000.5m },
             new JsonObject { ["TicketId"] = 42, ["Net"] = 1200.25m, ["Note"] = null },
             new DateTimeOffset(2026, 10, 28, 14, 0, 0, TimeSpan.Zero))
-        .ToEnvelope("stmarys", "compuweigh", "dbo.Tickets", 17, new DateTimeOffset(2026, 10, 28, 14, 0, 5, TimeSpan.Zero));
+        .ToEnvelope("stmarys", "compuweigh", "compuweigh", "dbo.Tickets", 17, new DateTimeOffset(2026, 10, 28, 14, 0, 5, TimeSpan.Zero));
 
     [Fact]
     public void Serializes_with_the_spec_field_names()
@@ -20,11 +20,12 @@ public class EnvelopeTests
         var json = JsonNode.Parse(EnvelopeJson.Serialize(Sample()))!.AsObject();
 
         Assert.Equal(
-            ["envelope_version", "site_id", "source_id", "table", "op", "key", "before", "after", "source_ts", "capture_ts", "seq", "partition_key"],
+            ["envelope_version", "site_id", "source_id", "source_system", "table", "op", "key", "key_id", "before", "after", "source_ts", "capture_ts", "seq", "partition_key"],
             json.Select(p => p.Key));
         Assert.Equal("update", json["op"]!.GetValue<string>());
         Assert.Equal("stmarys|dbo.Tickets", json["partition_key"]!.GetValue<string>());
         Assert.Equal(17, json["seq"]!.GetValue<long>());
+        Assert.Equal("{\"TicketId\":42}", json["key_id"]!.GetValue<string>());
         Assert.True(json["after"]!.AsObject().ContainsKey("Note"), "null columns are kept, not dropped");
     }
 
@@ -45,6 +46,8 @@ public class EnvelopeTests
     }
 
     [Theory]
+    [InlineData(ChangeOp.SnapshotComplete, "snapshot_complete")]
+    [InlineData(ChangeOp.Reconcile, "reconcile")]
     [InlineData(ChangeOp.Insert, "insert")]
     [InlineData(ChangeOp.Delete, "delete")]
     [InlineData(ChangeOp.Snapshot, "snapshot")]
@@ -60,7 +63,7 @@ public class EnvelopeTests
     {
         var after = new JsonObject { ["a"] = 1 };
         var envelope = new RowChange(ChangeOp.Insert, new JsonObject { ["a"] = 1 }, null, after)
-            .ToEnvelope("s", "src", "t", 1, DateTimeOffset.UtcNow);
+            .ToEnvelope("s", "src", "sys", "t", 1, DateTimeOffset.UtcNow);
         after["a"] = 2;
         Assert.Equal(1, envelope.After!["a"]!.GetValue<int>());
     }

@@ -295,6 +295,25 @@ public abstract class ConnectorContractTests : IAsyncLifetime
     }
 
     [SkippableFact]
+    public async Task Every_key_is_listed_exactly_once_for_reconciliation()
+    {
+        var (table, expected) = await NewTableAsync();
+        for (var id = 1; id <= 25; id++) await expected.InsertAsync(id, $"row {id}", id);
+        await expected.DeleteAsync(7);
+        var connector = Connect();
+        var reader = Assert.IsAssignableFrom<IKeyReader>(connector);
+        var schema = await connector.GetSchemaAsync(table.Table, CancellationToken.None);
+
+        var keys = new List<string>();
+        await foreach (var key in reader.ReadKeysAsync(table, schema, CancellationToken.None)) keys.Add(ColumnValues.KeyText(key));
+
+        Assert.Equal(24, keys.Count);
+        Assert.Equal(24, keys.Distinct().Count());
+        Assert.DoesNotContain("{\"id\":7}", keys);
+        Assert.Contains("{\"id\":25}", keys);
+    }
+
+    [SkippableFact]
     public async Task Added_column_is_captured_automatically()
     {
         var (table, expected) = await NewTableAsync();

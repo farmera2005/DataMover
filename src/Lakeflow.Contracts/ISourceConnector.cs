@@ -4,8 +4,8 @@ namespace Lakeflow.Contracts;
 
 /// <summary>What a connector can do; the agent and the contract tests adapt to it.</summary>
 /// <param name="NativeDeletes">
-/// True when <see cref="ISourceConnector.ReadChangesAsync"/> reports deletes itself (CDC-style methods).
-/// When false the connector must also implement <see cref="IKeyReader"/> so deletes are found by key reconciliation.
+/// True when <see cref="ISourceConnector.ReadChangesAsync"/> reports deletes itself (CDC-style methods); when false
+/// deletes are found by the nightly key reconciliation (<see cref="IKeyReader"/>).
 /// </param>
 /// <param name="ProvidesBefore">True when update/delete changes carry the before image.</param>
 public sealed record ConnectorCapabilities(bool NativeDeletes, bool ProvidesBefore);
@@ -42,7 +42,10 @@ public interface ISourceConnector : IAsyncDisposable
         TableConfig table, TableSchema schema, Checkpoint checkpoint, int maxRows, CancellationToken cancellationToken);
 }
 
-/// <summary>Lists every key of a table, for nightly delete detection on sources without native deletes.</summary>
+/// <summary>
+/// Lists every key of a table, in pages, for the nightly reconciliation (row count and key checksum for every table,
+/// and delete detection for sources without native deletes). Every connector implements it.
+/// </summary>
 public interface IKeyReader
 {
     IAsyncEnumerable<JsonObject> ReadKeysAsync(TableConfig table, TableSchema schema, CancellationToken cancellationToken);

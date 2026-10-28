@@ -53,6 +53,32 @@ public class PipelineTests
     }
 
     [Fact]
+    public async Task Nightly_marker_carries_the_sources_row_count_and_key_checksum()
+    {
+        await using var h = await Harness.StartAsync();
+        var source = h.Source("cw", "Tickets");
+        for (var id = 1; id <= 40; id++) source.Upsert("Tickets", id, Row($"t{id}"));
+        Assert.True(await h.Pipeline.ApplyConfigAsync(Harness.Config(Harness.SourceConfig("cw", CaptureMethod.ChangeTracking, "Tickets"))));
+        await h.RunAsync(TimeSpan.FromMinutes(1));
+        source.Delete("Tickets", 3);
+        source.Upsert("Tickets", 41, Row("late"));
+
+        // The harness starts at 08:00 site time; run past 02:30.
+        await h.RunAsync(TimeSpan.FromHours(19), TimeSpan.FromMinutes(1));
+
+        var marker = Assert.Single(h.Sender.Received, e => e.Op == ChangeOp.Reconcile);
+        var expected = new KeyChecksum.Accumulator();
+        foreach (var id in source.Ids("Tickets")) expected.Add(ColumnValues.KeyText(new System.Text.Json.Nodes.JsonObject { ["id"] = id }));
+        Assert.Equal(40, marker.After![RowChange.RowCount]!.GetValue<long>());
+        Assert.Equal(expected.Sum.ToString(), marker.After[RowChange.KeyChecksumField]!.GetValue<string>());
+        Assert.Equal("{}", marker.KeyId);
+        Assert.Equal("compuweigh", marker.SourceSystem);
+        // Every change before the marker in seq order is what the count describes.
+        Assert.All(h.Sender.Received.Where(e => e.Key["id"]?.GetValue<int>() is 3 or 41), e => Assert.True(e.Seq < marker.Seq));
+        Assert.DoesNotContain(h.Sender.Received, e => e.Op == ChangeOp.Delete && e.Seq > marker.Seq); // CT found the delete itself
+    }
+
+    [Fact]
     public async Task Added_column_flows_on_and_a_dropped_column_blocks_until_resumed()
     {
         await using var h = await Harness.StartAsync();

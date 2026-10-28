@@ -24,6 +24,9 @@ public sealed record TableRecord(
 /// <summary>A buffered envelope waiting for Event Hubs to acknowledge it.</summary>
 public sealed record OutboxEvent(long Id, string Hub, string SourceId, string Table, string PartitionKey, long Seq, DateTimeOffset CaptureTs, byte[] Payload);
 
+/// <summary>Where a table's changes come from and go to, stamped on every envelope.</summary>
+public sealed record ChangeOrigin(string SiteId, string Hub, string SourceId, string SourceSystem);
+
 public sealed record BufferStats(long Bytes, long Count, DateTimeOffset? Oldest);
 
 /// <summary>
@@ -202,11 +205,12 @@ public sealed class LocalStore : IDisposable
     /// </summary>
     /// <param name="next">New checkpoint, or null to leave it (reconciliation deletes).</param>
     /// <param name="caughtUp">The read reached the end of the source's changes.</param>
-    /// <param name="hub">Division hub the changes go to (see <see cref="HubKey"/>).</param>
+    /// <param name="origin">Site, division hub (see <see cref="HubKey"/>) and source of the changes.</param>
     /// <returns>Bytes added to the buffer.</returns>
-    public long Append(string siteId, string hub, string sourceId, string table, IReadOnlyList<RowChange> changes, Checkpoint? next,
+    public long Append(ChangeOrigin origin, string table, IReadOnlyList<RowChange> changes, Checkpoint? next,
         bool caughtUp, bool trackKeys, DateTimeOffset now)
     {
+        var (siteId, hub, sourceId, sourceSystem) = origin;
         lock (_lock)
         {
             using var tx = _db.BeginTransaction();
@@ -221,12 +225,12 @@ public sealed class LocalStore : IDisposable
                 var partitionKey = LakeNames.PartitionKey(siteId, table);
                 foreach (var change in changes)
                 {
-                    var envelope = change.ToEnvelope(siteId, sourceId, table, ++seq, now);
+                    var envelope = change.ToEnvelope(siteId, sourceId, sourceSystem, table, ++seq, now);
                     var payload = EnvelopeJson.SerializeToUtf8(envelope);
                     bytes += payload.Length;
                     Run(insert, ("$h", hub), ("$s", sourceId), ("$t", table), ("$p", partitionKey), ("$seq", seq),
                         ("$ts", now.ToUnixTimeMilliseconds()), ("$payload", payload), ("$bytes", payload.Length));
-                    if (trackKeys && change.Op != ChangeOp.SnapshotComplete)
+                    if (trackKeys && change.Op is not (ChangeOp.SnapshotComplete or ChangeOp.Reconcile))
                         Run(change.Op == ChangeOp.Delete ? deleteKey : upsertKey, ("$s", sourceId), ("$t", table), ("$k", ColumnValues.KeyText(change.Key)));
                 }
             }

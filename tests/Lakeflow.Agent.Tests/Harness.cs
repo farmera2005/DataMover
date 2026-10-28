@@ -56,7 +56,7 @@ public sealed class Harness : IAsyncDisposable
     private void Open()
     {
         Store = LocalStore.Open(Directory, Protector);
-        Pipeline = new AgentPipeline(Store, new Factory(this), Sender, Time, Loggers, "1.0.0");
+        Pipeline = new AgentPipeline(Store, new Factory(this), Sender, Time, Loggers, "1.0.0", new Random(1));
     }
 
     /// <summary>Stops the agent (as a service restart or reboot would) and starts it again on the same files.</summary>
@@ -137,7 +137,7 @@ public sealed class Harness : IAsyncDisposable
         foreach (var group in Sender.Received.GroupBy(e => (e.SourceId, e.Table)))
         {
             var latest = new Dictionary<string, ChangeEnvelope>();
-            foreach (var change in group.Where(e => e.Op != ChangeOp.SnapshotComplete))
+            foreach (var change in group.Where(e => e.Op is not (ChangeOp.SnapshotComplete or ChangeOp.Reconcile)))
             {
                 var key = ColumnValues.KeyText(change.Key);
                 if (!latest.TryGetValue(key, out var seen) || seen.Seq < change.Seq) latest[key] = change;

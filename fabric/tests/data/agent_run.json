@@ -1,0 +1,6742 @@
+{
+  "about": "Written by FabricFixtureTests (Lakeflow.Agent.Tests). Envelopes exactly as sent to Event Hubs; expected = source rows at the end.",
+  "envelopes": [
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 1
+      },
+      "key_id": "{\u0022id\u0022:1}",
+      "before": null,
+      "after": {
+        "id": 1,
+        "name": "truck 1",
+        "qty": 383220469.2919
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 1,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 2
+      },
+      "key_id": "{\u0022id\u0022:2}",
+      "before": null,
+      "after": {
+        "id": 2,
+        "name": "truck 2",
+        "qty": 871255682.7214
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 2,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 3
+      },
+      "key_id": "{\u0022id\u0022:3}",
+      "before": null,
+      "after": {
+        "id": 3,
+        "name": "truck 3",
+        "qty": 660938622.7377
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 3,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 4
+      },
+      "key_id": "{\u0022id\u0022:4}",
+      "before": null,
+      "after": {
+        "id": 4,
+        "name": "truck 4",
+        "qty": 52261705.5347
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 4,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 5
+      },
+      "key_id": "{\u0022id\u0022:5}",
+      "before": null,
+      "after": {
+        "id": 5,
+        "name": "truck 5",
+        "qty": 366433332.3792
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 5,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 6
+      },
+      "key_id": "{\u0022id\u0022:6}",
+      "before": null,
+      "after": {
+        "id": 6,
+        "name": "truck 6",
+        "qty": 676169441.3964
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 6,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 7
+      },
+      "key_id": "{\u0022id\u0022:7}",
+      "before": null,
+      "after": {
+        "id": 7,
+        "name": "truck 7",
+        "qty": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 7,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 8
+      },
+      "key_id": "{\u0022id\u0022:8}",
+      "before": null,
+      "after": {
+        "id": 8,
+        "name": "truck 8",
+        "qty": 42423949.1310
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 8,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 9
+      },
+      "key_id": "{\u0022id\u0022:9}",
+      "before": null,
+      "after": {
+        "id": 9,
+        "name": "truck 9",
+        "qty": 953968693.0152
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 9,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 10
+      },
+      "key_id": "{\u0022id\u0022:10}",
+      "before": null,
+      "after": {
+        "id": 10,
+        "name": "B\u00FCrger #10",
+        "qty": 843566656.0398
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 10,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 11
+      },
+      "key_id": "{\u0022id\u0022:11}",
+      "before": null,
+      "after": {
+        "id": 11,
+        "name": "truck 11",
+        "qty": 854962141.1855
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 11,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 12
+      },
+      "key_id": "{\u0022id\u0022:12}",
+      "before": null,
+      "after": {
+        "id": 12,
+        "name": "truck 12",
+        "qty": 449019980.3603
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 12,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 13
+      },
+      "key_id": "{\u0022id\u0022:13}",
+      "before": null,
+      "after": {
+        "id": 13,
+        "name": "truck 13",
+        "qty": 932315816.6056
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 13,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 14
+      },
+      "key_id": "{\u0022id\u0022:14}",
+      "before": null,
+      "after": {
+        "id": 14,
+        "name": "truck 14",
+        "qty": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 14,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 15
+      },
+      "key_id": "{\u0022id\u0022:15}",
+      "before": null,
+      "after": {
+        "id": 15,
+        "name": "truck 15",
+        "qty": 444816484.7888
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 15,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 16
+      },
+      "key_id": "{\u0022id\u0022:16}",
+      "before": null,
+      "after": {
+        "id": 16,
+        "name": "truck 16",
+        "qty": 111298763.2450
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 16,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 17
+      },
+      "key_id": "{\u0022id\u0022:17}",
+      "before": null,
+      "after": {
+        "id": 17,
+        "name": "truck 17",
+        "qty": 881954313.2009
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 17,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 18
+      },
+      "key_id": "{\u0022id\u0022:18}",
+      "before": null,
+      "after": {
+        "id": 18,
+        "name": "truck 18",
+        "qty": 402013264.7837
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 18,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 19
+      },
+      "key_id": "{\u0022id\u0022:19}",
+      "before": null,
+      "after": {
+        "id": 19,
+        "name": "truck 19",
+        "qty": 804883644.8253
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 19,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 20
+      },
+      "key_id": "{\u0022id\u0022:20}",
+      "before": null,
+      "after": {
+        "id": 20,
+        "name": "B\u00FCrger #20",
+        "qty": 335342370.5955
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 20,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 21
+      },
+      "key_id": "{\u0022id\u0022:21}",
+      "before": null,
+      "after": {
+        "id": 21,
+        "name": "truck 21",
+        "qty": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 21,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 22
+      },
+      "key_id": "{\u0022id\u0022:22}",
+      "before": null,
+      "after": {
+        "id": 22,
+        "name": "truck 22",
+        "qty": 866673853.6519
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 22,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 23
+      },
+      "key_id": "{\u0022id\u0022:23}",
+      "before": null,
+      "after": {
+        "id": 23,
+        "name": "truck 23",
+        "qty": 25025969.8485
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 23,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 24
+      },
+      "key_id": "{\u0022id\u0022:24}",
+      "before": null,
+      "after": {
+        "id": 24,
+        "name": "truck 24",
+        "qty": 747001676.2367
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 24,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 25
+      },
+      "key_id": "{\u0022id\u0022:25}",
+      "before": null,
+      "after": {
+        "id": 25,
+        "name": "truck 25",
+        "qty": 565408665.9501
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 25,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 26
+      },
+      "key_id": "{\u0022id\u0022:26}",
+      "before": null,
+      "after": {
+        "id": 26,
+        "name": "truck 26",
+        "qty": 174937247.8458
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 26,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 27
+      },
+      "key_id": "{\u0022id\u0022:27}",
+      "before": null,
+      "after": {
+        "id": 27,
+        "name": "truck 27",
+        "qty": 478046353.6633
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 27,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 28
+      },
+      "key_id": "{\u0022id\u0022:28}",
+      "before": null,
+      "after": {
+        "id": 28,
+        "name": "truck 28",
+        "qty": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 28,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 29
+      },
+      "key_id": "{\u0022id\u0022:29}",
+      "before": null,
+      "after": {
+        "id": 29,
+        "name": "truck 29",
+        "qty": 385981978.0970
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 29,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 30
+      },
+      "key_id": "{\u0022id\u0022:30}",
+      "before": null,
+      "after": {
+        "id": 30,
+        "name": "B\u00FCrger #30",
+        "qty": 28565215.8915
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 30,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 31
+      },
+      "key_id": "{\u0022id\u0022:31}",
+      "before": null,
+      "after": {
+        "id": 31,
+        "name": "truck 31",
+        "qty": 952373405.4306
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 31,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 32
+      },
+      "key_id": "{\u0022id\u0022:32}",
+      "before": null,
+      "after": {
+        "id": 32,
+        "name": "truck 32",
+        "qty": 24876000.3712
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 32,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 33
+      },
+      "key_id": "{\u0022id\u0022:33}",
+      "before": null,
+      "after": {
+        "id": 33,
+        "name": "truck 33",
+        "qty": 480306406.2634
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 33,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 34
+      },
+      "key_id": "{\u0022id\u0022:34}",
+      "before": null,
+      "after": {
+        "id": 34,
+        "name": "truck 34",
+        "qty": 718627084.8469
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 34,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 35
+      },
+      "key_id": "{\u0022id\u0022:35}",
+      "before": null,
+      "after": {
+        "id": 35,
+        "name": "truck 35",
+        "qty": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 35,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 36
+      },
+      "key_id": "{\u0022id\u0022:36}",
+      "before": null,
+      "after": {
+        "id": 36,
+        "name": "truck 36",
+        "qty": 771368765.6314
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 36,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 37
+      },
+      "key_id": "{\u0022id\u0022:37}",
+      "before": null,
+      "after": {
+        "id": 37,
+        "name": "truck 37",
+        "qty": 297174940.0241
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 37,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 38
+      },
+      "key_id": "{\u0022id\u0022:38}",
+      "before": null,
+      "after": {
+        "id": 38,
+        "name": "truck 38",
+        "qty": 112039630.8191
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 38,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 39
+      },
+      "key_id": "{\u0022id\u0022:39}",
+      "before": null,
+      "after": {
+        "id": 39,
+        "name": "truck 39",
+        "qty": 164038143.6628
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 39,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 40
+      },
+      "key_id": "{\u0022id\u0022:40}",
+      "before": null,
+      "after": {
+        "id": 40,
+        "name": "B\u00FCrger #40",
+        "qty": 86947837.8850
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 40,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 41
+      },
+      "key_id": "{\u0022id\u0022:41}",
+      "before": null,
+      "after": {
+        "id": 41,
+        "name": "truck 41",
+        "qty": 66329704.6285
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 41,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 42
+      },
+      "key_id": "{\u0022id\u0022:42}",
+      "before": null,
+      "after": {
+        "id": 42,
+        "name": "truck 42",
+        "qty": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 42,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 43
+      },
+      "key_id": "{\u0022id\u0022:43}",
+      "before": null,
+      "after": {
+        "id": 43,
+        "name": "truck 43",
+        "qty": 828839436.0937
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 43,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 44
+      },
+      "key_id": "{\u0022id\u0022:44}",
+      "before": null,
+      "after": {
+        "id": 44,
+        "name": "truck 44",
+        "qty": 151496232.5578
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 44,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 45
+      },
+      "key_id": "{\u0022id\u0022:45}",
+      "before": null,
+      "after": {
+        "id": 45,
+        "name": "truck 45",
+        "qty": 541905207.3461
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 45,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 46
+      },
+      "key_id": "{\u0022id\u0022:46}",
+      "before": null,
+      "after": {
+        "id": 46,
+        "name": "truck 46",
+        "qty": 932076715.8326
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 46,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 47
+      },
+      "key_id": "{\u0022id\u0022:47}",
+      "before": null,
+      "after": {
+        "id": 47,
+        "name": "truck 47",
+        "qty": 879000831.8047
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 47,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 48
+      },
+      "key_id": "{\u0022id\u0022:48}",
+      "before": null,
+      "after": {
+        "id": 48,
+        "name": "truck 48",
+        "qty": 660739375.5860
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 48,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 49
+      },
+      "key_id": "{\u0022id\u0022:49}",
+      "before": null,
+      "after": {
+        "id": 49,
+        "name": "truck 49",
+        "qty": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 49,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 50
+      },
+      "key_id": "{\u0022id\u0022:50}",
+      "before": null,
+      "after": {
+        "id": 50,
+        "name": "B\u00FCrger #50",
+        "qty": 123984619.5672
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 50,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 51
+      },
+      "key_id": "{\u0022id\u0022:51}",
+      "before": null,
+      "after": {
+        "id": 51,
+        "name": "truck 51",
+        "qty": 65599488.5907
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 51,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 52
+      },
+      "key_id": "{\u0022id\u0022:52}",
+      "before": null,
+      "after": {
+        "id": 52,
+        "name": "truck 52",
+        "qty": 597749793.2491
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 52,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 53
+      },
+      "key_id": "{\u0022id\u0022:53}",
+      "before": null,
+      "after": {
+        "id": 53,
+        "name": "truck 53",
+        "qty": 959245147.6302
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 53,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 54
+      },
+      "key_id": "{\u0022id\u0022:54}",
+      "before": null,
+      "after": {
+        "id": 54,
+        "name": "truck 54",
+        "qty": 718709680.1208
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 54,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 55
+      },
+      "key_id": "{\u0022id\u0022:55}",
+      "before": null,
+      "after": {
+        "id": 55,
+        "name": "truck 55",
+        "qty": 566870051.7001
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 55,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 56
+      },
+      "key_id": "{\u0022id\u0022:56}",
+      "before": null,
+      "after": {
+        "id": 56,
+        "name": "truck 56",
+        "qty": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 56,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 57
+      },
+      "key_id": "{\u0022id\u0022:57}",
+      "before": null,
+      "after": {
+        "id": 57,
+        "name": "truck 57",
+        "qty": 830681004.9483
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 57,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 58
+      },
+      "key_id": "{\u0022id\u0022:58}",
+      "before": null,
+      "after": {
+        "id": 58,
+        "name": "truck 58",
+        "qty": 146500337.0058
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 58,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 59
+      },
+      "key_id": "{\u0022id\u0022:59}",
+      "before": null,
+      "after": {
+        "id": 59,
+        "name": "truck 59",
+        "qty": 223328846.1451
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 59,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 60
+      },
+      "key_id": "{\u0022id\u0022:60}",
+      "before": null,
+      "after": {
+        "id": 60,
+        "name": "B\u00FCrger #60",
+        "qty": 873630011.8610
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 60,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 61
+      },
+      "key_id": "{\u0022id\u0022:61}",
+      "before": null,
+      "after": {
+        "id": 61,
+        "name": "truck 61",
+        "qty": 707132983.8164
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 61,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 62
+      },
+      "key_id": "{\u0022id\u0022:62}",
+      "before": null,
+      "after": {
+        "id": 62,
+        "name": "truck 62",
+        "qty": 914056436.5844
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 62,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 63
+      },
+      "key_id": "{\u0022id\u0022:63}",
+      "before": null,
+      "after": {
+        "id": 63,
+        "name": "truck 63",
+        "qty": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 63,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 64
+      },
+      "key_id": "{\u0022id\u0022:64}",
+      "before": null,
+      "after": {
+        "id": 64,
+        "name": "truck 64",
+        "qty": 596521077.9554
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 64,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 65
+      },
+      "key_id": "{\u0022id\u0022:65}",
+      "before": null,
+      "after": {
+        "id": 65,
+        "name": "truck 65",
+        "qty": 817811803.3418
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 65,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 66
+      },
+      "key_id": "{\u0022id\u0022:66}",
+      "before": null,
+      "after": {
+        "id": 66,
+        "name": "truck 66",
+        "qty": 696318434.8756
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 66,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 67
+      },
+      "key_id": "{\u0022id\u0022:67}",
+      "before": null,
+      "after": {
+        "id": 67,
+        "name": "truck 67",
+        "qty": 182892269.0744
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 67,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 68
+      },
+      "key_id": "{\u0022id\u0022:68}",
+      "before": null,
+      "after": {
+        "id": 68,
+        "name": "truck 68",
+        "qty": 666279727.4377
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 68,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 69
+      },
+      "key_id": "{\u0022id\u0022:69}",
+      "before": null,
+      "after": {
+        "id": 69,
+        "name": "truck 69",
+        "qty": 337868116.4877
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 69,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 70
+      },
+      "key_id": "{\u0022id\u0022:70}",
+      "before": null,
+      "after": {
+        "id": 70,
+        "name": "B\u00FCrger #70",
+        "qty": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 70,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 71
+      },
+      "key_id": "{\u0022id\u0022:71}",
+      "before": null,
+      "after": {
+        "id": 71,
+        "name": "truck 71",
+        "qty": 723796035.9658
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 71,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 72
+      },
+      "key_id": "{\u0022id\u0022:72}",
+      "before": null,
+      "after": {
+        "id": 72,
+        "name": "truck 72",
+        "qty": 17547948.7598
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 72,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 73
+      },
+      "key_id": "{\u0022id\u0022:73}",
+      "before": null,
+      "after": {
+        "id": 73,
+        "name": "truck 73",
+        "qty": 473662286.7517
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 73,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 74
+      },
+      "key_id": "{\u0022id\u0022:74}",
+      "before": null,
+      "after": {
+        "id": 74,
+        "name": "truck 74",
+        "qty": 124939571.1929
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 74,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 75
+      },
+      "key_id": "{\u0022id\u0022:75}",
+      "before": null,
+      "after": {
+        "id": 75,
+        "name": "truck 75",
+        "qty": 83593375.5541
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 75,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 76
+      },
+      "key_id": "{\u0022id\u0022:76}",
+      "before": null,
+      "after": {
+        "id": 76,
+        "name": "truck 76",
+        "qty": 151845040.3362
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 76,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 77
+      },
+      "key_id": "{\u0022id\u0022:77}",
+      "before": null,
+      "after": {
+        "id": 77,
+        "name": "truck 77",
+        "qty": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 77,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 78
+      },
+      "key_id": "{\u0022id\u0022:78}",
+      "before": null,
+      "after": {
+        "id": 78,
+        "name": "truck 78",
+        "qty": 820276185.7865
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 78,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 79
+      },
+      "key_id": "{\u0022id\u0022:79}",
+      "before": null,
+      "after": {
+        "id": 79,
+        "name": "truck 79",
+        "qty": 280778341.1261
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 79,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 80
+      },
+      "key_id": "{\u0022id\u0022:80}",
+      "before": null,
+      "after": {
+        "id": 80,
+        "name": "B\u00FCrger #80",
+        "qty": 24350925.3600
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 80,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 81
+      },
+      "key_id": "{\u0022id\u0022:81}",
+      "before": null,
+      "after": {
+        "id": 81,
+        "name": "truck 81",
+        "qty": 815624608.5724
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 81,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 82
+      },
+      "key_id": "{\u0022id\u0022:82}",
+      "before": null,
+      "after": {
+        "id": 82,
+        "name": "truck 82",
+        "qty": 573173828.6899
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 82,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 83
+      },
+      "key_id": "{\u0022id\u0022:83}",
+      "before": null,
+      "after": {
+        "id": 83,
+        "name": "truck 83",
+        "qty": 653387412.2675
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 83,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 84
+      },
+      "key_id": "{\u0022id\u0022:84}",
+      "before": null,
+      "after": {
+        "id": 84,
+        "name": "truck 84",
+        "qty": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 84,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 85
+      },
+      "key_id": "{\u0022id\u0022:85}",
+      "before": null,
+      "after": {
+        "id": 85,
+        "name": "truck 85",
+        "qty": 793437163.2493
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 85,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 86
+      },
+      "key_id": "{\u0022id\u0022:86}",
+      "before": null,
+      "after": {
+        "id": 86,
+        "name": "truck 86",
+        "qty": 934597137.8193
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 86,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 87
+      },
+      "key_id": "{\u0022id\u0022:87}",
+      "before": null,
+      "after": {
+        "id": 87,
+        "name": "truck 87",
+        "qty": 146025138.0438
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 87,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 88
+      },
+      "key_id": "{\u0022id\u0022:88}",
+      "before": null,
+      "after": {
+        "id": 88,
+        "name": "truck 88",
+        "qty": 86262300.6507
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 88,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 89
+      },
+      "key_id": "{\u0022id\u0022:89}",
+      "before": null,
+      "after": {
+        "id": 89,
+        "name": "truck 89",
+        "qty": 441424046.3830
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 89,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 90
+      },
+      "key_id": "{\u0022id\u0022:90}",
+      "before": null,
+      "after": {
+        "id": 90,
+        "name": "B\u00FCrger #90",
+        "qty": 109337759.2551
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 90,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 91
+      },
+      "key_id": "{\u0022id\u0022:91}",
+      "before": null,
+      "after": {
+        "id": 91,
+        "name": "truck 91",
+        "qty": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 91,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 92
+      },
+      "key_id": "{\u0022id\u0022:92}",
+      "before": null,
+      "after": {
+        "id": 92,
+        "name": "truck 92",
+        "qty": 880296560.4143
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 92,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 93
+      },
+      "key_id": "{\u0022id\u0022:93}",
+      "before": null,
+      "after": {
+        "id": 93,
+        "name": "truck 93",
+        "qty": 426736830.4668
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 93,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 94
+      },
+      "key_id": "{\u0022id\u0022:94}",
+      "before": null,
+      "after": {
+        "id": 94,
+        "name": "truck 94",
+        "qty": 309855535.7707
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 94,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 95
+      },
+      "key_id": "{\u0022id\u0022:95}",
+      "before": null,
+      "after": {
+        "id": 95,
+        "name": "truck 95",
+        "qty": 385503353.7305
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 95,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 96
+      },
+      "key_id": "{\u0022id\u0022:96}",
+      "before": null,
+      "after": {
+        "id": 96,
+        "name": "truck 96",
+        "qty": 194194995.4229
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 96,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 97
+      },
+      "key_id": "{\u0022id\u0022:97}",
+      "before": null,
+      "after": {
+        "id": 97,
+        "name": "truck 97",
+        "qty": 333806069.2576
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 97,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 98
+      },
+      "key_id": "{\u0022id\u0022:98}",
+      "before": null,
+      "after": {
+        "id": 98,
+        "name": "truck 98",
+        "qty": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 98,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 99
+      },
+      "key_id": "{\u0022id\u0022:99}",
+      "before": null,
+      "after": {
+        "id": 99,
+        "name": "truck 99",
+        "qty": 495298238.7018
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 99,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 100
+      },
+      "key_id": "{\u0022id\u0022:100}",
+      "before": null,
+      "after": {
+        "id": 100,
+        "name": "B\u00FCrger #100",
+        "qty": 897738753.7704
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 100,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 101
+      },
+      "key_id": "{\u0022id\u0022:101}",
+      "before": null,
+      "after": {
+        "id": 101,
+        "name": "truck 101",
+        "qty": 590041956.2077
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 101,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 102
+      },
+      "key_id": "{\u0022id\u0022:102}",
+      "before": null,
+      "after": {
+        "id": 102,
+        "name": "truck 102",
+        "qty": 197983194.2348
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 102,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 103
+      },
+      "key_id": "{\u0022id\u0022:103}",
+      "before": null,
+      "after": {
+        "id": 103,
+        "name": "truck 103",
+        "qty": 567517065.7074
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 103,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 104
+      },
+      "key_id": "{\u0022id\u0022:104}",
+      "before": null,
+      "after": {
+        "id": 104,
+        "name": "truck 104",
+        "qty": 269136034.5432
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 104,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 105
+      },
+      "key_id": "{\u0022id\u0022:105}",
+      "before": null,
+      "after": {
+        "id": 105,
+        "name": "truck 105",
+        "qty": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 105,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 106
+      },
+      "key_id": "{\u0022id\u0022:106}",
+      "before": null,
+      "after": {
+        "id": 106,
+        "name": "truck 106",
+        "qty": 370011269.7529
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 106,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 107
+      },
+      "key_id": "{\u0022id\u0022:107}",
+      "before": null,
+      "after": {
+        "id": 107,
+        "name": "truck 107",
+        "qty": 645947167.0193
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 107,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 108
+      },
+      "key_id": "{\u0022id\u0022:108}",
+      "before": null,
+      "after": {
+        "id": 108,
+        "name": "truck 108",
+        "qty": 485216505.1201
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 108,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 109
+      },
+      "key_id": "{\u0022id\u0022:109}",
+      "before": null,
+      "after": {
+        "id": 109,
+        "name": "truck 109",
+        "qty": 204037090.8585
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 109,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 110
+      },
+      "key_id": "{\u0022id\u0022:110}",
+      "before": null,
+      "after": {
+        "id": 110,
+        "name": "B\u00FCrger #110",
+        "qty": 208280679.8668
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 110,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 111
+      },
+      "key_id": "{\u0022id\u0022:111}",
+      "before": null,
+      "after": {
+        "id": 111,
+        "name": "truck 111",
+        "qty": 861452883.0449
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 111,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 112
+      },
+      "key_id": "{\u0022id\u0022:112}",
+      "before": null,
+      "after": {
+        "id": 112,
+        "name": "truck 112",
+        "qty": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 112,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 113
+      },
+      "key_id": "{\u0022id\u0022:113}",
+      "before": null,
+      "after": {
+        "id": 113,
+        "name": "truck 113",
+        "qty": 187077088.8343
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 113,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 114
+      },
+      "key_id": "{\u0022id\u0022:114}",
+      "before": null,
+      "after": {
+        "id": 114,
+        "name": "truck 114",
+        "qty": 999045048.3742
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 114,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 115
+      },
+      "key_id": "{\u0022id\u0022:115}",
+      "before": null,
+      "after": {
+        "id": 115,
+        "name": "truck 115",
+        "qty": 982006113.0365
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 115,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 116
+      },
+      "key_id": "{\u0022id\u0022:116}",
+      "before": null,
+      "after": {
+        "id": 116,
+        "name": "truck 116",
+        "qty": 445904752.9129
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 116,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 117
+      },
+      "key_id": "{\u0022id\u0022:117}",
+      "before": null,
+      "after": {
+        "id": 117,
+        "name": "truck 117",
+        "qty": 138968961.8437
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 117,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 118
+      },
+      "key_id": "{\u0022id\u0022:118}",
+      "before": null,
+      "after": {
+        "id": 118,
+        "name": "truck 118",
+        "qty": 437931338.9947
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 118,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 119
+      },
+      "key_id": "{\u0022id\u0022:119}",
+      "before": null,
+      "after": {
+        "id": 119,
+        "name": "truck 119",
+        "qty": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 119,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 120
+      },
+      "key_id": "{\u0022id\u0022:120}",
+      "before": null,
+      "after": {
+        "id": 120,
+        "name": "B\u00FCrger #120",
+        "qty": 542519126.3401
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 120,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot_complete",
+      "key": {},
+      "key_id": "{}",
+      "before": null,
+      "after": {
+        "snapshot_start_seq": 1
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:00:00\u002B00:00",
+      "seq": 121,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "update",
+      "key": {
+        "id": 1
+      },
+      "key_id": "{\u0022id\u0022:1}",
+      "before": null,
+      "after": {
+        "id": 1,
+        "name": "truck 1",
+        "qty": 123456789013.3456,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:02:05\u002B00:00",
+      "seq": 122,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "update",
+      "key": {
+        "id": 2
+      },
+      "key_id": "{\u0022id\u0022:2}",
+      "before": null,
+      "after": {
+        "id": 2,
+        "name": "truck 2",
+        "qty": 123456789014.3456,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:02:05\u002B00:00",
+      "seq": 123,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "update",
+      "key": {
+        "id": 3
+      },
+      "key_id": "{\u0022id\u0022:3}",
+      "before": null,
+      "after": {
+        "id": 3,
+        "name": "truck 3",
+        "qty": 123456789015.3456,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:02:05\u002B00:00",
+      "seq": 124,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "update",
+      "key": {
+        "id": 4
+      },
+      "key_id": "{\u0022id\u0022:4}",
+      "before": null,
+      "after": {
+        "id": 4,
+        "name": "truck 4",
+        "qty": 123456789016.3456,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:02:05\u002B00:00",
+      "seq": 125,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "update",
+      "key": {
+        "id": 5
+      },
+      "key_id": "{\u0022id\u0022:5}",
+      "before": null,
+      "after": {
+        "id": 5,
+        "name": "truck 5",
+        "qty": 123456789017.3456,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:02:05\u002B00:00",
+      "seq": 126,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "update",
+      "key": {
+        "id": 6
+      },
+      "key_id": "{\u0022id\u0022:6}",
+      "before": null,
+      "after": {
+        "id": 6,
+        "name": "truck 6",
+        "qty": 123456789018.3456,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:02:05\u002B00:00",
+      "seq": 127,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "update",
+      "key": {
+        "id": 7
+      },
+      "key_id": "{\u0022id\u0022:7}",
+      "before": null,
+      "after": {
+        "id": 7,
+        "name": "truck 7",
+        "qty": 123456789019.3456,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:02:05\u002B00:00",
+      "seq": 128,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "update",
+      "key": {
+        "id": 8
+      },
+      "key_id": "{\u0022id\u0022:8}",
+      "before": null,
+      "after": {
+        "id": 8,
+        "name": "truck 8",
+        "qty": 123456789020.3456,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:02:05\u002B00:00",
+      "seq": 129,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "update",
+      "key": {
+        "id": 9
+      },
+      "key_id": "{\u0022id\u0022:9}",
+      "before": null,
+      "after": {
+        "id": 9,
+        "name": "truck 9",
+        "qty": 123456789021.3456,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:02:05\u002B00:00",
+      "seq": 130,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "update",
+      "key": {
+        "id": 10
+      },
+      "key_id": "{\u0022id\u0022:10}",
+      "before": null,
+      "after": {
+        "id": 10,
+        "name": "B\u00FCrger #10",
+        "qty": 123456789022.3456,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:02:05\u002B00:00",
+      "seq": 131,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "update",
+      "key": {
+        "id": 11
+      },
+      "key_id": "{\u0022id\u0022:11}",
+      "before": null,
+      "after": {
+        "id": 11,
+        "name": "truck 11",
+        "qty": 123456789023.3456,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:02:05\u002B00:00",
+      "seq": 132,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "update",
+      "key": {
+        "id": 12
+      },
+      "key_id": "{\u0022id\u0022:12}",
+      "before": null,
+      "after": {
+        "id": 12,
+        "name": "truck 12",
+        "qty": 123456789024.3456,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:02:05\u002B00:00",
+      "seq": 133,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "update",
+      "key": {
+        "id": 13
+      },
+      "key_id": "{\u0022id\u0022:13}",
+      "before": null,
+      "after": {
+        "id": 13,
+        "name": "truck 13",
+        "qty": 123456789025.3456,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:02:05\u002B00:00",
+      "seq": 134,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "update",
+      "key": {
+        "id": 14
+      },
+      "key_id": "{\u0022id\u0022:14}",
+      "before": null,
+      "after": {
+        "id": 14,
+        "name": "truck 14",
+        "qty": 123456789026.3456,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:02:05\u002B00:00",
+      "seq": 135,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "update",
+      "key": {
+        "id": 15
+      },
+      "key_id": "{\u0022id\u0022:15}",
+      "before": null,
+      "after": {
+        "id": 15,
+        "name": "truck 15",
+        "qty": 123456789027.3456,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:02:05\u002B00:00",
+      "seq": 136,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "update",
+      "key": {
+        "id": 16
+      },
+      "key_id": "{\u0022id\u0022:16}",
+      "before": null,
+      "after": {
+        "id": 16,
+        "name": "truck 16",
+        "qty": 123456789028.3456,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:02:05\u002B00:00",
+      "seq": 137,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "update",
+      "key": {
+        "id": 17
+      },
+      "key_id": "{\u0022id\u0022:17}",
+      "before": null,
+      "after": {
+        "id": 17,
+        "name": "truck 17",
+        "qty": 123456789029.3456,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:02:05\u002B00:00",
+      "seq": 138,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "update",
+      "key": {
+        "id": 18
+      },
+      "key_id": "{\u0022id\u0022:18}",
+      "before": null,
+      "after": {
+        "id": 18,
+        "name": "truck 18",
+        "qty": 123456789030.3456,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:02:05\u002B00:00",
+      "seq": 139,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "update",
+      "key": {
+        "id": 19
+      },
+      "key_id": "{\u0022id\u0022:19}",
+      "before": null,
+      "after": {
+        "id": 19,
+        "name": "truck 19",
+        "qty": 123456789031.3456,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:02:05\u002B00:00",
+      "seq": 140,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "update",
+      "key": {
+        "id": 20
+      },
+      "key_id": "{\u0022id\u0022:20}",
+      "before": null,
+      "after": {
+        "id": 20,
+        "name": "B\u00FCrger #20",
+        "qty": 123456789032.3456,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:02:05\u002B00:00",
+      "seq": 141,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "update",
+      "key": {
+        "id": 21
+      },
+      "key_id": "{\u0022id\u0022:21}",
+      "before": null,
+      "after": {
+        "id": 21,
+        "name": "truck 21",
+        "qty": 123456789033.3456,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:02:05\u002B00:00",
+      "seq": 142,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "update",
+      "key": {
+        "id": 22
+      },
+      "key_id": "{\u0022id\u0022:22}",
+      "before": null,
+      "after": {
+        "id": 22,
+        "name": "truck 22",
+        "qty": 123456789034.3456,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:02:05\u002B00:00",
+      "seq": 143,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "update",
+      "key": {
+        "id": 23
+      },
+      "key_id": "{\u0022id\u0022:23}",
+      "before": null,
+      "after": {
+        "id": 23,
+        "name": "truck 23",
+        "qty": 123456789035.3456,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:02:05\u002B00:00",
+      "seq": 144,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "update",
+      "key": {
+        "id": 24
+      },
+      "key_id": "{\u0022id\u0022:24}",
+      "before": null,
+      "after": {
+        "id": 24,
+        "name": "truck 24",
+        "qty": 123456789036.3456,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:02:05\u002B00:00",
+      "seq": 145,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "update",
+      "key": {
+        "id": 25
+      },
+      "key_id": "{\u0022id\u0022:25}",
+      "before": null,
+      "after": {
+        "id": 25,
+        "name": "truck 25",
+        "qty": 123456789037.3456,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:02:05\u002B00:00",
+      "seq": 146,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "update",
+      "key": {
+        "id": 26
+      },
+      "key_id": "{\u0022id\u0022:26}",
+      "before": null,
+      "after": {
+        "id": 26,
+        "name": "truck 26",
+        "qty": 123456789038.3456,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:02:05\u002B00:00",
+      "seq": 147,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "update",
+      "key": {
+        "id": 27
+      },
+      "key_id": "{\u0022id\u0022:27}",
+      "before": null,
+      "after": {
+        "id": 27,
+        "name": "truck 27",
+        "qty": 123456789039.3456,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:02:05\u002B00:00",
+      "seq": 148,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "update",
+      "key": {
+        "id": 28
+      },
+      "key_id": "{\u0022id\u0022:28}",
+      "before": null,
+      "after": {
+        "id": 28,
+        "name": "truck 28",
+        "qty": 123456789040.3456,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:02:05\u002B00:00",
+      "seq": 149,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "update",
+      "key": {
+        "id": 29
+      },
+      "key_id": "{\u0022id\u0022:29}",
+      "before": null,
+      "after": {
+        "id": 29,
+        "name": "truck 29",
+        "qty": 123456789041.3456,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:02:05\u002B00:00",
+      "seq": 150,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "update",
+      "key": {
+        "id": 30
+      },
+      "key_id": "{\u0022id\u0022:30}",
+      "before": null,
+      "after": {
+        "id": 30,
+        "name": "B\u00FCrger #30",
+        "qty": 123456789042.3456,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:02:05\u002B00:00",
+      "seq": 151,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "delete",
+      "key": {
+        "id": 100
+      },
+      "key_id": "{\u0022id\u0022:100}",
+      "before": null,
+      "after": null,
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:02:05\u002B00:00",
+      "seq": 152,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "delete",
+      "key": {
+        "id": 101
+      },
+      "key_id": "{\u0022id\u0022:101}",
+      "before": null,
+      "after": null,
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:02:05\u002B00:00",
+      "seq": 153,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "delete",
+      "key": {
+        "id": 102
+      },
+      "key_id": "{\u0022id\u0022:102}",
+      "before": null,
+      "after": null,
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:02:05\u002B00:00",
+      "seq": 154,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "delete",
+      "key": {
+        "id": 103
+      },
+      "key_id": "{\u0022id\u0022:103}",
+      "before": null,
+      "after": null,
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:02:05\u002B00:00",
+      "seq": 155,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "delete",
+      "key": {
+        "id": 104
+      },
+      "key_id": "{\u0022id\u0022:104}",
+      "before": null,
+      "after": null,
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:02:05\u002B00:00",
+      "seq": 156,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "delete",
+      "key": {
+        "id": 105
+      },
+      "key_id": "{\u0022id\u0022:105}",
+      "before": null,
+      "after": null,
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:02:05\u002B00:00",
+      "seq": 157,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "update",
+      "key": {
+        "id": 121
+      },
+      "key_id": "{\u0022id\u0022:121}",
+      "before": null,
+      "after": {
+        "id": 121,
+        "name": "new",
+        "qty": null,
+        "moisture": 14.50
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T12:02:05\u002B00:00",
+      "seq": 158,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 1
+      },
+      "key_id": "{\u0022id\u0022:1}",
+      "before": null,
+      "after": {
+        "id": 1,
+        "name": "truck 1",
+        "qty": 123456789013.3456,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 159,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 2
+      },
+      "key_id": "{\u0022id\u0022:2}",
+      "before": null,
+      "after": {
+        "id": 2,
+        "name": "truck 2",
+        "qty": 123456789014.3456,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 160,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 3
+      },
+      "key_id": "{\u0022id\u0022:3}",
+      "before": null,
+      "after": {
+        "id": 3,
+        "name": "truck 3",
+        "qty": 123456789015.3456,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 161,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 4
+      },
+      "key_id": "{\u0022id\u0022:4}",
+      "before": null,
+      "after": {
+        "id": 4,
+        "name": "truck 4",
+        "qty": 123456789016.3456,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 162,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 5
+      },
+      "key_id": "{\u0022id\u0022:5}",
+      "before": null,
+      "after": {
+        "id": 5,
+        "name": "truck 5",
+        "qty": 123456789017.3456,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 163,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 6
+      },
+      "key_id": "{\u0022id\u0022:6}",
+      "before": null,
+      "after": {
+        "id": 6,
+        "name": "truck 6",
+        "qty": 123456789018.3456,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 164,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 7
+      },
+      "key_id": "{\u0022id\u0022:7}",
+      "before": null,
+      "after": {
+        "id": 7,
+        "name": "changed in the gap",
+        "qty": 123456789019.3456,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 165,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 8
+      },
+      "key_id": "{\u0022id\u0022:8}",
+      "before": null,
+      "after": {
+        "id": 8,
+        "name": "truck 8",
+        "qty": 123456789020.3456,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 166,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 9
+      },
+      "key_id": "{\u0022id\u0022:9}",
+      "before": null,
+      "after": {
+        "id": 9,
+        "name": "truck 9",
+        "qty": 123456789021.3456,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 167,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 10
+      },
+      "key_id": "{\u0022id\u0022:10}",
+      "before": null,
+      "after": {
+        "id": 10,
+        "name": "B\u00FCrger #10",
+        "qty": 123456789022.3456,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 168,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 11
+      },
+      "key_id": "{\u0022id\u0022:11}",
+      "before": null,
+      "after": {
+        "id": 11,
+        "name": "truck 11",
+        "qty": 123456789023.3456,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 169,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 12
+      },
+      "key_id": "{\u0022id\u0022:12}",
+      "before": null,
+      "after": {
+        "id": 12,
+        "name": "truck 12",
+        "qty": 123456789024.3456,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 170,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 13
+      },
+      "key_id": "{\u0022id\u0022:13}",
+      "before": null,
+      "after": {
+        "id": 13,
+        "name": "truck 13",
+        "qty": 123456789025.3456,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 171,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 14
+      },
+      "key_id": "{\u0022id\u0022:14}",
+      "before": null,
+      "after": {
+        "id": 14,
+        "name": "truck 14",
+        "qty": 123456789026.3456,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 172,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 15
+      },
+      "key_id": "{\u0022id\u0022:15}",
+      "before": null,
+      "after": {
+        "id": 15,
+        "name": "truck 15",
+        "qty": 123456789027.3456,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 173,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 16
+      },
+      "key_id": "{\u0022id\u0022:16}",
+      "before": null,
+      "after": {
+        "id": 16,
+        "name": "truck 16",
+        "qty": 123456789028.3456,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 174,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 17
+      },
+      "key_id": "{\u0022id\u0022:17}",
+      "before": null,
+      "after": {
+        "id": 17,
+        "name": "truck 17",
+        "qty": 123456789029.3456,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 175,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 18
+      },
+      "key_id": "{\u0022id\u0022:18}",
+      "before": null,
+      "after": {
+        "id": 18,
+        "name": "truck 18",
+        "qty": 123456789030.3456,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 176,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 19
+      },
+      "key_id": "{\u0022id\u0022:19}",
+      "before": null,
+      "after": {
+        "id": 19,
+        "name": "truck 19",
+        "qty": 123456789031.3456,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 177,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 20
+      },
+      "key_id": "{\u0022id\u0022:20}",
+      "before": null,
+      "after": {
+        "id": 20,
+        "name": "B\u00FCrger #20",
+        "qty": 123456789032.3456,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 178,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 21
+      },
+      "key_id": "{\u0022id\u0022:21}",
+      "before": null,
+      "after": {
+        "id": 21,
+        "name": "truck 21",
+        "qty": 123456789033.3456,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 179,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 22
+      },
+      "key_id": "{\u0022id\u0022:22}",
+      "before": null,
+      "after": {
+        "id": 22,
+        "name": "truck 22",
+        "qty": 123456789034.3456,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 180,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 23
+      },
+      "key_id": "{\u0022id\u0022:23}",
+      "before": null,
+      "after": {
+        "id": 23,
+        "name": "truck 23",
+        "qty": 123456789035.3456,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 181,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 24
+      },
+      "key_id": "{\u0022id\u0022:24}",
+      "before": null,
+      "after": {
+        "id": 24,
+        "name": "truck 24",
+        "qty": 123456789036.3456,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 182,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 25
+      },
+      "key_id": "{\u0022id\u0022:25}",
+      "before": null,
+      "after": {
+        "id": 25,
+        "name": "truck 25",
+        "qty": 123456789037.3456,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 183,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 26
+      },
+      "key_id": "{\u0022id\u0022:26}",
+      "before": null,
+      "after": {
+        "id": 26,
+        "name": "truck 26",
+        "qty": 123456789038.3456,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 184,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 27
+      },
+      "key_id": "{\u0022id\u0022:27}",
+      "before": null,
+      "after": {
+        "id": 27,
+        "name": "truck 27",
+        "qty": 123456789039.3456,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 185,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 28
+      },
+      "key_id": "{\u0022id\u0022:28}",
+      "before": null,
+      "after": {
+        "id": 28,
+        "name": "truck 28",
+        "qty": 123456789040.3456,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 186,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 29
+      },
+      "key_id": "{\u0022id\u0022:29}",
+      "before": null,
+      "after": {
+        "id": 29,
+        "name": "truck 29",
+        "qty": 123456789041.3456,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 187,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 30
+      },
+      "key_id": "{\u0022id\u0022:30}",
+      "before": null,
+      "after": {
+        "id": 30,
+        "name": "B\u00FCrger #30",
+        "qty": 123456789042.3456,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 188,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 31
+      },
+      "key_id": "{\u0022id\u0022:31}",
+      "before": null,
+      "after": {
+        "id": 31,
+        "name": "truck 31",
+        "qty": 952373405.4306,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 189,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 32
+      },
+      "key_id": "{\u0022id\u0022:32}",
+      "before": null,
+      "after": {
+        "id": 32,
+        "name": "truck 32",
+        "qty": 24876000.3712,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 190,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 33
+      },
+      "key_id": "{\u0022id\u0022:33}",
+      "before": null,
+      "after": {
+        "id": 33,
+        "name": "truck 33",
+        "qty": 480306406.2634,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 191,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 34
+      },
+      "key_id": "{\u0022id\u0022:34}",
+      "before": null,
+      "after": {
+        "id": 34,
+        "name": "truck 34",
+        "qty": 718627084.8469,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 192,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 35
+      },
+      "key_id": "{\u0022id\u0022:35}",
+      "before": null,
+      "after": {
+        "id": 35,
+        "name": "truck 35",
+        "qty": null,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 193,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 36
+      },
+      "key_id": "{\u0022id\u0022:36}",
+      "before": null,
+      "after": {
+        "id": 36,
+        "name": "truck 36",
+        "qty": 771368765.6314,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 194,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 37
+      },
+      "key_id": "{\u0022id\u0022:37}",
+      "before": null,
+      "after": {
+        "id": 37,
+        "name": "truck 37",
+        "qty": 297174940.0241,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 195,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 38
+      },
+      "key_id": "{\u0022id\u0022:38}",
+      "before": null,
+      "after": {
+        "id": 38,
+        "name": "truck 38",
+        "qty": 112039630.8191,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 196,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 39
+      },
+      "key_id": "{\u0022id\u0022:39}",
+      "before": null,
+      "after": {
+        "id": 39,
+        "name": "truck 39",
+        "qty": 164038143.6628,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 197,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 40
+      },
+      "key_id": "{\u0022id\u0022:40}",
+      "before": null,
+      "after": {
+        "id": 40,
+        "name": "B\u00FCrger #40",
+        "qty": 86947837.8850,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 198,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 41
+      },
+      "key_id": "{\u0022id\u0022:41}",
+      "before": null,
+      "after": {
+        "id": 41,
+        "name": "truck 41",
+        "qty": 66329704.6285,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 199,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 42
+      },
+      "key_id": "{\u0022id\u0022:42}",
+      "before": null,
+      "after": {
+        "id": 42,
+        "name": "truck 42",
+        "qty": null,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 200,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 43
+      },
+      "key_id": "{\u0022id\u0022:43}",
+      "before": null,
+      "after": {
+        "id": 43,
+        "name": "truck 43",
+        "qty": 828839436.0937,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 201,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 44
+      },
+      "key_id": "{\u0022id\u0022:44}",
+      "before": null,
+      "after": {
+        "id": 44,
+        "name": "truck 44",
+        "qty": 151496232.5578,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 202,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 45
+      },
+      "key_id": "{\u0022id\u0022:45}",
+      "before": null,
+      "after": {
+        "id": 45,
+        "name": "truck 45",
+        "qty": 541905207.3461,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 203,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 46
+      },
+      "key_id": "{\u0022id\u0022:46}",
+      "before": null,
+      "after": {
+        "id": 46,
+        "name": "truck 46",
+        "qty": 932076715.8326,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 204,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 47
+      },
+      "key_id": "{\u0022id\u0022:47}",
+      "before": null,
+      "after": {
+        "id": 47,
+        "name": "truck 47",
+        "qty": 879000831.8047,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 205,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 48
+      },
+      "key_id": "{\u0022id\u0022:48}",
+      "before": null,
+      "after": {
+        "id": 48,
+        "name": "truck 48",
+        "qty": 660739375.5860,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 206,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 49
+      },
+      "key_id": "{\u0022id\u0022:49}",
+      "before": null,
+      "after": {
+        "id": 49,
+        "name": "truck 49",
+        "qty": null,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 207,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 55
+      },
+      "key_id": "{\u0022id\u0022:55}",
+      "before": null,
+      "after": {
+        "id": 55,
+        "name": "truck 55",
+        "qty": 566870051.7001,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 208,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 56
+      },
+      "key_id": "{\u0022id\u0022:56}",
+      "before": null,
+      "after": {
+        "id": 56,
+        "name": "truck 56",
+        "qty": null,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 209,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 57
+      },
+      "key_id": "{\u0022id\u0022:57}",
+      "before": null,
+      "after": {
+        "id": 57,
+        "name": "truck 57",
+        "qty": 830681004.9483,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 210,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 58
+      },
+      "key_id": "{\u0022id\u0022:58}",
+      "before": null,
+      "after": {
+        "id": 58,
+        "name": "truck 58",
+        "qty": 146500337.0058,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 211,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 59
+      },
+      "key_id": "{\u0022id\u0022:59}",
+      "before": null,
+      "after": {
+        "id": 59,
+        "name": "truck 59",
+        "qty": 223328846.1451,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 212,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 60
+      },
+      "key_id": "{\u0022id\u0022:60}",
+      "before": null,
+      "after": {
+        "id": 60,
+        "name": "B\u00FCrger #60",
+        "qty": 873630011.8610,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 213,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 61
+      },
+      "key_id": "{\u0022id\u0022:61}",
+      "before": null,
+      "after": {
+        "id": 61,
+        "name": "truck 61",
+        "qty": 707132983.8164,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 214,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 62
+      },
+      "key_id": "{\u0022id\u0022:62}",
+      "before": null,
+      "after": {
+        "id": 62,
+        "name": "truck 62",
+        "qty": 914056436.5844,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 215,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 63
+      },
+      "key_id": "{\u0022id\u0022:63}",
+      "before": null,
+      "after": {
+        "id": 63,
+        "name": "truck 63",
+        "qty": null,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 216,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 64
+      },
+      "key_id": "{\u0022id\u0022:64}",
+      "before": null,
+      "after": {
+        "id": 64,
+        "name": "truck 64",
+        "qty": 596521077.9554,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 217,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 65
+      },
+      "key_id": "{\u0022id\u0022:65}",
+      "before": null,
+      "after": {
+        "id": 65,
+        "name": "truck 65",
+        "qty": 817811803.3418,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 218,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 66
+      },
+      "key_id": "{\u0022id\u0022:66}",
+      "before": null,
+      "after": {
+        "id": 66,
+        "name": "truck 66",
+        "qty": 696318434.8756,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 219,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 67
+      },
+      "key_id": "{\u0022id\u0022:67}",
+      "before": null,
+      "after": {
+        "id": 67,
+        "name": "truck 67",
+        "qty": 182892269.0744,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 220,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 68
+      },
+      "key_id": "{\u0022id\u0022:68}",
+      "before": null,
+      "after": {
+        "id": 68,
+        "name": "truck 68",
+        "qty": 666279727.4377,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 221,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 69
+      },
+      "key_id": "{\u0022id\u0022:69}",
+      "before": null,
+      "after": {
+        "id": 69,
+        "name": "truck 69",
+        "qty": 337868116.4877,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 222,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 70
+      },
+      "key_id": "{\u0022id\u0022:70}",
+      "before": null,
+      "after": {
+        "id": 70,
+        "name": "B\u00FCrger #70",
+        "qty": null,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 223,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 71
+      },
+      "key_id": "{\u0022id\u0022:71}",
+      "before": null,
+      "after": {
+        "id": 71,
+        "name": "truck 71",
+        "qty": 723796035.9658,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 224,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 72
+      },
+      "key_id": "{\u0022id\u0022:72}",
+      "before": null,
+      "after": {
+        "id": 72,
+        "name": "truck 72",
+        "qty": 17547948.7598,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 225,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 73
+      },
+      "key_id": "{\u0022id\u0022:73}",
+      "before": null,
+      "after": {
+        "id": 73,
+        "name": "truck 73",
+        "qty": 473662286.7517,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 226,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 74
+      },
+      "key_id": "{\u0022id\u0022:74}",
+      "before": null,
+      "after": {
+        "id": 74,
+        "name": "truck 74",
+        "qty": 124939571.1929,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 227,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 75
+      },
+      "key_id": "{\u0022id\u0022:75}",
+      "before": null,
+      "after": {
+        "id": 75,
+        "name": "truck 75",
+        "qty": 83593375.5541,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 228,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 76
+      },
+      "key_id": "{\u0022id\u0022:76}",
+      "before": null,
+      "after": {
+        "id": 76,
+        "name": "truck 76",
+        "qty": 151845040.3362,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 229,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 77
+      },
+      "key_id": "{\u0022id\u0022:77}",
+      "before": null,
+      "after": {
+        "id": 77,
+        "name": "truck 77",
+        "qty": null,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 230,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 78
+      },
+      "key_id": "{\u0022id\u0022:78}",
+      "before": null,
+      "after": {
+        "id": 78,
+        "name": "truck 78",
+        "qty": 820276185.7865,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 231,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 79
+      },
+      "key_id": "{\u0022id\u0022:79}",
+      "before": null,
+      "after": {
+        "id": 79,
+        "name": "truck 79",
+        "qty": 280778341.1261,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 232,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 80
+      },
+      "key_id": "{\u0022id\u0022:80}",
+      "before": null,
+      "after": {
+        "id": 80,
+        "name": "B\u00FCrger #80",
+        "qty": 24350925.3600,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 233,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 81
+      },
+      "key_id": "{\u0022id\u0022:81}",
+      "before": null,
+      "after": {
+        "id": 81,
+        "name": "truck 81",
+        "qty": 815624608.5724,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 234,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 82
+      },
+      "key_id": "{\u0022id\u0022:82}",
+      "before": null,
+      "after": {
+        "id": 82,
+        "name": "truck 82",
+        "qty": 573173828.6899,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 235,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 83
+      },
+      "key_id": "{\u0022id\u0022:83}",
+      "before": null,
+      "after": {
+        "id": 83,
+        "name": "truck 83",
+        "qty": 653387412.2675,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 236,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 84
+      },
+      "key_id": "{\u0022id\u0022:84}",
+      "before": null,
+      "after": {
+        "id": 84,
+        "name": "truck 84",
+        "qty": null,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 237,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 85
+      },
+      "key_id": "{\u0022id\u0022:85}",
+      "before": null,
+      "after": {
+        "id": 85,
+        "name": "truck 85",
+        "qty": 793437163.2493,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 238,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 86
+      },
+      "key_id": "{\u0022id\u0022:86}",
+      "before": null,
+      "after": {
+        "id": 86,
+        "name": "truck 86",
+        "qty": 934597137.8193,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 239,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 87
+      },
+      "key_id": "{\u0022id\u0022:87}",
+      "before": null,
+      "after": {
+        "id": 87,
+        "name": "truck 87",
+        "qty": 146025138.0438,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 240,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 88
+      },
+      "key_id": "{\u0022id\u0022:88}",
+      "before": null,
+      "after": {
+        "id": 88,
+        "name": "truck 88",
+        "qty": 86262300.6507,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 241,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 89
+      },
+      "key_id": "{\u0022id\u0022:89}",
+      "before": null,
+      "after": {
+        "id": 89,
+        "name": "truck 89",
+        "qty": 441424046.3830,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 242,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 90
+      },
+      "key_id": "{\u0022id\u0022:90}",
+      "before": null,
+      "after": {
+        "id": 90,
+        "name": "B\u00FCrger #90",
+        "qty": 109337759.2551,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 243,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 91
+      },
+      "key_id": "{\u0022id\u0022:91}",
+      "before": null,
+      "after": {
+        "id": 91,
+        "name": "truck 91",
+        "qty": null,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 244,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 92
+      },
+      "key_id": "{\u0022id\u0022:92}",
+      "before": null,
+      "after": {
+        "id": 92,
+        "name": "truck 92",
+        "qty": 880296560.4143,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 245,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 93
+      },
+      "key_id": "{\u0022id\u0022:93}",
+      "before": null,
+      "after": {
+        "id": 93,
+        "name": "truck 93",
+        "qty": 426736830.4668,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 246,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 94
+      },
+      "key_id": "{\u0022id\u0022:94}",
+      "before": null,
+      "after": {
+        "id": 94,
+        "name": "truck 94",
+        "qty": 309855535.7707,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 247,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 95
+      },
+      "key_id": "{\u0022id\u0022:95}",
+      "before": null,
+      "after": {
+        "id": 95,
+        "name": "truck 95",
+        "qty": 385503353.7305,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 248,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 96
+      },
+      "key_id": "{\u0022id\u0022:96}",
+      "before": null,
+      "after": {
+        "id": 96,
+        "name": "truck 96",
+        "qty": 194194995.4229,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 249,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 97
+      },
+      "key_id": "{\u0022id\u0022:97}",
+      "before": null,
+      "after": {
+        "id": 97,
+        "name": "truck 97",
+        "qty": 333806069.2576,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 250,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 98
+      },
+      "key_id": "{\u0022id\u0022:98}",
+      "before": null,
+      "after": {
+        "id": 98,
+        "name": "truck 98",
+        "qty": null,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 251,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 99
+      },
+      "key_id": "{\u0022id\u0022:99}",
+      "before": null,
+      "after": {
+        "id": 99,
+        "name": "truck 99",
+        "qty": 495298238.7018,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 252,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 106
+      },
+      "key_id": "{\u0022id\u0022:106}",
+      "before": null,
+      "after": {
+        "id": 106,
+        "name": "truck 106",
+        "qty": 370011269.7529,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 253,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 107
+      },
+      "key_id": "{\u0022id\u0022:107}",
+      "before": null,
+      "after": {
+        "id": 107,
+        "name": "truck 107",
+        "qty": 645947167.0193,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 254,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 108
+      },
+      "key_id": "{\u0022id\u0022:108}",
+      "before": null,
+      "after": {
+        "id": 108,
+        "name": "truck 108",
+        "qty": 485216505.1201,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 255,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 109
+      },
+      "key_id": "{\u0022id\u0022:109}",
+      "before": null,
+      "after": {
+        "id": 109,
+        "name": "truck 109",
+        "qty": 204037090.8585,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 256,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 110
+      },
+      "key_id": "{\u0022id\u0022:110}",
+      "before": null,
+      "after": {
+        "id": 110,
+        "name": "B\u00FCrger #110",
+        "qty": 208280679.8668,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 257,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 111
+      },
+      "key_id": "{\u0022id\u0022:111}",
+      "before": null,
+      "after": {
+        "id": 111,
+        "name": "truck 111",
+        "qty": 861452883.0449,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 258,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 112
+      },
+      "key_id": "{\u0022id\u0022:112}",
+      "before": null,
+      "after": {
+        "id": 112,
+        "name": "truck 112",
+        "qty": null,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 259,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 113
+      },
+      "key_id": "{\u0022id\u0022:113}",
+      "before": null,
+      "after": {
+        "id": 113,
+        "name": "truck 113",
+        "qty": 187077088.8343,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 260,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 114
+      },
+      "key_id": "{\u0022id\u0022:114}",
+      "before": null,
+      "after": {
+        "id": 114,
+        "name": "truck 114",
+        "qty": 999045048.3742,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 261,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 115
+      },
+      "key_id": "{\u0022id\u0022:115}",
+      "before": null,
+      "after": {
+        "id": 115,
+        "name": "truck 115",
+        "qty": 982006113.0365,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 262,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 116
+      },
+      "key_id": "{\u0022id\u0022:116}",
+      "before": null,
+      "after": {
+        "id": 116,
+        "name": "truck 116",
+        "qty": 445904752.9129,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 263,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 117
+      },
+      "key_id": "{\u0022id\u0022:117}",
+      "before": null,
+      "after": {
+        "id": 117,
+        "name": "truck 117",
+        "qty": 138968961.8437,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 264,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 118
+      },
+      "key_id": "{\u0022id\u0022:118}",
+      "before": null,
+      "after": {
+        "id": 118,
+        "name": "truck 118",
+        "qty": 437931338.9947,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 265,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 119
+      },
+      "key_id": "{\u0022id\u0022:119}",
+      "before": null,
+      "after": {
+        "id": 119,
+        "name": "truck 119",
+        "qty": null,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 266,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 120
+      },
+      "key_id": "{\u0022id\u0022:120}",
+      "before": null,
+      "after": {
+        "id": 120,
+        "name": "B\u00FCrger #120",
+        "qty": 542519126.3401,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 267,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot",
+      "key": {
+        "id": 121
+      },
+      "key_id": "{\u0022id\u0022:121}",
+      "before": null,
+      "after": {
+        "id": 121,
+        "name": "new",
+        "qty": null,
+        "moisture": 14.50
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 268,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "snapshot_complete",
+      "key": {},
+      "key_id": "{}",
+      "before": null,
+      "after": {
+        "snapshot_start_seq": 159
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:16:05\u002B00:00",
+      "seq": 269,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "update",
+      "key": {
+        "id": 122
+      },
+      "key_id": "{\u0022id\u0022:122}",
+      "before": null,
+      "after": {
+        "id": 122,
+        "name": "late",
+        "qty": null,
+        "moisture": null
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-28T13:37:00\u002B00:00",
+      "seq": 270,
+      "partition_key": "stmarys|dbo.Tickets"
+    },
+    {
+      "envelope_version": 1,
+      "site_id": "stmarys",
+      "source_id": "compuweigh",
+      "source_system": "compuweigh",
+      "table": "dbo.Tickets",
+      "op": "reconcile",
+      "key": {},
+      "key_id": "{}",
+      "before": null,
+      "after": {
+        "row_count": 111,
+        "key_checksum": "7025374041719578645"
+      },
+      "source_ts": null,
+      "capture_ts": "2026-10-29T06:32:00\u002B00:00",
+      "seq": 271,
+      "partition_key": "stmarys|dbo.Tickets"
+    }
+  ],
+  "expected": {
+    "{\u0022id\u0022:1}": {
+      "id": 1,
+      "name": "truck 1",
+      "qty": 123456789013.3456,
+      "moisture": null
+    },
+    "{\u0022id\u0022:2}": {
+      "id": 2,
+      "name": "truck 2",
+      "qty": 123456789014.3456,
+      "moisture": null
+    },
+    "{\u0022id\u0022:3}": {
+      "id": 3,
+      "name": "truck 3",
+      "qty": 123456789015.3456,
+      "moisture": null
+    },
+    "{\u0022id\u0022:4}": {
+      "id": 4,
+      "name": "truck 4",
+      "qty": 123456789016.3456,
+      "moisture": null
+    },
+    "{\u0022id\u0022:5}": {
+      "id": 5,
+      "name": "truck 5",
+      "qty": 123456789017.3456,
+      "moisture": null
+    },
+    "{\u0022id\u0022:6}": {
+      "id": 6,
+      "name": "truck 6",
+      "qty": 123456789018.3456,
+      "moisture": null
+    },
+    "{\u0022id\u0022:7}": {
+      "id": 7,
+      "name": "changed in the gap",
+      "qty": 123456789019.3456,
+      "moisture": null
+    },
+    "{\u0022id\u0022:8}": {
+      "id": 8,
+      "name": "truck 8",
+      "qty": 123456789020.3456,
+      "moisture": null
+    },
+    "{\u0022id\u0022:9}": {
+      "id": 9,
+      "name": "truck 9",
+      "qty": 123456789021.3456,
+      "moisture": null
+    },
+    "{\u0022id\u0022:10}": {
+      "id": 10,
+      "name": "B\u00FCrger #10",
+      "qty": 123456789022.3456,
+      "moisture": null
+    },
+    "{\u0022id\u0022:11}": {
+      "id": 11,
+      "name": "truck 11",
+      "qty": 123456789023.3456,
+      "moisture": null
+    },
+    "{\u0022id\u0022:12}": {
+      "id": 12,
+      "name": "truck 12",
+      "qty": 123456789024.3456,
+      "moisture": null
+    },
+    "{\u0022id\u0022:13}": {
+      "id": 13,
+      "name": "truck 13",
+      "qty": 123456789025.3456,
+      "moisture": null
+    },
+    "{\u0022id\u0022:14}": {
+      "id": 14,
+      "name": "truck 14",
+      "qty": 123456789026.3456,
+      "moisture": null
+    },
+    "{\u0022id\u0022:15}": {
+      "id": 15,
+      "name": "truck 15",
+      "qty": 123456789027.3456,
+      "moisture": null
+    },
+    "{\u0022id\u0022:16}": {
+      "id": 16,
+      "name": "truck 16",
+      "qty": 123456789028.3456,
+      "moisture": null
+    },
+    "{\u0022id\u0022:17}": {
+      "id": 17,
+      "name": "truck 17",
+      "qty": 123456789029.3456,
+      "moisture": null
+    },
+    "{\u0022id\u0022:18}": {
+      "id": 18,
+      "name": "truck 18",
+      "qty": 123456789030.3456,
+      "moisture": null
+    },
+    "{\u0022id\u0022:19}": {
+      "id": 19,
+      "name": "truck 19",
+      "qty": 123456789031.3456,
+      "moisture": null
+    },
+    "{\u0022id\u0022:20}": {
+      "id": 20,
+      "name": "B\u00FCrger #20",
+      "qty": 123456789032.3456,
+      "moisture": null
+    },
+    "{\u0022id\u0022:21}": {
+      "id": 21,
+      "name": "truck 21",
+      "qty": 123456789033.3456,
+      "moisture": null
+    },
+    "{\u0022id\u0022:22}": {
+      "id": 22,
+      "name": "truck 22",
+      "qty": 123456789034.3456,
+      "moisture": null
+    },
+    "{\u0022id\u0022:23}": {
+      "id": 23,
+      "name": "truck 23",
+      "qty": 123456789035.3456,
+      "moisture": null
+    },
+    "{\u0022id\u0022:24}": {
+      "id": 24,
+      "name": "truck 24",
+      "qty": 123456789036.3456,
+      "moisture": null
+    },
+    "{\u0022id\u0022:25}": {
+      "id": 25,
+      "name": "truck 25",
+      "qty": 123456789037.3456,
+      "moisture": null
+    },
+    "{\u0022id\u0022:26}": {
+      "id": 26,
+      "name": "truck 26",
+      "qty": 123456789038.3456,
+      "moisture": null
+    },
+    "{\u0022id\u0022:27}": {
+      "id": 27,
+      "name": "truck 27",
+      "qty": 123456789039.3456,
+      "moisture": null
+    },
+    "{\u0022id\u0022:28}": {
+      "id": 28,
+      "name": "truck 28",
+      "qty": 123456789040.3456,
+      "moisture": null
+    },
+    "{\u0022id\u0022:29}": {
+      "id": 29,
+      "name": "truck 29",
+      "qty": 123456789041.3456,
+      "moisture": null
+    },
+    "{\u0022id\u0022:30}": {
+      "id": 30,
+      "name": "B\u00FCrger #30",
+      "qty": 123456789042.3456,
+      "moisture": null
+    },
+    "{\u0022id\u0022:31}": {
+      "id": 31,
+      "name": "truck 31",
+      "qty": 952373405.4306,
+      "moisture": null
+    },
+    "{\u0022id\u0022:32}": {
+      "id": 32,
+      "name": "truck 32",
+      "qty": 24876000.3712,
+      "moisture": null
+    },
+    "{\u0022id\u0022:33}": {
+      "id": 33,
+      "name": "truck 33",
+      "qty": 480306406.2634,
+      "moisture": null
+    },
+    "{\u0022id\u0022:34}": {
+      "id": 34,
+      "name": "truck 34",
+      "qty": 718627084.8469,
+      "moisture": null
+    },
+    "{\u0022id\u0022:35}": {
+      "id": 35,
+      "name": "truck 35",
+      "qty": null,
+      "moisture": null
+    },
+    "{\u0022id\u0022:36}": {
+      "id": 36,
+      "name": "truck 36",
+      "qty": 771368765.6314,
+      "moisture": null
+    },
+    "{\u0022id\u0022:37}": {
+      "id": 37,
+      "name": "truck 37",
+      "qty": 297174940.0241,
+      "moisture": null
+    },
+    "{\u0022id\u0022:38}": {
+      "id": 38,
+      "name": "truck 38",
+      "qty": 112039630.8191,
+      "moisture": null
+    },
+    "{\u0022id\u0022:39}": {
+      "id": 39,
+      "name": "truck 39",
+      "qty": 164038143.6628,
+      "moisture": null
+    },
+    "{\u0022id\u0022:40}": {
+      "id": 40,
+      "name": "B\u00FCrger #40",
+      "qty": 86947837.8850,
+      "moisture": null
+    },
+    "{\u0022id\u0022:41}": {
+      "id": 41,
+      "name": "truck 41",
+      "qty": 66329704.6285,
+      "moisture": null
+    },
+    "{\u0022id\u0022:42}": {
+      "id": 42,
+      "name": "truck 42",
+      "qty": null,
+      "moisture": null
+    },
+    "{\u0022id\u0022:43}": {
+      "id": 43,
+      "name": "truck 43",
+      "qty": 828839436.0937,
+      "moisture": null
+    },
+    "{\u0022id\u0022:44}": {
+      "id": 44,
+      "name": "truck 44",
+      "qty": 151496232.5578,
+      "moisture": null
+    },
+    "{\u0022id\u0022:45}": {
+      "id": 45,
+      "name": "truck 45",
+      "qty": 541905207.3461,
+      "moisture": null
+    },
+    "{\u0022id\u0022:46}": {
+      "id": 46,
+      "name": "truck 46",
+      "qty": 932076715.8326,
+      "moisture": null
+    },
+    "{\u0022id\u0022:47}": {
+      "id": 47,
+      "name": "truck 47",
+      "qty": 879000831.8047,
+      "moisture": null
+    },
+    "{\u0022id\u0022:48}": {
+      "id": 48,
+      "name": "truck 48",
+      "qty": 660739375.5860,
+      "moisture": null
+    },
+    "{\u0022id\u0022:49}": {
+      "id": 49,
+      "name": "truck 49",
+      "qty": null,
+      "moisture": null
+    },
+    "{\u0022id\u0022:55}": {
+      "id": 55,
+      "name": "truck 55",
+      "qty": 566870051.7001,
+      "moisture": null
+    },
+    "{\u0022id\u0022:56}": {
+      "id": 56,
+      "name": "truck 56",
+      "qty": null,
+      "moisture": null
+    },
+    "{\u0022id\u0022:57}": {
+      "id": 57,
+      "name": "truck 57",
+      "qty": 830681004.9483,
+      "moisture": null
+    },
+    "{\u0022id\u0022:58}": {
+      "id": 58,
+      "name": "truck 58",
+      "qty": 146500337.0058,
+      "moisture": null
+    },
+    "{\u0022id\u0022:59}": {
+      "id": 59,
+      "name": "truck 59",
+      "qty": 223328846.1451,
+      "moisture": null
+    },
+    "{\u0022id\u0022:60}": {
+      "id": 60,
+      "name": "B\u00FCrger #60",
+      "qty": 873630011.8610,
+      "moisture": null
+    },
+    "{\u0022id\u0022:61}": {
+      "id": 61,
+      "name": "truck 61",
+      "qty": 707132983.8164,
+      "moisture": null
+    },
+    "{\u0022id\u0022:62}": {
+      "id": 62,
+      "name": "truck 62",
+      "qty": 914056436.5844,
+      "moisture": null
+    },
+    "{\u0022id\u0022:63}": {
+      "id": 63,
+      "name": "truck 63",
+      "qty": null,
+      "moisture": null
+    },
+    "{\u0022id\u0022:64}": {
+      "id": 64,
+      "name": "truck 64",
+      "qty": 596521077.9554,
+      "moisture": null
+    },
+    "{\u0022id\u0022:65}": {
+      "id": 65,
+      "name": "truck 65",
+      "qty": 817811803.3418,
+      "moisture": null
+    },
+    "{\u0022id\u0022:66}": {
+      "id": 66,
+      "name": "truck 66",
+      "qty": 696318434.8756,
+      "moisture": null
+    },
+    "{\u0022id\u0022:67}": {
+      "id": 67,
+      "name": "truck 67",
+      "qty": 182892269.0744,
+      "moisture": null
+    },
+    "{\u0022id\u0022:68}": {
+      "id": 68,
+      "name": "truck 68",
+      "qty": 666279727.4377,
+      "moisture": null
+    },
+    "{\u0022id\u0022:69}": {
+      "id": 69,
+      "name": "truck 69",
+      "qty": 337868116.4877,
+      "moisture": null
+    },
+    "{\u0022id\u0022:70}": {
+      "id": 70,
+      "name": "B\u00FCrger #70",
+      "qty": null,
+      "moisture": null
+    },
+    "{\u0022id\u0022:71}": {
+      "id": 71,
+      "name": "truck 71",
+      "qty": 723796035.9658,
+      "moisture": null
+    },
+    "{\u0022id\u0022:72}": {
+      "id": 72,
+      "name": "truck 72",
+      "qty": 17547948.7598,
+      "moisture": null
+    },
+    "{\u0022id\u0022:73}": {
+      "id": 73,
+      "name": "truck 73",
+      "qty": 473662286.7517,
+      "moisture": null
+    },
+    "{\u0022id\u0022:74}": {
+      "id": 74,
+      "name": "truck 74",
+      "qty": 124939571.1929,
+      "moisture": null
+    },
+    "{\u0022id\u0022:75}": {
+      "id": 75,
+      "name": "truck 75",
+      "qty": 83593375.5541,
+      "moisture": null
+    },
+    "{\u0022id\u0022:76}": {
+      "id": 76,
+      "name": "truck 76",
+      "qty": 151845040.3362,
+      "moisture": null
+    },
+    "{\u0022id\u0022:77}": {
+      "id": 77,
+      "name": "truck 77",
+      "qty": null,
+      "moisture": null
+    },
+    "{\u0022id\u0022:78}": {
+      "id": 78,
+      "name": "truck 78",
+      "qty": 820276185.7865,
+      "moisture": null
+    },
+    "{\u0022id\u0022:79}": {
+      "id": 79,
+      "name": "truck 79",
+      "qty": 280778341.1261,
+      "moisture": null
+    },
+    "{\u0022id\u0022:80}": {
+      "id": 80,
+      "name": "B\u00FCrger #80",
+      "qty": 24350925.3600,
+      "moisture": null
+    },
+    "{\u0022id\u0022:81}": {
+      "id": 81,
+      "name": "truck 81",
+      "qty": 815624608.5724,
+      "moisture": null
+    },
+    "{\u0022id\u0022:82}": {
+      "id": 82,
+      "name": "truck 82",
+      "qty": 573173828.6899,
+      "moisture": null
+    },
+    "{\u0022id\u0022:83}": {
+      "id": 83,
+      "name": "truck 83",
+      "qty": 653387412.2675,
+      "moisture": null
+    },
+    "{\u0022id\u0022:84}": {
+      "id": 84,
+      "name": "truck 84",
+      "qty": null,
+      "moisture": null
+    },
+    "{\u0022id\u0022:85}": {
+      "id": 85,
+      "name": "truck 85",
+      "qty": 793437163.2493,
+      "moisture": null
+    },
+    "{\u0022id\u0022:86}": {
+      "id": 86,
+      "name": "truck 86",
+      "qty": 934597137.8193,
+      "moisture": null
+    },
+    "{\u0022id\u0022:87}": {
+      "id": 87,
+      "name": "truck 87",
+      "qty": 146025138.0438,
+      "moisture": null
+    },
+    "{\u0022id\u0022:88}": {
+      "id": 88,
+      "name": "truck 88",
+      "qty": 86262300.6507,
+      "moisture": null
+    },
+    "{\u0022id\u0022:89}": {
+      "id": 89,
+      "name": "truck 89",
+      "qty": 441424046.3830,
+      "moisture": null
+    },
+    "{\u0022id\u0022:90}": {
+      "id": 90,
+      "name": "B\u00FCrger #90",
+      "qty": 109337759.2551,
+      "moisture": null
+    },
+    "{\u0022id\u0022:91}": {
+      "id": 91,
+      "name": "truck 91",
+      "qty": null,
+      "moisture": null
+    },
+    "{\u0022id\u0022:92}": {
+      "id": 92,
+      "name": "truck 92",
+      "qty": 880296560.4143,
+      "moisture": null
+    },
+    "{\u0022id\u0022:93}": {
+      "id": 93,
+      "name": "truck 93",
+      "qty": 426736830.4668,
+      "moisture": null
+    },
+    "{\u0022id\u0022:94}": {
+      "id": 94,
+      "name": "truck 94",
+      "qty": 309855535.7707,
+      "moisture": null
+    },
+    "{\u0022id\u0022:95}": {
+      "id": 95,
+      "name": "truck 95",
+      "qty": 385503353.7305,
+      "moisture": null
+    },
+    "{\u0022id\u0022:96}": {
+      "id": 96,
+      "name": "truck 96",
+      "qty": 194194995.4229,
+      "moisture": null
+    },
+    "{\u0022id\u0022:97}": {
+      "id": 97,
+      "name": "truck 97",
+      "qty": 333806069.2576,
+      "moisture": null
+    },
+    "{\u0022id\u0022:98}": {
+      "id": 98,
+      "name": "truck 98",
+      "qty": null,
+      "moisture": null
+    },
+    "{\u0022id\u0022:99}": {
+      "id": 99,
+      "name": "truck 99",
+      "qty": 495298238.7018,
+      "moisture": null
+    },
+    "{\u0022id\u0022:106}": {
+      "id": 106,
+      "name": "truck 106",
+      "qty": 370011269.7529,
+      "moisture": null
+    },
+    "{\u0022id\u0022:107}": {
+      "id": 107,
+      "name": "truck 107",
+      "qty": 645947167.0193,
+      "moisture": null
+    },
+    "{\u0022id\u0022:108}": {
+      "id": 108,
+      "name": "truck 108",
+      "qty": 485216505.1201,
+      "moisture": null
+    },
+    "{\u0022id\u0022:109}": {
+      "id": 109,
+      "name": "truck 109",
+      "qty": 204037090.8585,
+      "moisture": null
+    },
+    "{\u0022id\u0022:110}": {
+      "id": 110,
+      "name": "B\u00FCrger #110",
+      "qty": 208280679.8668,
+      "moisture": null
+    },
+    "{\u0022id\u0022:111}": {
+      "id": 111,
+      "name": "truck 111",
+      "qty": 861452883.0449,
+      "moisture": null
+    },
+    "{\u0022id\u0022:112}": {
+      "id": 112,
+      "name": "truck 112",
+      "qty": null,
+      "moisture": null
+    },
+    "{\u0022id\u0022:113}": {
+      "id": 113,
+      "name": "truck 113",
+      "qty": 187077088.8343,
+      "moisture": null
+    },
+    "{\u0022id\u0022:114}": {
+      "id": 114,
+      "name": "truck 114",
+      "qty": 999045048.3742,
+      "moisture": null
+    },
+    "{\u0022id\u0022:115}": {
+      "id": 115,
+      "name": "truck 115",
+      "qty": 982006113.0365,
+      "moisture": null
+    },
+    "{\u0022id\u0022:116}": {
+      "id": 116,
+      "name": "truck 116",
+      "qty": 445904752.9129,
+      "moisture": null
+    },
+    "{\u0022id\u0022:117}": {
+      "id": 117,
+      "name": "truck 117",
+      "qty": 138968961.8437,
+      "moisture": null
+    },
+    "{\u0022id\u0022:118}": {
+      "id": 118,
+      "name": "truck 118",
+      "qty": 437931338.9947,
+      "moisture": null
+    },
+    "{\u0022id\u0022:119}": {
+      "id": 119,
+      "name": "truck 119",
+      "qty": null,
+      "moisture": null
+    },
+    "{\u0022id\u0022:120}": {
+      "id": 120,
+      "name": "B\u00FCrger #120",
+      "qty": 542519126.3401,
+      "moisture": null
+    },
+    "{\u0022id\u0022:121}": {
+      "id": 121,
+      "name": "new",
+      "qty": null,
+      "moisture": 14.50
+    },
+    "{\u0022id\u0022:122}": {
+      "id": 122,
+      "name": "late",
+      "qty": null,
+      "moisture": null
+    }
+  }
+}

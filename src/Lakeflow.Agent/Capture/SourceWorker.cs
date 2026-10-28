@@ -39,11 +39,12 @@ internal sealed class SourceWorker : IAsyncDisposable
     private readonly TimeProvider _time;
     private readonly ILogger _log;
     private readonly Dictionary<string, TableRuntime> _tables = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Random _random;
     private ISourceConnector? _connector;
 
-    public SourceWorker(SourceConfig config, LocalStore store, IConnectorFactory factory, TimeProvider time, ILogger log)
+    public SourceWorker(SourceConfig config, LocalStore store, IConnectorFactory factory, TimeProvider time, ILogger log, Random random)
     {
-        (Config, _store, _factory, _time, _log) = (config, store, factory, time, log);
+        (Config, _store, _factory, _time, _log, _random) = (config, store, factory, time, log, random);
         Update(config);
     }
 
@@ -133,7 +134,7 @@ internal sealed class SourceWorker : IAsyncDisposable
                 LastError = ex.Message;
                 runtime.Failing = true;
                 runtime.LastError = ex.Message;
-                var delay = Backoff.Delay(ConsecutiveFailures, TimeSpan.FromSeconds(runtime.Config.PollIntervalSeconds), MaxSourceBackoff);
+                var delay = Backoff.Delay(ConsecutiveFailures, TimeSpan.FromSeconds(runtime.Config.PollIntervalSeconds), MaxSourceBackoff, _random);
                 NextAttempt = now + delay;
                 _log.LogWarning(ex, "Source read failed ({Failures} in a row); retrying in {Delay}", ConsecutiveFailures, delay);
                 if (ConsecutiveFailures == FailuresBeforeAlert)
@@ -199,11 +200,13 @@ internal sealed class SourceWorker : IAsyncDisposable
                 break; // one batch per run; the next run resumes from the stored checkpoint
             }
             var changes = batch!.Next.IsSnapshotComplete ? [.. batch.Changes, RowChange.SnapshotCompleted(startSeq.Value)] : batch.Changes;
-            _store.Append(agent.SiteId, LocalStore.HubKey(Config.Division), Config.SourceId, name, changes, batch.Next, caughtUp: false, trackKeys, now);
+            _store.Append(Origin(agent), name, changes, batch.Next, caughtUp: false, trackKeys, now);
             rows = batch.Changes.Count;
             hasMore = batch.HasMore || !batch.Next.IsSnapshotComplete;
             if (batch.Next.IsSnapshotComplete)
             {
+                // A snapshot is a full read: it stands in for today's reconciliation, the next one is tonight.
+                _store.SetReconciled(Config.SourceId, name, SiteToday(agent, now));
                 _log.LogInformation("Snapshot finished");
                 Event(AgentEventKind.Snapshot, EventSeverity.Info, name, "Snapshot finished.");
                 hasMore = true; // read changes made during the snapshot straight away
@@ -212,11 +215,11 @@ internal sealed class SourceWorker : IAsyncDisposable
         else
         {
             var batch = await connector.ReadChangesAsync(table, schema, checkpoint, BatchRows, ct);
-            _store.Append(agent.SiteId, LocalStore.HubKey(Config.Division), Config.SourceId, name, batch.Changes, batch.Next, caughtUp: !batch.HasMore, trackKeys, now);
+            _store.Append(Origin(agent), name, batch.Changes, batch.Next, caughtUp: !batch.HasMore, trackKeys, now);
             rows = batch.Changes.Count;
             hasMore = batch.HasMore;
-            if (!hasMore && trackKeys && ReconcileDue(agent, record, now))
-                rows += await ReconcileDeletesAsync(agent, table, schema, now, ct);
+            if (!hasMore && ReconcileDue(agent, record, now))
+                rows += await ReconcileAsync(agent, table, schema, trackKeys, now, ct);
         }
 
         runtime.Recent.Enqueue((now, rows));
@@ -233,25 +236,51 @@ internal sealed class SourceWorker : IAsyncDisposable
         return (record.LastReconciled is null || record.LastReconciled < today) && TimeOnly.FromDateTime(local.DateTime) >= agent.DeleteReconcileAt;
     }
 
-    private async Task<int> ReconcileDeletesAsync(AgentConfig agent, TableConfig table, TableSchema schema, DateTimeOffset now, CancellationToken ct)
+    /// <summary>
+    /// Nightly, straight after a read that caught up: reads every key once, finds deleted rows (polling tables, which
+    /// see no deletes otherwise) and sends a <see cref="ChangeOp.Reconcile"/> marker with the source's row count and key
+    /// checksum, which the Fabric notebook compares with silver at exactly this point in the stream.
+    /// </summary>
+    private async Task<int> ReconcileAsync(AgentConfig agent, TableConfig table, TableSchema schema, bool findDeletes,
+        DateTimeOffset now, CancellationToken ct)
     {
         var name = table.Table.QualifiedName;
         var reader = _connector as IKeyReader
-            ?? throw new CaptureUnavailableException($"{Config.Engine} connector cannot list keys, so deletes cannot be found.");
-        var keys = KeyTexts(reader.ReadKeysAsync(table, schema, ct));
-        var missing = await _store.FindMissingKeysAsync(Config.SourceId, name, keys, ct);
-        var deletes = missing.Select(k => new RowChange(ChangeOp.Delete, JsonNode.Parse(k)!.AsObject(), null, null)).ToList();
-        _store.Append(agent.SiteId, LocalStore.HubKey(Config.Division), Config.SourceId, name, deletes, next: null, caughtUp: false, trackKeys: true, now);
-        var zone = TimeZoneInfo.FindSystemTimeZoneById(agent.SiteTimeZone);
-        _store.SetReconciled(Config.SourceId, name, DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(now, zone).DateTime));
-        _log.LogInformation("Delete reconciliation found {Deleted} deleted rows", deletes.Count);
-        return deletes.Count;
+            ?? throw new CaptureUnavailableException($"{Config.Engine} connector cannot list keys, so the table cannot be reconciled.");
+        var checksum = new KeyChecksum.Accumulator();
+        var keys = Counted(reader.ReadKeysAsync(table, schema, ct), checksum);
+        var changes = new List<RowChange>();
+        if (findDeletes)
+        {
+            var missing = await _store.FindMissingKeysAsync(Config.SourceId, name, keys, ct);
+            changes.AddRange(missing.Select(k => new RowChange(ChangeOp.Delete, JsonNode.Parse(k)!.AsObject(), null, null)));
+        }
+        else
+        {
+            await foreach (var _ in keys) { }
+        }
+        changes.Add(RowChange.Reconciled(checksum.Count, checksum.Sum));
+        _store.Append(Origin(agent), name, changes, next: null, caughtUp: false, trackKeys: findDeletes, now);
+        _store.SetReconciled(Config.SourceId, name, SiteToday(agent, now));
+        _log.LogInformation("Nightly reconciliation: {Rows} rows at the source, {Deleted} deleted rows found", checksum.Count, changes.Count - 1);
+        return changes.Count - 1;
     }
 
-    private static async IAsyncEnumerable<string> KeyTexts(IAsyncEnumerable<JsonObject> keys)
+    private static async IAsyncEnumerable<string> Counted(IAsyncEnumerable<JsonObject> keys, KeyChecksum.Accumulator checksum)
     {
-        await foreach (var key in keys) yield return ColumnValues.KeyText(key);
+        await foreach (var key in keys)
+        {
+            var text = ColumnValues.KeyText(key);
+            checksum.Add(text);
+            yield return text;
+        }
     }
+
+    private static DateOnly SiteToday(AgentConfig agent, DateTimeOffset now) =>
+        DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(now, TimeZoneInfo.FindSystemTimeZoneById(agent.SiteTimeZone)).DateTime);
+
+    private ChangeOrigin Origin(AgentConfig agent) =>
+        new(agent.SiteId, LocalStore.HubKey(Config.Division), Config.SourceId, Config.SourceSystem);
 
     private void Event(AgentEventKind kind, EventSeverity severity, string? table, string message) =>
         _store.AddEvent(new AgentEvent
