@@ -11,13 +11,12 @@ using Serilog;
 
 // The central collector runs in Docker on Linux; an agent installed at a site runs as a Windows service. Same program.
 // Optional overrides (the defaults suit both): LAKEFLOW_AGENT_DATA, LAKEFLOW_KEY_FILE.
-// Run once by the installer (installer/Package.wxs), as SYSTEM: puts the enrollment token into the key the installer
-// created and locked down, so the token never passes through the Windows Installer's registry logging.
+// Run once by the installer (installer/Package.wxs), as SYSTEM: locks the enrollment key down to SYSTEM,
+// Administrators and the service, then puts the token in it, so the token never passes through the Windows Installer's
+// registry logging and no one else can read it.
 if (args is ["store-enrollment-token", var enrollmentToken] && OperatingSystem.IsWindows())
 {
-    using var key = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(EnrollmentFile.RegistryKeyPath, writable: true);
-    if (key is null) return 2;
-    key.SetValue("Token", enrollmentToken, Microsoft.Win32.RegistryValueKind.String);
+    EnrollmentFile.StoreRegistryToken(enrollmentToken);
     return 0;
 }
 

@@ -93,4 +93,10 @@ public sealed class CollectorHostTests : IAsyncDisposable
         try { Directory.Delete(_dir, true); } catch (IOException) { }
         return ValueTask.CompletedTask;
     }
+
+    /// <summary>The installer's ACLs name the service by this SID before the service exists; it must be Windows' own.</summary>
+    [Fact]
+    public void Service_sid_is_computed_like_windows_does() =>
+        Assert.Equal("S-1-5-80-2136591765-628530825-2363202261-254100150-1450642212",
+            Lakeflow.Agent.Control.EnrollmentFile.ServiceSid(Lakeflow.Agent.Control.EnrollmentFile.ServiceName));
 }

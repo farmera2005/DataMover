@@ -22,6 +22,30 @@ public sealed class EnrollmentFile(string dataDirectory, string agentVersion, IL
     /// <summary>Written by the installer (installer/Package.wxs) under HKLM.</summary>
     public const string RegistryKeyPath = @"SOFTWARE\Lakeflow\Agent\Enrollment";
 
+    /// <summary>The service's name, as the installer registers it; its virtual account is <c>NT SERVICE\LakeflowAgent</c>.</summary>
+    public const string ServiceName = "LakeflowAgent";
+
+    /// <summary>A service's SID (S-1-5-80 and the SHA-1 of its upper-case name), known before the service exists.</summary>
+    public static string ServiceSid(string serviceName)
+    {
+        var hash = System.Security.Cryptography.SHA1.HashData(System.Text.Encoding.Unicode.GetBytes(serviceName.ToUpperInvariant()));
+        return "S-1-5-80-" + string.Join('-', Enumerable.Range(0, 5).Select(i => BitConverter.ToUInt32(hash, i * 4)));
+    }
+
+    /// <summary>
+    /// For the installer: makes the enrollment key readable only by SYSTEM, Administrators and the service (nothing
+    /// inherited), then stores the token in it.
+    /// </summary>
+    [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+    public static void StoreRegistryToken(string token)
+    {
+        var security = new System.Security.AccessControl.RegistrySecurity();
+        security.SetSecurityDescriptorSddlForm($"O:SYG:SYD:PAI(A;CI;KA;;;SY)(A;CI;KA;;;BA)(A;CI;KA;;;{ServiceSid(ServiceName)})");
+        using var key = Microsoft.Win32.Registry.LocalMachine.CreateSubKey(RegistryKeyPath, writable: true);
+        key.SetAccessControl(security);
+        key.SetValue("Token", token, Microsoft.Win32.RegistryValueKind.String);
+    }
+
     public string Path => Environment.GetEnvironmentVariable("LAKEFLOW_ENROLL_FILE") is { Length: > 0 } file
         ? file
         : System.IO.Path.Combine(dataDirectory, "enroll.json");
