@@ -35,7 +35,7 @@ Configuration, then Server & certificate) or upload a certificate for the server
 
 **If the build fails:** it downloads .NET packages from NuGet and base images from Microsoft's registry. Run it again (a
 second run reuses what downloaded). Behind a proxy, configure Docker's proxy for builds. If the network inspects HTTPS
-to NuGet (as it does for npm, see GrainTime), the build cannot restore packages; ask for prebuilt images instead of
+to NuGet, the build cannot restore packages; ask for prebuilt images instead of
 disabling certificate checks.
 
 **Ports** (optional to change, e.g. `LAKEFLOW_HTTPS_PORT=9443 docker compose up -d`): 8090 console over HTTP, 8443

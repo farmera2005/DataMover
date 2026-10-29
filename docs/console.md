@@ -44,7 +44,7 @@ from their groups at every sign-in.
 ## HTTP or HTTPS
 
 Both work. On HTTPS the browser seals source passwords itself before sending them; on plain HTTP passwords (including
-sign-in) cross the network unencrypted, as with GrainTime's console, and the API seals source passwords on arrival.
+sign-in) cross the network unencrypted, and the API seals source passwords on arrival.
 Prefer HTTPS: trust the Lakeflow CA or upload a certificate and the browser warning goes away.
 
 ## How it is built

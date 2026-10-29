@@ -11,7 +11,7 @@ public interface ISecretProtector
 
 /// <summary>
 /// For Linux (the collector and the control API in Docker; no DPAPI): AES-256-GCM with a master key kept in its own file, created on first start with
-/// owner-only permissions. Keep that file on a separate volume from the data (as GrainTime keeps its encryption key),
+/// owner-only permissions. Keep that file on a separate volume from the data,
 /// so a copy of the data volume alone reveals nothing.
 /// </summary>
 public sealed class FileKeyProtector : ISecretProtector

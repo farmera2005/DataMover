@@ -15,19 +15,18 @@ Self-update (phase 2) is not built yet: upgrades are a newer MSI.
 
 **Decision.** The control API, web console, PostgreSQL and a built-in collector run as one Docker Compose stack on an
 on-prem server: `docker compose up -d --build`, then a setup wizard in the browser. Azure is used only for Event Hubs and
-Fabric, whose details are pasted into the console. No CLI, config file or environment variable is needed (the same
-rule as GrainTime).
+Fabric, whose details are pasted into the console. No CLI, config file or environment variable is needed.
 
-**Replaces from the spec:** App Service (now a container), Azure SQL (PostgreSQL, as GrainTime), Key Vault (the API's
+**Replaces from the spec:** App Service (now a container), Azure SQL (PostgreSQL), Key Vault (the API's
 own master key and CA in its data volume; setting secrets encrypted with that key in the database), Entra ID sign-in
-(local accounts plus optional AD/LDAP with roles from groups, as GrainTime), Bicep for the control plane (nothing to
+(local accounts plus optional AD/LDAP with roles from groups), Bicep for the control plane (nothing to
 deploy in Azure beyond the Event Hubs namespace and Fabric).
 
 **Kept:** collectors authenticate with client certificates from a CA only the control plane holds; Event Hubs access
 is Send-only SAS tokens that expire in 24 hours; source passwords are sealed to the collector; every change is audited;
 console roles Viewer, Operator, Admin.
 
-**Trade-offs.** The console also answers on plain HTTP (like GrainTime's) because a browser warning on a self-signed
+**Trade-offs.** The console also answers on plain HTTP because a browser warning on a self-signed
 certificate is the first thing people would hit; HTTPS is offered from the start with a certificate from the Lakeflow
 CA, and a proper certificate can be uploaded in the console. On HTTP, sign-in and source passwords cross the network
 unencrypted (the API seals source passwords on arrival). The control plane's availability is now the server's, not
@@ -35,7 +34,7 @@ Azure's; collectors keep capturing into their buffers while it is down.
 
 ## 2026-10-29: Central collector instead of an agent at every site
 
-**Decision.** One collector, in Docker on a server inside the WAN (like GrainTime's collector), reads every site's
+**Decision.** One collector, in Docker on a server inside the WAN, reads every site's
 databases directly. It is the same program as the agent: an enrolled identity serving the sites assigned to it in the
 console, each site in its own pipeline, store and loops. The per-site install remains for a site the centre cannot
 reach, or for local files (Access databases, CSV drop folders): an agent enrolled for one site.

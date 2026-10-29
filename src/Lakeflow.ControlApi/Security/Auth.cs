@@ -61,7 +61,7 @@ public static class AuthSetup
                 o.Cookie.Name = CookieName;
                 o.Cookie.HttpOnly = true;
                 o.Cookie.SameSite = SameSiteMode.Strict;
-                // The console works over plain HTTP too (like GrainTime's); over HTTPS the cookie is Secure.
+                // The console works over plain HTTP too; over HTTPS the cookie is Secure.
                 o.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
                 o.ExpireTimeSpan = TimeSpan.FromHours(12);
                 o.SlidingExpiration = true;

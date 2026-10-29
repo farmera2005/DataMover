@@ -8,7 +8,7 @@ first start and everything else is entered in the console.
 
 | Container port (published by default) | For |
 | --- | --- |
-| 8080 (8090) | the console over plain HTTP, like GrainTime's |
+| 8080 (8090) | the console over plain HTTP |
 | 8443 (8443) | the console over HTTPS (certificate: uploaded, or from the Lakeflow CA) |
 | 8444 (8444) | collectors only: HTTPS with client certificates, certificate always from the Lakeflow CA |
 
