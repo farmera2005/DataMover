@@ -78,6 +78,11 @@ jobs:
           test "$(curl -sk -o /dev/null -w '%{http_code}' https://localhost:8443/agents/ca)" = 404
           test "$(curl -sk -o /dev/null -w '%{http_code}' https://localhost:8444/sites)" = 404
           curl -sk https://localhost:8444/agents/ca | grep -q "BEGIN CERTIFICATE"
+          # The API removes the built-in collector's enrollment file on its next 10-second check.
+          for i in $(seq 1 15); do
+            [ -z "$(docker compose exec -T api ls /var/lib/lakeflow-bootstrap)" ] && break
+            sleep 2
+          done
           test -z "$(docker compose exec -T api ls /var/lib/lakeflow-bootstrap)"
       - if: failure()
         run: docker compose logs
