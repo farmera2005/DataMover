@@ -66,6 +66,9 @@ public sealed class ReconciliationTests : IAsyncLifetime
         }).OkAsync();
         Assert.Equal(Health.Green, (await admin.GetAsync<FleetStatus>("status")).Sites.Single(s => s.SiteId == site).Health);
 
+        // Before the notebook's first nightly run the results table does not exist yet: nothing to report, not an error.
+        Assert.Empty(await admin.GetAsync<List<ReconciliationResult>>($"reconciliation?siteId={site}"));
+
         await using (var connection = new SqlConnection(_api.SqlConnectionString))
         {
             await connection.OpenAsync();

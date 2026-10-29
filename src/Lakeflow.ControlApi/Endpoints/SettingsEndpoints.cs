@@ -69,10 +69,14 @@ public static class SettingsEndpoints
         });
         admin.MapPost("/fabric/test", async (SettingsStore settings, CancellationToken ct) =>
         {
+            if (await settings.GetAsync<FabricSetting>(SettingsStore.Fabric, ct) is null)
+                return new SettingsTestResult(false, "Save the Fabric settings first.");
             try
             {
                 var results = await new SettingsReconciliation(settings).LatestAsync(null, ct);
-                return new SettingsTestResult(true, $"Connected; {results.Count} reconciliation results from the last 3 days.");
+                return new SettingsTestResult(true, results.Count == 0
+                    ? "Connected. No reconciliation results yet: the notebook writes them after the collectors' nightly check (02:30 site time)."
+                    : $"Connected; {results.Count} reconciliation results from the last 3 days.");
             }
             catch (SqlException ex)
             {

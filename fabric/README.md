@@ -15,6 +15,8 @@ lakeflow_maintenance (monthly): purge old tombstones, OPTIMIZE, VACUUM
 
 ## Setting up (once per workspace)
 
+Step by step, with the Eventstream and console settings: [docs/fabric-setup.md](../docs/fabric-setup.md). In short:
+
 1. Two lakehouses: `bronze` and `silver`.
 2. One Eventstream per division hub (`grain`, `feed`, `agronomy`, `erp`, `other`; only the ones in use) with
    source = the hub (consumer group `fabric`, shared access key `fabric-listen`; both created by `infra/main.bicep`), input format JSON, and destination = lakehouse `bronze`,
@@ -22,8 +24,8 @@ lakeflow_maintenance (monthly): purge old tombstones, OPTIMIZE, VACUUM
 3. Import the notebooks in `notebooks/` (Fabric Git integration picks up the `*.Notebook` folders). Attach `bronze`
    as the default lakehouse and `silver` as a second one to both.
 4. Schedule `lakeflow_bronze_to_silver` every 5 minutes and `lakeflow_maintenance` monthly.
-5. For the console's reconciliation view, give the control API's managed identity read access to the `silver`
-   lakehouse and set its `Fabric__SqlEndpointConnectionString` to the silver SQL analytics endpoint.
+5. For the console's reconciliation view, share the `silver` lakehouse ("Read all SQL endpoint data") with a service
+   principal and enter its SQL analytics endpoint, client ID and secret in the console (Configuration, Destinations).
 
 ## Silver tables
 

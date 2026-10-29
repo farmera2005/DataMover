@@ -35,7 +35,8 @@
         <section class="form">
             <h2>Fabric (reconciliation)</h2>
             <p class="muted">Nightly, the notebooks compare each table's row count with the source. To show the results here, give a service
-               principal read access to the silver lakehouse and enter its SQL analytics endpoint.</p>
+               principal read access to the silver lakehouse and enter its SQL analytics endpoint. Step by step: docs/fabric-setup.md
+               in the Lakeflow repository.</p>
             <label>SQL analytics endpoint<input @bind="vm.FabricServer" placeholder="xxxx.datawarehouse.fabric.microsoft.com" /></label>
             <label>Lakehouse<input @bind="vm.FabricDatabase" placeholder="silver" /></label>
             <label>Application (client) id<input @bind="vm.FabricClientId" /></label>

@@ -56,7 +56,17 @@ public sealed class SqlEndpointReconciliation(string connectionString) : IReconc
         await using var command = new SqlCommand(Sql, connection) { CommandTimeout = 30 };
         command.Parameters.Add(new SqlParameter("@site", System.Data.SqlDbType.NVarChar, 64) { Value = (object?)siteId ?? DBNull.Value });
         var results = new List<ReconciliationResult>();
-        await using var reader = await command.ExecuteReaderAsync(ct);
+        SqlDataReader reader;
+        try
+        {
+            reader = await command.ExecuteReaderAsync(ct);
+        }
+        catch (SqlException ex) when (ex.Number == 208)
+        {
+            // Invalid object name: the notebook has not written its first results yet (the first nightly run).
+            return results;
+        }
+        await using var _ = reader;
         while (await reader.ReadAsync(ct))
         {
             results.Add(new ReconciliationResult

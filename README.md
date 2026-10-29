@@ -30,6 +30,10 @@ the first site, read by the stack's built-in collector, which enrolls on its own
 connection and lists the tables. Everything else is under **Configuration**: sites and collectors, destinations (Event
 Hubs, Fabric), users, directory (AD/LDAP) sign-in, and the server's certificate. See [docs/console.md](docs/console.md).
 
+Azure and Fabric, once: deploy Event Hubs with [infra/README.md](infra/README.md), then connect Fabric with
+[docs/fabric-setup.md](docs/fabric-setup.md) (lakehouses, Eventstreams, notebooks, and the read-only connection for the
+console's reconciliation view).
+
 The browser warns about the HTTPS certificate until you either trust the Lakeflow CA on your PCs (downloadable under
 Configuration, then Server & certificate) or upload a certificate for the server's name there.
 
