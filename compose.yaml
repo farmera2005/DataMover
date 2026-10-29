@@ -1,0 +1,101 @@
+# Lakeflow stack. Start it with:   docker compose up -d --build
+# then open https://<this-host>:8443 (or http://<this-host>:8090) and follow the setup wizard.
+#
+# Nothing has to be configured first. On first start the `init` service generates the database password into the
+# `secrets` volume; the control API creates its master key and CA in `api-data`; the built-in collector enrolls on its
+# own through the `bootstrap` volume (shared only by those two). Users, sites, Event Hubs, Fabric and directory sign-in
+# are entered in the browser. The variables below are optional (only to change the ports on this host).
+
+name: lakeflow
+
+x-logging: &logging
+  driver: json-file
+  options: { max-size: "10m", max-file: "5" }
+
+services:
+  init:
+    image: postgres:16-alpine
+    user: "0:0"          # writes into the fresh secrets volume
+    entrypoint:
+      - sh
+      - -c
+      - |
+        set -e
+        if [ ! -s /run/lakeflow-secrets/db_password ]; then
+          head -c 48 /dev/urandom | base64 | tr -d '\n/+=' | head -c 40 > /run/lakeflow-secrets/db_password
+        fi
+        chmod 0444 /run/lakeflow-secrets/db_password
+    volumes:
+      - secrets:/run/lakeflow-secrets
+    restart: "no"
+    logging: *logging
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: lakeflow
+      POSTGRES_DB: lakeflow
+      POSTGRES_PASSWORD_FILE: /run/lakeflow-secrets/db_password
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - secrets:/run/lakeflow-secrets:ro
+    depends_on:
+      init: { condition: service_completed_successfully }
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lakeflow -d lakeflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+    logging: *logging
+
+  # The control API and the web console. Three ports: the console over HTTP and HTTPS, and the collectors' port
+  # (HTTPS with client certificates). Internal network only; nothing here exposes it to the internet.
+  api:
+    build:
+      context: .
+      dockerfile: deploy/api/Dockerfile
+    image: lakeflow-api:latest
+    environment:
+      LAKEFLOW_SERVER__PUBLISHEDHTTPSPORT: ${LAKEFLOW_HTTPS_PORT:-8443}
+      LAKEFLOW_SERVER__PUBLISHEDCOLLECTORPORT: ${LAKEFLOW_COLLECTOR_PORT:-8444}
+      LAKEFLOW_BOOTSTRAP__FILE: /var/lib/lakeflow-bootstrap/enroll.json
+    ports:
+      - "${LAKEFLOW_HTTP_PORT:-8090}:8080"
+      - "${LAKEFLOW_HTTPS_PORT:-8443}:8443"
+      - "${LAKEFLOW_COLLECTOR_PORT:-8444}:8444"
+    volumes:
+      - secrets:/run/lakeflow-secrets:ro
+      - api-data:/var/lib/lakeflow-api
+      - bootstrap:/var/lib/lakeflow-bootstrap
+    depends_on:
+      db: { condition: service_healthy }
+    restart: unless-stopped
+    logging: *logging
+
+  # The built-in collector: reads every site this server can reach. Outbound only (the control API, Event Hubs, the
+  # sites' SQL Servers); nothing listens.
+  collector:
+    build:
+      context: .
+      dockerfile: deploy/collector/Dockerfile
+    image: lakeflow-collector:latest
+    environment:
+      LAKEFLOW_ENROLL_FILE: /var/lib/lakeflow-bootstrap/enroll.json
+      TZ: America/New_York
+    volumes:
+      - collector-data:/var/lib/lakeflow
+      - collector-secrets:/var/lib/lakeflow-secrets
+      - bootstrap:/var/lib/lakeflow-bootstrap:ro
+    depends_on:
+      api: { condition: service_started }
+    restart: unless-stopped
+    logging: *logging
+
+volumes:
+  secrets:
+  pgdata:
+  api-data:
+  bootstrap:
+  collector-data:
+  collector-secrets:

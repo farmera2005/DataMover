@@ -22,8 +22,17 @@ jobs:
         options: >-
           --health-cmd "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$MSSQL_SA_PASSWORD\" -Q 'SELECT 1'"
           --health-interval 5s --health-timeout 5s --health-retries 30
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: ci-postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 30
     env:
       MSSQL_TEST_CONNECTION: ${{ format('Server=tcp:127.0.0.1,1433;User ID=sa;Password=Ci1!{0};TrustServerCertificate=true;Encrypt=true', github.run_id) }}
+      POSTGRES_TEST_CONNECTION: Host=127.0.0.1;Port=5432;Username=postgres;Password=ci-postgres
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -47,19 +56,31 @@ jobs:
       - run: python fabric/tools/build_notebooks.py --check
       - run: python -m pytest fabric -q
 
-  collector-image:
-    name: Collector image (Docker)
+  stack:
+    name: Docker stack (compose up, no configuration)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: docker build -f deploy/collector/Dockerfile -t lakeflow-collector .
-      - name: Starts and waits for enrollment
+      - name: Build and start, exactly as installed
+        run: docker compose up -d --build
+      - name: Console answers, the built-in collector enrolls on its own, ports stay apart
         run: |
-          docker run -d --name collector lakeflow-collector
-          sleep 10
-          docker logs collector 2>&1 | tee collector.log
-          grep -q "Not enrolled" collector.log
-          docker exec collector test -f /var/lib/lakeflow-secrets/master.key
+          for i in $(seq 1 60); do
+            docker compose logs collector 2>&1 | grep -q "Enrolled as" && break
+            sleep 2
+          done
+          docker compose ps
+          docker compose logs api collector > stack.log 2>&1 || true
+          docker compose logs collector 2>&1 | grep "Enrolled as"
+          test "$(curl -sk -o /dev/null -w '%{http_code}' https://localhost:8443/console/)" = 200
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8090/console/)" = 200
+          curl -sk https://localhost:8443/auth/setup | grep -q '"needs_setup":true'
+          test "$(curl -sk -o /dev/null -w '%{http_code}' https://localhost:8443/agents/ca)" = 404
+          test "$(curl -sk -o /dev/null -w '%{http_code}' https://localhost:8444/sites)" = 404
+          curl -sk https://localhost:8444/agents/ca | grep -q "BEGIN CERTIFICATE"
+          test -z "$(docker compose exec -T api ls /var/lib/lakeflow-bootstrap)"
+      - if: failure()
+        run: docker compose logs
 
   site-agent:
     name: Site agent (Windows)

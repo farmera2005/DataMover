@@ -15,18 +15,27 @@ public class LoggingTests
         public void Emit(LogEvent logEvent) { lock (Events) Events.Add(logEvent); }
     }
 
+    /// <summary>As the collector runs: one logger for all its sites, the site coming from the scope the collector opens.</summary>
     [Fact]
     public async Task Every_line_carries_site_source_and_table()
     {
         var sink = new Collect();
         var logger = new LoggerConfiguration().MinimumLevel.Debug().Enrich.FromLogContext()
-            .Enrich.With(new AgentContextEnricher(() => "stmarys")).WriteTo.Sink(sink).CreateLogger();
+            .Enrich.With(new AgentContextEnricher(() => null)).WriteTo.Sink(sink).CreateLogger();
         using var loggers = new SerilogLoggerFactory(logger);
         await using var harness = await StartWithLoggers(loggers);
         var source = harness.Source("cw", "Tickets");
         source.Upsert("Tickets", 1, new Dictionary<string, object?> { ["name"] = "a" });
-        Assert.True(await harness.Pipeline.ApplyConfigAsync(Harness.Config(Harness.SourceConfig("cw", CaptureMethod.ChangeTracking, "Tickets"))));
-        await harness.RunAsync(TimeSpan.FromMinutes(1));
+        await using var host = harness.Collector();
+        await host.ApplyAsync(new CollectorConfig
+        {
+            AgentId = "collector-test", Sites = [Harness.Config(Harness.SourceConfig("cw", CaptureMethod.ChangeTracking, "Tickets"))],
+        }, cache: false, CancellationToken.None);
+        for (var i = 0; i < 5; i++)
+        {
+            await host.RunOnceAsync(CancellationToken.None);
+            harness.Time.Advance(TimeSpan.FromSeconds(1));
+        }
 
         Assert.NotEmpty(sink.Events);
         Assert.All(sink.Events, e =>

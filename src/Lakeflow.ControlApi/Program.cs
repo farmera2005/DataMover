@@ -7,6 +7,7 @@ using Lakeflow.ControlApi.Endpoints;
 using Lakeflow.ControlApi.Security;
 using Lakeflow.ControlApi.Services;
 using Lakeflow.Contracts;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Server.Kestrel.Https;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
@@ -39,7 +40,8 @@ builder.Services.AddScoped<HttpActor>();
 builder.Services.AddScoped<IActor>(sp => sp.GetRequiredService<HttpActor>());
 builder.Services.AddDbContext<LakeflowDb>(o => o.UseNpgsql(DatabaseConnectionString(builder.Configuration), npgsql => npgsql.EnableRetryOnFailure()));
 
-builder.Services.AddSingleton<IKeyMaterial>(sp => new LocalKeyMaterial(sp.GetRequiredService<ServerOptions>()));
+var keyMaterial = new LocalKeyMaterial(server);
+builder.Services.AddSingleton<IKeyMaterial>(keyMaterial);
 builder.Services.AddSingleton<ISecretProtector>(sp => new SettingsProtector(sp.GetRequiredService<ServerOptions>()));
 builder.Services.AddSingleton<ServerCertificates>();
 builder.Services.AddSingleton<AgentCertificates>();
@@ -53,6 +55,12 @@ builder.Services.AddHostedService<Retention>();
 builder.Services.AddHostedService<BuiltInCollector>();
 
 builder.Services.AddLakeflowAuth();
+// Session cookies are signed with keys kept (encrypted to the CA's key) beside the master key, so a rebuilt container
+// keeps everyone signed in.
+builder.Services.AddDataProtection().SetApplicationName("Lakeflow")
+    .PersistKeysToFileSystem(new DirectoryInfo(Path.Combine(server.DataDirectory, "session-keys")))
+    .ProtectKeysWithCertificate(keyMaterial.AgentCa)
+    .UnprotectKeysWithAnyCertificate(keyMaterial.AgentCa);
 builder.Services.AddRateLimiter(o =>
 {
     o.RejectionStatusCode = StatusCodes.Status429TooManyRequests;

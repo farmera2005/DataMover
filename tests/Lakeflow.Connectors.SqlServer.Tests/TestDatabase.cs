@@ -32,7 +32,10 @@ public sealed class TestDatabase
 
     private static async Task<TestDatabase> CreateAsync()
     {
-        var password = "Ro1!" + RandomNumberGenerator.GetHexString(20);
+        // The same for every test process on this server (they run in parallel and all set the shared login's password),
+        // and unique to this server's admin connection.
+        var password = "Ro1!" + Convert.ToHexString(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(
+            "lakeflow_ro|" + Environment.GetEnvironmentVariable(Variable))))[..20];
         await using (var connection = new SqlConnection(Environment.GetEnvironmentVariable(Variable)))
         {
             await connection.OpenAsync();

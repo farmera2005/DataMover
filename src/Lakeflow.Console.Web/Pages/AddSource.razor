@@ -41,7 +41,7 @@
                 <label>Instance name (optional)<input @bind="vm.Instance" /></label>
                 <label>Database<input @bind="vm.Database" /></label>
                 <label>Read-only SQL login<input @bind="vm.UserName" autocomplete="off" /></label>
-                <label>Password (sealed in this browser to the collector; the console and the API never keep it)
+                <label>Password (sealed to the collector; the console and the API never keep it readable)
                     <input type="password" @bind="vm.Password" autocomplete="new-password" />
                 </label>
                 <label class="check"><input type="checkbox" @bind="vm.TrustServerCertificate" /> Trust the server's certificate (vendor servers with a self-signed one)</label>

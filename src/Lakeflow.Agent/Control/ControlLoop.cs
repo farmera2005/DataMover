@@ -91,6 +91,7 @@ public sealed class ControlLoop(
                 {
                     if (!host.Sites.TryGetValue(siteConfig.SiteId, out var site) || site.Pipeline.Config?.ConfigVersion != siteConfig.ConfigVersion)
                         continue; // refused config: leave its credentials and commands for when it is fixed
+                    using var scope = host.SiteScope(siteConfig.SiteId);
                     HandleCredentials(site, siteConfig, now);
                     await HandleCommandsAsync(client, site, siteConfig, ct);
                 }
@@ -113,8 +114,11 @@ public sealed class ControlLoop(
         if (now >= _nextHeartbeat && host.Config is { } current)
         {
             _nextHeartbeat = now + TimeSpan.FromSeconds(current.HeartbeatSeconds);
-            foreach (var site in host.Sites.Values.Where(s => s.Pipeline.Config is not null))
+            foreach (var (siteId, site) in host.Sites.Where(s => s.Value.Pipeline.Config is not null))
+            {
+                using var scope = host.SiteScope(siteId);
                 await TryAsync("heartbeat", () => client.SendHeartbeatAsync(site.Pipeline.BuildHeartbeat(), ct));
+            }
         }
 
         await FlushEventsAsync(client, ct);

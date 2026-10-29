@@ -24,7 +24,7 @@ public sealed partial class SitesViewModel(ConsoleApi api) : ObservableObject
     [ObservableProperty] private string? _collectorId;
 
     // Enrollment
-    [ObservableProperty] private string _collectorName = "central-1";
+    [ObservableProperty] private string _collectorName = "collector-2";
     [ObservableProperty] private EnrollmentTokenResponse? _token;
 
     [ObservableProperty] private string? _error;
@@ -37,6 +37,9 @@ public sealed partial class SitesViewModel(ConsoleApi api) : ObservableObject
         {
             Replace(Sites, await api.GetSitesAsync(ct));
             Replace(Collectors, (await api.GetAgentsAsync(ct)).Where(a => !a.Revoked));
+            // A new site is read by the stack's own collector unless someone picks another.
+            if (string.IsNullOrEmpty(SiteId) && CollectorId is null)
+                CollectorId = Collectors.FirstOrDefault(c => c is { SiteId: null, Name: SetupViewModel.BuiltInCollector })?.AgentId;
             Error = null;
         }
         catch (Exception ex) when (ex is ConsoleApiException or HttpRequestException)

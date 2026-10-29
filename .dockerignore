@@ -1,0 +1,8 @@
+**/bin/
+**/obj/
+**/.vs/
+**/node_modules/
+.git/
+fabric/
+tests/
+docs/

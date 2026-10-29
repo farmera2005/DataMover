@@ -75,7 +75,9 @@ public sealed class DeliveryLoop(LocalStore store, IEventSender sender, TimeProv
             LastError = ex.Message;
             var delay = Backoff.Delay(ConsecutiveFailures, Initial, Max, random);
             NextAttempt = now + delay;
-            log.LogWarning(ex, "Sending to Event Hubs failed ({Failures} in a row); retrying in {Delay}", ConsecutiveFailures, delay);
+            // The full exception once, for diagnosis; after that one line per retry (an outage can last days).
+            log.LogWarning(ConsecutiveFailures == 1 ? ex : null, "Sending to Event Hubs failed ({Failures} in a row): {Error}; retrying in {Seconds:F0} s",
+                ConsecutiveFailures, ex.Message, delay.TotalSeconds);
         }
         return sent;
     }

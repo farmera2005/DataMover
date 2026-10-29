@@ -1,7 +1,8 @@
 # The collector
 
-The collector reads the site databases and sends their changes to Event Hubs. One central collector runs in Docker
-on a server inside the WAN that can reach every site's SQL Server, the same kind of host as GrainTime's collector.
+The collector reads the site databases and sends their changes to Event Hubs. The Docker stack includes one (the
+built-in collector), which enrolls on its own at first start and reads every site its server can reach. Add a collector
+on another server only for sites it cannot reach.
 
 ## Network
 
@@ -9,20 +10,26 @@ Outbound only; nothing listens.
 
 | To | Port | For |
 | --- | --- | --- |
-| The control API (App Service) | 443 | config, heartbeats, events (client certificate) |
+| The control API's collectors' port | 8444 | config, heartbeats, events (client certificate) |
 | Event Hubs namespace | 443 | change batches (AMQP over WebSockets, Send-only SAS) |
 | Each site's SQL Server | 1433 or the instance's port (UDP 1434 for SQL Server Browser) | read-only queries |
 
 ## Install
 
-1. In the console: **Sites and collectors → Enroll a central collector**. Copy the command it shows.
-2. On the Docker host, from `deploy/collector`:
+The built-in collector needs nothing: `docker compose up -d --build` starts it, and it enrolls through a volume only it
+and the control API share. It appears under Configuration, Sites and collectors, and new sites default to it.
+
+A collector on another server:
+
+1. In the console: **Configuration → Sites and collectors → Collector on another server**. Download
+   `lakeflow-collector.env`; it holds the address, a one-time token (24 hours) and the SHA-256 of your stack's CA.
+2. On that server, with this repository's `deploy/collector` folder and the file next to its `compose.yaml`:
    ```bash
-   LAKEFLOW_CONTROL_API="https://<control-api>/" LAKEFLOW_ENROLLMENT_TOKEN="<token>" docker compose up -d
+   docker compose --env-file lakeflow-collector.env up -d --build
    ```
-   The token works once, within 24 hours. Once enrolled, later starts are `docker compose up -d`.
-3. In the console, edit each site and choose the collector under **Read by collector**. The collector starts the site
-   within a minute; add its sources with **Add source** on the site page.
+   It downloads the stack's CA, checks it against that SHA-256, enrolls, and from then on trusts only that CA. Later
+   starts are `docker compose up -d`; the file can be deleted.
+3. In the console, edit each site it should read and choose it under **Read by collector**.
 
 ## Volumes
 

@@ -1,9 +1,10 @@
-# The Lakeflow central collector, on a Docker host inside the WAN that can reach every site's SQL Server
-# (the same kind of host as GrainTime's collector).
+# A Lakeflow collector on another server, for sites the stack's built-in collector cannot reach.
 #
-# First start: generate a collector token in the console (Sites and collectors -> Enroll a central collector) and run
-#   LAKEFLOW_CONTROL_API="https://<control-api>/" LAKEFLOW_ENROLLMENT_TOKEN="<token>" docker compose up -d
-# Once enrolled the token is not needed again; later starts are just `docker compose up -d`.
+# In the console: Configuration, Sites and collectors, "Collector on another server". Save the file it gives you
+# (lakeflow-collector.env) next to this one and run, once:
+#   docker compose --env-file lakeflow-collector.env up -d --build
+# It enrolls on first start (the token works once, within 24 hours) and trusts only your stack's CA, by the SHA-256 in
+# that file. Later starts are just `docker compose up -d`; the file can be deleted once it has enrolled.
 services:
   collector:
     image: lakeflow-collector
@@ -14,6 +15,7 @@ services:
     environment:
       LAKEFLOW_CONTROL_API: ${LAKEFLOW_CONTROL_API:-}
       LAKEFLOW_ENROLLMENT_TOKEN: ${LAKEFLOW_ENROLLMENT_TOKEN:-}
+      LAKEFLOW_CA_SHA256: ${LAKEFLOW_CA_SHA256:-}
       TZ: America/New_York
     volumes:
       - data:/var/lib/lakeflow

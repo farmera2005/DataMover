@@ -66,6 +66,7 @@ public sealed class CollectorHost : IAsyncDisposable
             }
             foreach (var (siteId, siteConfig) in wanted)
             {
+                using var scope = SiteScope(siteId);
                 if (!Sites.ContainsKey(siteId)) StartSite(siteId);
                 if (!await Sites[siteId].Pipeline.ApplyConfigAsync(siteConfig))
                     _log.LogError("Config for site {SiteId} was refused; the site keeps its previous config", siteId);
@@ -112,16 +113,20 @@ public sealed class CollectorHost : IAsyncDisposable
     /// <summary>One round of capture and delivery for every site (what the loops do each second); for tests.</summary>
     public async Task RunOnceAsync(CancellationToken ct)
     {
-        foreach (var parts in Sites.Values)
+        foreach (var (siteId, parts) in Sites)
         {
+            using var scope = SiteScope(siteId);
             await parts.Pipeline.RunCaptureOnceAsync(ct);
             await parts.Pipeline.RunDeliveryOnceAsync(ct);
         }
     }
 
+    /// <summary>Puts <c>site_id</c> on every log line written inside it, by any component (the scope flows with the call).</summary>
+    public IDisposable? SiteScope(string siteId) => _log.BeginScope(new Dictionary<string, object> { ["site_id"] = siteId });
+
     private async Task LoopAsync(string siteId, string name, Func<CancellationToken, Task> step, CancellationToken ct)
     {
-        using var scope = _log.BeginScope(new Dictionary<string, object> { ["site_id"] = siteId });
+        using var scope = SiteScope(siteId);
         while (!ct.IsCancellationRequested)
         {
             try
