@@ -12,7 +12,7 @@
     The token is a hidden property, so it never appears in an MSI log.
   - Uninstalling removes the program and the service; the data folder is kept (its buffer may hold changes not yet sent).
 -->
-<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
   <Package Name="Lakeflow Agent" Manufacturer="Mercer Landmark" Version="$(var.Version)"
            UpgradeCode="02ea2a80-db94-48b7-adfe-fd892291d1d2" Scope="perMachine" InstallerVersion="500">
     <MajorUpgrade DowngradeErrorMessage="A newer version of the Lakeflow Agent is already installed." />
@@ -49,13 +49,10 @@
       <ServiceInstall Id="AgentService" Name="LakeflowAgent" DisplayName="Lakeflow Agent"
                       Description="Captures changes from this site's databases and sends them to Lakeflow (Mercer Landmark)."
                       Type="ownProcess" Start="auto" ErrorControl="normal" Account="NT SERVICE\LakeflowAgent" Vital="yes">
+        <!-- Delayed start; an exit with an error counts as a failure (the agent exits with an error to be restarted). -->
         <ServiceConfig DelayedAutoStart="yes" FailureActionsWhen="failedToStopOrReturnedError" OnInstall="yes" OnReinstall="yes" />
-        <!-- The agent exits with an error to be restarted (a console "restart" command, or after a fault). -->
-        <ServiceConfigFailureActions OnInstall="yes" OnReinstall="yes" ResetPeriod="86400">
-          <Failure Action="restart" Delay="30000" />
-          <Failure Action="restart" Delay="60000" />
-          <Failure Action="restart" Delay="300000" />
-        </ServiceConfigFailureActions>
+        <util:ServiceConfig FirstFailureActionType="restart" SecondFailureActionType="restart" ThirdFailureActionType="restart"
+                            RestartServiceDelayInSeconds="60" ResetPeriodInDays="1" />
       </ServiceInstall>
       <ServiceControl Id="AgentServiceControl" Name="LakeflowAgent" Start="install" Stop="both" Remove="uninstall" Wait="yes" />
     </Component>
@@ -70,7 +67,7 @@
     <!-- Only when a token is given; transitive so a repair (without the token) does not recreate it after the agent removed it. -->
     <Component Id="Enrollment" Directory="INSTALLFOLDER" Guid="5d7c1e0a-8f2b-4b8e-b1d4-0c6a9e3f2a71" Transitive="yes"
                Condition="ENROLLMENT_TOKEN AND CONTROL_API">
-      <RegistryKey Root="HKLM" Key="SOFTWARE\Lakeflow\Agent\Enrollment" ForceDeleteOnUninstall="yes">
+      <RegistryKey Root="HKLM" Key="SOFTWARE\Lakeflow\Agent\Enrollment" ForceCreateOnInstall="yes" ForceDeleteOnUninstall="yes">
         <RegistryValue Name="ControlApi" Type="string" Value="[CONTROL_API]" KeyPath="yes" />
         <RegistryValue Name="Token" Type="string" Value="[ENROLLMENT_TOKEN]" />
         <RegistryValue Name="CaSha256" Type="string" Value="[CA_SHA256]" />

@@ -12,4 +12,7 @@
     <DefineConstants>AgentPublishDir=$(AgentPublishDir);Version=$(Version)</DefineConstants>
     <SuppressValidation>false</SuppressValidation>
   </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="WixToolset.Util.wixext" Version="5.0.2" />
+  </ItemGroup>
 </Project>

@@ -15,6 +15,7 @@ $service = Get-CimInstance Win32_Service -Filter "Name='LakeflowAgent'"
 Check ($null -ne $service) 'service LakeflowAgent is installed'
 Check ($service.StartName -eq 'NT SERVICE\LakeflowAgent') "runs as NT SERVICE\LakeflowAgent (is $($service.StartName))"
 Check ($service.StartMode -eq 'Auto') 'starts automatically'
+Check ((& sc.exe qfailure LakeflowAgent | Out-String) -match 'RESTART') 'Windows restarts it after a failure'
 $sid = (& sc.exe showsid LakeflowAgent | Select-String 'SERVICE SID:').ToString().Split(':')[1].Trim()
 Check ((Get-Content installer/Package.wxs -Raw).Contains($sid)) "the installer's ACLs use the service's SID ($sid)"
 
