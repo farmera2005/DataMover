@@ -4,21 +4,25 @@ using Microsoft.EntityFrameworkCore.ChangeTracking;
 
 namespace Lakeflow.ControlApi.Data;
 
-/// <summary>Who is acting: a console user (from Entra ID) or an agent (from its certificate).</summary>
+/// <summary>Who is acting: a console user or a collector (from its certificate).</summary>
 public interface IActor
 {
     string Name { get; }
 }
 
 /// <summary>
-/// Control-plane database (Azure SQL). Every change to an audited entity is written to <see cref="AuditEntry"/> in the
-/// same transaction (who, what, before, after), with secret columns left out; every change to a site's config bumps
+/// Control-plane database (PostgreSQL). Every change to an audited entity is written to <see cref="AuditEntry"/> in the
+/// same transaction (who, what, before, after), with secret columns left out or shown as "(changed)"; every change to a site's config bumps
 /// that site's <see cref="Site.ConfigVersion"/>.
 /// </summary>
 public sealed class LakeflowDb(DbContextOptions<LakeflowDb> options, IActor actor, TimeProvider time) : DbContext(options)
 {
     private static readonly HashSet<string> NeverAudited = [nameof(EnrollmentToken.TokenHash), nameof(SealedCredentialRow.Sealed), nameof(Command.ResultDetails),
-        nameof(Agent.LastSeenUtc), nameof(Agent.SasExpiresUtc), nameof(Agent.CertificatePem)];
+        nameof(Agent.LastSeenUtc), nameof(Agent.SasExpiresUtc), nameof(Agent.CertificatePem), nameof(User.SecurityStamp), nameof(User.LastSignInUtc),
+        nameof(AppSetting.UpdatedUtc)];
+
+    /// <summary>Recorded only as "(changed)" when they change.</summary>
+    private static readonly HashSet<string> Secrets = [nameof(User.PasswordHash), nameof(AppSetting.Secret)];
 
     public DbSet<Site> Sites => Set<Site>();
     public DbSet<Source> Sources => Set<Source>();
@@ -31,6 +35,8 @@ public sealed class LakeflowDb(DbContextOptions<LakeflowDb> options, IActor acto
     public DbSet<AgentEventRow> AgentEvents => Set<AgentEventRow>();
     public DbSet<LogBundle> LogBundles => Set<LogBundle>();
     public DbSet<AuditEntry> AuditEntries => Set<AuditEntry>();
+    public DbSet<User> Users => Set<User>();
+    public DbSet<AppSetting> Settings => Set<AppSetting>();
 
     protected override void OnModelCreating(ModelBuilder model)
     {
@@ -150,6 +156,23 @@ public sealed class LakeflowDb(DbContextOptions<LakeflowDb> options, IActor acto
             e.HasKey(x => x.Id);
             e.Property(x => x.AgentId).HasMaxLength(64);
         });
+        model.Entity<User>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.UserName).HasMaxLength(256);
+            e.HasIndex(x => x.UserName).IsUnique();
+            e.Property(x => x.DisplayName).HasMaxLength(256);
+            e.Property(x => x.AuthSource).HasMaxLength(16);
+            e.Property(x => x.Role).HasConversion<string>().HasMaxLength(16);
+            e.Property(x => x.SecurityStamp).HasMaxLength(64);
+            e.Ignore(x => x.AuditName);
+        });
+        model.Entity<AppSetting>(e =>
+        {
+            e.HasKey(x => x.Key);
+            e.Property(x => x.Key).HasMaxLength(64);
+            e.Ignore(x => x.AuditName);
+        });
         model.Entity<AuditEntry>(e =>
         {
             e.HasKey(x => x.Id);
@@ -198,6 +221,12 @@ public sealed class LakeflowDb(DbContextOptions<LakeflowDb> options, IActor acto
         foreach (var property in values.Properties)
         {
             if (NeverAudited.Contains(property.Name) || property.Name == nameof(Site.ConfigVersion)) continue;
+            if (Secrets.Contains(property.Name))
+            {
+                var changed = entry.State == EntityState.Added ? values[property] is not null : entry.Property(property.Name).IsModified;
+                if (!original && changed) json[property.Name] = "(changed)";
+                continue;
+            }
             json[property.Name] = Lakeflow.Contracts.ColumnValues.Encode(values[property] is Enum e ? e.ToString() : values[property]);
         }
         return json.ToJsonString();

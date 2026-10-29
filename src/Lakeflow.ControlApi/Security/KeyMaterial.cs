@@ -1,81 +1,75 @@
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
-using Azure.Identity;
-using Azure.Security.KeyVault.Secrets;
 using Lakeflow.Contracts;
 
 namespace Lakeflow.ControlApi.Security;
 
 /// <summary>
-/// Secrets the API needs: the agent CA (certificate with private key) and the Send-only SAS policy key of each
-/// division hub. In Azure they come from Key Vault through the API's managed identity; nothing is in config files.
+/// Where the API keeps its own keys: the master key that encrypts secrets in the database, the collector CA and the
+/// TLS certificates. Created on first start; nothing is configured. In Docker this is its own volume, apart from the
+/// database's, so a copy of the database alone reveals no secret.
 /// </summary>
+public sealed class ServerOptions
+{
+    public string DataDirectory { get; set; } = OperatingSystem.IsWindows()
+        ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Lakeflow", "ControlApi")
+        : "/var/lib/lakeflow-api";
+
+    /// <summary>The ports the stack is reached on from outside (as published by Docker); used in links and install files.</summary>
+    public int PublishedHttpsPort { get; set; } = 8443;
+    public int PublishedCollectorPort { get; set; } = 8444;
+}
+
+/// <summary>The collector CA (certificate with private key), which issues collector client certificates and the TLS certificates.</summary>
 public interface IKeyMaterial
 {
     X509Certificate2 AgentCa { get; }
-
-    /// <summary>Name and key of the hub's Send-only shared access policy.</summary>
-    (string PolicyName, byte[] Key) HubSendKey(Division division);
 }
 
-public sealed class KeyVaultOptions
+/// <summary>Loads the CA from the data directory, creating it (RSA 3072, 20 years) on first start.</summary>
+public sealed class LocalKeyMaterial : IKeyMaterial
 {
-    /// <summary>e.g. <c>https://lakeflow-kv.vault.azure.net/</c>.</summary>
-    public string? VaultUri { get; set; }
-    public string AgentCaSecret { get; set; } = "agent-ca";
-    /// <summary>Secret per hub holding the policy key; <c>{hub}</c> is replaced by the hub name.</summary>
-    public string HubKeySecretPattern { get; set; } = "eventhubs-{hub}-send-key";
-    public string HubPolicyName { get; set; } = "agent-send";
-}
-
-/// <summary>Loads everything once at startup (a restart picks up rotated keys).</summary>
-public sealed class KeyVaultKeyMaterial : IKeyMaterial
-{
-    private readonly Dictionary<Division, (string, byte[])> _hubKeys = [];
-
-    public KeyVaultKeyMaterial(KeyVaultOptions options)
+    public LocalKeyMaterial(ServerOptions options)
     {
-        var client = new SecretClient(new Uri(options.VaultUri ?? throw new InvalidOperationException("KeyVault:VaultUri is not set.")),
-            new DefaultAzureCredential());
-        // A Key Vault certificate's secret is its PFX (base64), private key included.
-        var pfx = Convert.FromBase64String(client.GetSecret(options.AgentCaSecret).Value.Value);
-        AgentCa = new X509Certificate2(pfx, (string?)null, X509KeyStorageFlags.EphemeralKeySet);
-        foreach (var division in Enum.GetValues<Division>())
+        var file = Path.Combine(options.DataDirectory, "collector-ca.pfx");
+        if (!File.Exists(file))
         {
-            var name = options.HubKeySecretPattern.Replace("{hub}", LakeNames.HubName(division));
-            try
-            {
-                _hubKeys[division] = (options.HubPolicyName, System.Text.Encoding.UTF8.GetBytes(client.GetSecret(name).Value.Value));
-            }
-            catch (Azure.RequestFailedException ex) when (ex.Status == 404)
-            {
-                // Division not deployed yet; sites with sources in it are refused until it is.
-            }
+            using var key = RSA.Create(3072);
+            var request = new CertificateRequest($"CN=Lakeflow CA ({Environment.MachineName}), O=Mercer Landmark", key, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+            request.CertificateExtensions.Add(new X509BasicConstraintsExtension(true, true, 0, true));
+            request.CertificateExtensions.Add(new X509KeyUsageExtension(X509KeyUsageFlags.KeyCertSign | X509KeyUsageFlags.CrlSign, true));
+            request.CertificateExtensions.Add(new X509SubjectKeyIdentifierExtension(request.PublicKey, false));
+            using var ca = request.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddYears(20));
+            OwnerOnlyFile.Write(file, ca.Export(X509ContentType.Pfx));
         }
+        AgentCa = new X509Certificate2(File.ReadAllBytes(file), (string?)null, X509KeyStorageFlags.EphemeralKeySet);
     }
 
     public X509Certificate2 AgentCa { get; }
 
-    public (string PolicyName, byte[] Key) HubSendKey(Division division) =>
-        _hubKeys.TryGetValue(division, out var key) ? key : throw new InvalidOperationException($"No Send key for the {division} hub in Key Vault.");
+    /// <summary>SHA-256 of the CA certificate, as collectors pin it before they first connect.</summary>
+    public static string Fingerprint(X509Certificate2 ca) => Convert.ToHexString(SHA256.HashData(ca.RawData)).ToLowerInvariant();
 }
 
-/// <summary>For local development and tests: a throw-away CA and random hub keys, generated at startup.</summary>
-public sealed class DevelopmentKeyMaterial : IKeyMaterial
+/// <summary>The master key that encrypts setting secrets (AES-256-GCM), in the data directory.</summary>
+public sealed class SettingsProtector(ServerOptions options) : ISecretProtector
 {
-    private readonly Dictionary<Division, byte[]> _keys = Enum.GetValues<Division>().ToDictionary(d => d, _ => RandomNumberGenerator.GetBytes(32));
+    private readonly FileKeyProtector _inner = new(Path.Combine(options.DataDirectory, "master.key"));
 
-    public DevelopmentKeyMaterial()
+    public byte[] Protect(byte[] plain) => _inner.Protect(plain);
+
+    public byte[] Unprotect(byte[] protectedBytes) => _inner.Unprotect(protectedBytes);
+}
+
+internal static class OwnerOnlyFile
+{
+    public static void Write(string path, byte[] content)
     {
-        using var key = RSA.Create(3072);
-        var request = new CertificateRequest("CN=Lakeflow Agent CA (development)", key, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
-        request.CertificateExtensions.Add(new X509BasicConstraintsExtension(true, true, 0, true));
-        request.CertificateExtensions.Add(new X509KeyUsageExtension(X509KeyUsageFlags.KeyCertSign | X509KeyUsageFlags.CrlSign, true));
-        request.CertificateExtensions.Add(new X509SubjectKeyIdentifierExtension(request.PublicKey, false));
-        AgentCa = request.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddYears(10));
+        Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
+        var temp = path + ".tmp";
+        var options = new FileStreamOptions { Mode = FileMode.Create, Access = FileAccess.Write };
+        if (!OperatingSystem.IsWindows()) options.UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
+        using (var stream = new FileStream(temp, options)) stream.Write(content);
+        File.Move(temp, path, overwrite: true);
     }
-
-    public X509Certificate2 AgentCa { get; }
-
-    public (string PolicyName, byte[] Key) HubSendKey(Division division) => ("agent-send", _keys[division]);
 }

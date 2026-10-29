@@ -56,9 +56,9 @@ public sealed class ConfigurationTests(ApiFactory api) : IClassFixture<ApiFactor
         {
             Assert.Equal("lakeflow-test.servicebus.windows.net", hub.FullyQualifiedNamespace);
             Assert.Equal(LakeNames.HubName(hub.Division), hub.HubName);
-            Assert.Contains("skn=agent-send", hub.SasToken);
-            Assert.True(SasTokens.IsValid(hub.SasToken, hub.FullyQualifiedNamespace, hub.HubName, api.Keys.HubSendKey(hub.Division).Key, api.Time.GetUtcNow()));
-            Assert.False(SasTokens.IsValid(hub.SasToken, hub.FullyQualifiedNamespace, "feed", api.Keys.HubSendKey(hub.Division).Key, api.Time.GetUtcNow()));
+            Assert.Contains("skn=lakeflow-send", hub.SasToken);
+            Assert.True(SasTokens.IsValid(hub.SasToken, hub.FullyQualifiedNamespace, hub.HubName, ApiFactory.HubKey(hub.Division), api.Time.GetUtcNow()));
+            Assert.False(SasTokens.IsValid(hub.SasToken, hub.FullyQualifiedNamespace, "feed", ApiFactory.HubKey(hub.Division), api.Time.GetUtcNow()));
             Assert.InRange(hub.SasExpiresUtc - api.Time.GetUtcNow(), TimeSpan.FromHours(23.9), TimeSpan.FromHours(24));
         }
         Assert.DoesNotContain("password", JsonSerializer.Serialize(config, EnvelopeJson.Options), StringComparison.OrdinalIgnoreCase);
@@ -162,7 +162,7 @@ public sealed class ConfigurationTests(ApiFactory api) : IClassFixture<ApiFactor
         var (agent, cert) = await api.EnrollAsync(admin, site);
         var url = $"sites/{site}/sources/compuweigh/credential";
 
-        Assert.Contains("plain passwords are refused", await ProblemsAsync(await admin.PutAsync(url, new CredentialRequest(agent, "hunter2"))));
+        Assert.Contains("sealed to the collector's certificate", await ProblemsAsync(await admin.PutAsync(url, new CredentialRequest(agent, "hunter2"))));
         using var otherKey = RSA.Create(2048);
         Assert.Contains("different certificate", await ProblemsAsync(await admin.PutAsync(url, new CredentialRequest(agent, SealedSecret.Seal("pw", otherKey, "OTHER")))));
         Assert.Contains("not the collector serving this site", await ProblemsAsync(await admin.PutAsync(url, new CredentialRequest("someone-else", SealedSecret.Seal("pw", cert.GetRSAPublicKey()!, cert.Thumbprint)))));
@@ -193,6 +193,15 @@ public sealed class ConfigurationTests(ApiFactory api) : IClassFixture<ApiFactor
         Assert.NotNull(source.CredentialStoredUtc);
         using var scope = api.Services.CreateScope();
         Assert.False(await scope.ServiceProvider.GetRequiredService<LakeflowDb>().SealedCredentials.AnyAsync(c => c.AgentId == agent));
+
+        // From a plain-HTTP page (no WebCrypto) the password comes as is; the API seals it at once and stores only that.
+        await admin.PutAsync(url, new CredentialRequest(agent, null, "plain-pw-456")).OkAsync();
+        var stored = await scope.ServiceProvider.GetRequiredService<LakeflowDb>().SealedCredentials.AsNoTracking().SingleAsync(c => c.AgentId == agent);
+        Assert.DoesNotContain("plain-pw-456", stored.Sealed);
+        Assert.Equal("plain-pw-456", SealedSecret.Open(Assert.Single((await api.Agent(cert).SiteConfigAsync(agent)).Credentials).Sealed,
+            cert.GetRSAPrivateKey()!, cert.Thumbprint));
+        Assert.DoesNotContain("plain-pw-456", string.Join("", await scope.ServiceProvider.GetRequiredService<LakeflowDb>().AuditEntries
+            .Select(a => a.Before + a.After).ToListAsync()));
     }
 
     [SkippableFact]

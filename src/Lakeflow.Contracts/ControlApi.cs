@@ -61,10 +61,16 @@ public sealed record TableDto
     public bool Paused { get; init; }
 }
 
-/// <summary>A source password sealed in the console with <see cref="SealedSecret.Seal"/> for the site's agent.</summary>
-public sealed record CredentialRequest(string AgentId, string Sealed);
+/// <summary>
+/// A source password for the site's collector: sealed in the browser with <see cref="SealedSecret.Seal"/> (HTTPS), or
+/// as <paramref name="Password"/>, which the API seals to the collector at once and never stores (a plain-HTTP page has
+/// no WebCrypto).
+/// </summary>
+public sealed record CredentialRequest(string AgentId, string? Sealed, string? Password = null);
 
-public sealed record EnrollmentTokenResponse(string Token, DateTimeOffset ExpiresUtc, string InstallCommand);
+/// <param name="InstallCommand">What to run on the collector's host (or the site PC).</param>
+/// <param name="ComposeFile">For a central collector: a compose file with everything filled in; save it as compose.yaml and run <c>docker compose up -d</c>.</param>
+public sealed record EnrollmentTokenResponse(string Token, DateTimeOffset ExpiresUtc, string InstallCommand, string? ComposeFile = null);
 
 /// <summary>A collector: central (serving the sites assigned to it) or installed at one site.</summary>
 public sealed record AgentDto

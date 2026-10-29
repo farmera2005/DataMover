@@ -2,12 +2,11 @@ using Lakeflow.ControlApi.Data;
 using Lakeflow.ControlApi.Security;
 using Lakeflow.Contracts;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 
 namespace Lakeflow.ControlApi.Services;
 
 /// <summary>Turns the stored site configuration into what an agent pulls, and what the console's edits are validated as.</summary>
-public sealed class ConfigBuilder(LakeflowDb db, IKeyMaterial keys, IOptions<EventHubsOptions> hubs, TimeProvider time)
+public sealed class ConfigBuilder(LakeflowDb db, SettingsStore settings, TimeProvider time)
 {
     /// <summary>How long after a console command the agent keeps polling quickly.</summary>
     public static readonly TimeSpan FastPollFor = TimeSpan.FromMinutes(10);
@@ -75,9 +74,20 @@ public sealed class ConfigBuilder(LakeflowDb db, IKeyMaterial keys, IOptions<Eve
         return sources.Select(s => ToConfig(s, tables.Where(t => t.SourceId == s.SourceId))).ToList();
     }
 
+    /// <summary>The divisions whose Event Hub is set up (Configuration, then Destinations), with the Send key.</summary>
+    public async Task<Dictionary<Division, (EventHubSetting Hub, byte[] Key)>> HubsAsync(CancellationToken ct)
+    {
+        var hubs = new Dictionary<Division, (EventHubSetting, byte[])>();
+        foreach (var division in Enum.GetValues<Division>())
+            if (await settings.GetWithSecretAsync<EventHubSetting>(SettingsStore.EventHub(division), ct) is ({ } hub, { } key))
+                hubs[division] = (hub, key);
+        return hubs;
+    }
+
     /// <summary>
     /// A collector's config: for each site assigned to it, the settings, a SAS token per division hub (reissued once
-    /// half its 24 hours have passed), commands not yet completed, and sealed credentials not yet acknowledged.
+    /// half its 24 hours have passed), commands not yet completed, and sealed credentials not yet acknowledged. A site
+    /// whose division hub is not set up yet is left out (the collector waits; nothing is lost) and the fleet view says why.
     /// </summary>
     public async Task<CollectorConfig> ForCollectorAsync(Agent agent, CancellationToken ct)
     {
@@ -92,19 +102,18 @@ public sealed class ConfigBuilder(LakeflowDb db, IKeyMaterial keys, IOptions<Eve
         if (agent.SasExpiresUtc is null || agent.SasExpiresUtc - now < SasTokens.Lifetime / 2)
             agent.SasExpiresUtc = DateTimeOffset.FromUnixTimeSeconds((now + SasTokens.Lifetime).ToUnixTimeSeconds());
         var expires = agent.SasExpiresUtc.Value;
-        var options = hubs.Value;
+        var hubs = await HubsAsync(ct);
         var tokens = new Dictionary<Division, EventHubTarget>();
         EventHubTarget Hub(Division division)
         {
             if (tokens.TryGetValue(division, out var target)) return target;
-            var (policy, key) = keys.HubSendKey(division);
-            var hub = options.HubName(division);
+            var (hub, key) = hubs[division];
             return tokens[division] = new EventHubTarget
             {
                 Division = division,
-                FullyQualifiedNamespace = options.Namespace,
-                HubName = hub,
-                SasToken = SasTokens.Create(options.Namespace, hub, policy, key, expires),
+                FullyQualifiedNamespace = hub.Namespace,
+                HubName = hub.HubName,
+                SasToken = SasTokens.Create(hub.Namespace, hub.HubName, hub.PolicyName, key, expires),
                 SasExpiresUtc = expires,
             };
         }
@@ -113,6 +122,7 @@ public sealed class ConfigBuilder(LakeflowDb db, IKeyMaterial keys, IOptions<Eve
         foreach (var site in sites)
         {
             var sources = await SourcesAsync(site.SiteId, ct);
+            if (sources.Any(s => !hubs.ContainsKey(s.Division))) continue;
             configs.Add(new AgentConfig
             {
                 AgentId = agent.AgentId,

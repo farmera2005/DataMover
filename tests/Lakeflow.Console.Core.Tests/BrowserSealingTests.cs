@@ -18,10 +18,12 @@ public class BrowserSealingTests
         return dir!.FullName;
     }
 
-    private static async Task<string?> SealWithNodeAsync(string secret, string spki, string thumbprint)
+    /// <param name="insecure">As on a plain-HTTP page: no WebCrypto.</param>
+    private static async Task<string?> SealWithNodeAsync(string secret, string spki, string thumbprint, bool insecure = false)
     {
         var seal = new Uri(Path.Combine(Repo(), "src", "Lakeflow.Console.Web", "wwwroot", "js", "seal.js")).AbsoluteUri;
-        var script = $"import {{ sealSecret }} from {Js(seal)}; process.stdout.write(await sealSecret({Js(secret)}, {Js(spki)}, {Js(thumbprint)}));";
+        var prelude = insecure ? "Object.defineProperty(globalThis, 'crypto', { value: undefined });" : "";
+        var script = $"{prelude} const {{ sealSecret }} = await import({Js(seal)}); process.stdout.write(String(await sealSecret({Js(secret)}, {Js(spki)}, {Js(thumbprint)})));";
         var start = new ProcessStartInfo("node", ["--input-type=module", "-e", script]) { RedirectStandardOutput = true, RedirectStandardError = true };
         Process process;
         try { process = Process.Start(start)!; }
@@ -55,11 +57,20 @@ public class BrowserSealingTests
         Assert.ThrowsAny<CryptographicException>(() => SealedSecret.Open(sealedValue!, other, thumbprint));
     }
 
+    [SkippableFact]
+    public async Task Without_WebCrypto_the_browser_seals_nothing_and_leaves_it_to_the_API()
+    {
+        using var collector = RSA.Create(2048);
+        var result = await SealWithNodeAsync("pw", Convert.ToBase64String(collector.ExportSubjectPublicKeyInfo()), "TP", insecure: true);
+        Skip.If(result is null, "node is not installed");
+        Assert.Equal("null", result);
+    }
+
     [Fact]
     public async Task DotNet_sealer_matches_the_contract()
     {
         using var collector = RSA.Create(2048);
         var sealedValue = await new DotNetSecretSealer().SealAsync("pw", Convert.ToBase64String(collector.ExportSubjectPublicKeyInfo()), "TP");
-        Assert.Equal("pw", SealedSecret.Open(sealedValue, collector, "TP"));
+        Assert.Equal("pw", SealedSecret.Open(sealedValue!, collector, "TP"));
     }
 }

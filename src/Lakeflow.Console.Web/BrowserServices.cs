@@ -1,18 +1,20 @@
 using Lakeflow.Console.Core;
-using Microsoft.AspNetCore.Components.WebAssembly.Authentication;
 using Microsoft.JSInterop;
 
 namespace Lakeflow.Console.Web;
 
-/// <summary>Seals passwords with the browser's WebCrypto (wwwroot/js/seal.js); .NET's RSA does not run in browsers.</summary>
+/// <summary>
+/// Seals passwords with the browser's WebCrypto (wwwroot/js/seal.js); .NET's RSA does not run in browsers. On a
+/// plain-HTTP page there is no WebCrypto: it returns null and the API seals the password on arrival.
+/// </summary>
 public sealed class BrowserSecretSealer(IJSRuntime js) : ISecretSealer, IAsyncDisposable
 {
     private IJSObjectReference? _module;
 
-    public async Task<string> SealAsync(string secret, string publicKeySpki, string thumbprint)
+    public async Task<string?> SealAsync(string secret, string publicKeySpki, string thumbprint)
     {
         _module ??= await js.InvokeAsync<IJSObjectReference>("import", "./js/seal.js");
-        return await _module.InvokeAsync<string>("sealSecret", secret, publicKeySpki, thumbprint);
+        return await _module.InvokeAsync<string?>("sealSecret", secret, publicKeySpki, thumbprint);
     }
 
     public async ValueTask DisposeAsync()
@@ -21,7 +23,7 @@ public sealed class BrowserSecretSealer(IJSRuntime js) : ISecretSealer, IAsyncDi
     }
 }
 
-/// <summary>Hands the user a file (e.g. a log bundle).</summary>
+/// <summary>Hands the user a file (a log bundle, an install file).</summary>
 public sealed class BrowserFiles(IJSRuntime js)
 {
     public async Task SaveAsync(string name, byte[] content, string type)
@@ -29,20 +31,10 @@ public sealed class BrowserFiles(IJSRuntime js)
         await using var module = await js.InvokeAsync<IJSObjectReference>("import", "./js/seal.js");
         await module.InvokeVoidAsync("saveFile", name, Convert.ToBase64String(content), type);
     }
-}
 
-/// <summary>
-/// Who is signed in and with which Lakeflow role. Roles are read from the API access token (where Entra puts the
-/// API's app roles); the API enforces them, this only shapes the pages.
-/// </summary>
-public sealed class UserSession(Microsoft.AspNetCore.Components.WebAssembly.Authentication.IAccessTokenProvider tokens)
-{
-    private SignedInUser? _user;
-
-    public async Task<SignedInUser?> GetAsync()
+    public async Task<bool> IsSecureAsync()
     {
-        if (_user is not null) return _user;
-        var result = await tokens.RequestAccessToken();
-        return result.TryGetToken(out var token) ? _user = SignedInUser.FromToken(token.Value) : null;
+        await using var module = await js.InvokeAsync<IJSObjectReference>("import", "./js/seal.js");
+        return await module.InvokeAsync<bool>("isSecure");
     }
 }

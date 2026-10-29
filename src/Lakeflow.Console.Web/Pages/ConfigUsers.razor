@@ -1,0 +1,64 @@
+@page "/config/users"
+@layout ConfigLayout
+@inherits ViewModelComponent<UsersViewModel>
+@inject ConsoleApi Api
+
+<h1>Users</h1>
+@if (ViewModel is { } vm)
+{
+    @if (vm.Error is not null) { <p class="error">@vm.Error</p> }
+    @if (vm.Message is not null) { <p class="info">@vm.Message</p> }
+    <div class="columns">
+        <div>
+            <table class="grid">
+                <thead><tr><th>User</th><th>Name</th><th>Sign-in</th><th>Role</th><th>Last sign-in</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var u in vm.Users)
+                    {
+                        <tr class="@(u.Disabled ? "muted" : "")">
+                            <td>@u.UserName</td><td>@u.DisplayName</td><td>@(u.AuthSource == "ldap" ? "directory" : "local")</td>
+                            <td>@u.Role@(u.Disabled ? " (disabled)" : "")</td><td>@(u.LastSignInUtc?.ToLocalTime().ToString("g") ?? "never")</td>
+                            <td><button class="link" @onclick="() => vm.Edit(u)">Edit</button></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+            <p class="muted">Directory users appear after their first sign-in; their role comes from their groups.</p>
+        </div>
+        <section class="form">
+            <h2>@(vm.EditingId is null ? "New local account" : $"Edit {vm.UserName}")</h2>
+            <label>User name<input @bind="vm.UserName" disabled="@(vm.EditingId is not null)" /></label>
+            @if (!vm.IsDirectoryUser)
+            {
+                <label>Name<input @bind="vm.DisplayName" /></label>
+            }
+            <label>Role
+                <select @bind="vm.Role" disabled="@vm.IsDirectoryUser">
+                    @foreach (var r in Enum.GetValues<ConsoleRole>()) { <option value="@r">@r</option> }
+                </select>
+            </label>
+            <label class="check"><input type="checkbox" @bind="vm.Disabled" /> Disabled</label>
+            @if (!vm.IsDirectoryUser)
+            {
+                <label>@(vm.EditingId is null ? "Password (at least 12 characters)" : "New password (leave empty to keep)")
+                    <input type="password" @bind="vm.Password" autocomplete="new-password" /></label>
+            }
+            <div class="toolbar">
+                <button class="primary" @onclick="() => vm.SaveCommand.ExecuteAsync(null)" disabled="@vm.IsBusy">Save</button>
+                @if (vm.EditingId is not null)
+                {
+                    <button @onclick="vm.New">New account</button>
+                    <button @onclick="() => vm.DeleteCommand.ExecuteAsync(null)">Delete</button>
+                }
+            </div>
+        </section>
+    </div>
+}
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        ViewModel = new UsersViewModel(Api);
+        await ViewModel.LoadCommand.ExecuteAsync(null);
+    }
+}

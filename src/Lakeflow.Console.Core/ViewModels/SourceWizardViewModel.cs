@@ -173,7 +173,7 @@ public sealed partial class SourceWizardViewModel : ObservableObject
             _agent = site.CollectorId is { } collector ? await _api.GetAgentAsync(collector, ct) : null;
             if (_agent is null || _agent.Revoked)
             {
-                Errors.Add("No collector is assigned to this site yet. Assign one under Sites and collectors, then add sources.");
+                Errors.Add("No collector is assigned to this site yet. Choose one for the site under Configuration, then Sites and collectors.");
                 return;
             }
             Status = "Saving the source…";
@@ -181,7 +181,8 @@ public sealed partial class SourceWizardViewModel : ObservableObject
             if (Auth == AuthMethod.SqlLogin && Password.Length > 0)
             {
                 var sealedPassword = await _sealer.SealAsync(Password, _agent.PublicKeySpki, _agent.CertificateThumbprint);
-                await _api.PutCredentialAsync(SiteId, SourceId, new CredentialRequest(_agent.AgentId, sealedPassword), ct);
+                await _api.PutCredentialAsync(SiteId, SourceId,
+                    new CredentialRequest(_agent.AgentId, sealedPassword, sealedPassword is null ? Password : null), ct);
                 Password = "";
             }
             Status = "Waiting for the collector to connect (it checks in every few seconds)…";

@@ -1,0 +1,86 @@
+@page "/config/server"
+@layout ConfigLayout
+@inherits ViewModelComponent<ServerSettingsViewModel>
+@inject ConsoleApi Api
+@inject BrowserFiles Files
+
+<h1>Server &amp; certificate</h1>
+@if (ViewModel is { } vm)
+{
+    @if (vm.Error is not null) { <p class="error">@vm.Error</p> }
+    @if (vm.Message is not null) { <p class="info">@vm.Message</p> }
+    @if (!_secure)
+    {
+        <p class="warning">This page is on plain HTTP. Passwords you enter travel unencrypted on the network.
+            Use @(vm.Server?.ConsoleUrl ?? "the HTTPS address") instead.</p>
+    }
+    <div class="columns">
+        <section class="form">
+            <h2>Server name</h2>
+            <p class="muted">The name (or address) users and collectors use for this server. It goes into the certificates below and into collector install files.</p>
+            <label>Name<input @bind="vm.Host" /></label>
+            <button class="primary" @onclick="() => vm.SaveHostCommand.ExecuteAsync(null)" disabled="@vm.IsBusy">Save</button>
+            @if (vm.Server is { } s)
+            {
+                <dl class="facts">
+                    <dt>Console</dt><dd>@s.ConsoleUrl</dd>
+                    <dt>Collectors</dt><dd>@s.CollectorUrl</dd>
+                    <dt>Lakeflow CA (SHA-256)</dt><dd class="mono">@s.CaFingerprint</dd>
+                </dl>
+            }
+        </section>
+        <section class="form">
+            <h2>Browser certificate</h2>
+            @if (vm.Server?.WebCertificate is { } c)
+            {
+                <dl class="facts">
+                    <dt>Issued to</dt><dd>@c.Subject</dd>
+                    <dt>Names</dt><dd>@string.Join(", ", c.Names)</dd>
+                    <dt>Issued by</dt><dd>@c.Issuer</dd>
+                    <dt>Valid until</dt><dd>@c.NotAfter.ToLocalTime().ToString("d")</dd>
+                </dl>
+                @if (c.Uploaded)
+                {
+                    <button @onclick="() => vm.RemoveCertificateCommand.ExecuteAsync(null)">Remove (back to the Lakeflow CA's)</button>
+                }
+                else
+                {
+                    <p class="muted">Issued by the Lakeflow CA, so browsers warn until it is trusted. Either trust the Lakeflow CA on your PCs
+                        (download it below; IT can deploy it by group policy) or upload a certificate for this server's name from your own CA.</p>
+                    <a class="button" href="/settings/server/ca.crt" download>Download the Lakeflow CA certificate</a>
+                }
+            }
+            <label>Certificate file (PFX, with private key)<InputFile OnChange="Picked" accept=".pfx,.p12" /></label>
+            <label>Its password<input type="password" @bind="vm.CertificatePassword" /></label>
+            <button class="primary" @onclick="Upload" disabled="@(vm.IsBusy || _pfx is null)">Upload</button>
+            <p class="muted">Collectors always use their own certificate from the Lakeflow CA (on the collectors' port); this one is only for browsers.</p>
+        </section>
+    </div>
+}
+
+@code {
+    private byte[]? _pfx;
+    private bool _secure = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        ViewModel = new ServerSettingsViewModel(Api);
+        _secure = await Files.IsSecureAsync();
+        await ViewModel.LoadCommand.ExecuteAsync(null);
+    }
+
+    private async Task Picked(InputFileChangeEventArgs e)
+    {
+        using var stream = e.File.OpenReadStream(maxAllowedSize: 1024 * 1024);
+        using var buffer = new MemoryStream();
+        await stream.CopyToAsync(buffer);
+        _pfx = buffer.ToArray();
+    }
+
+    private async Task Upload()
+    {
+        if (_pfx is null || ViewModel is null) return;
+        await ViewModel.UploadCertificateAsync(_pfx, default);
+        _pfx = null;
+    }
+}

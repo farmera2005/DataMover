@@ -1,22 +1,8 @@
-<CascadingAuthenticationState>
-    <Router AppAssembly="@typeof(App).Assembly">
-        <Found Context="routeData">
-            <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
-                <NotAuthorized>
-                    @if (context.User.Identity?.IsAuthenticated != true)
-                    {
-                        <RedirectToLogin />
-                    }
-                    else
-                    {
-                        <p>You are signed in but have no Lakeflow role. Ask an Admin to add you to a Lakeflow group.</p>
-                    }
-                </NotAuthorized>
-                <Authorizing><p class="loading">Signing in…</p></Authorizing>
-            </AuthorizeRouteView>
-        </Found>
-        <NotFound>
-            <LayoutView Layout="@typeof(MainLayout)"><p>Nothing here. <a href="">Back to the fleet</a>.</p></LayoutView>
-        </NotFound>
-    </Router>
-</CascadingAuthenticationState>
+<Router AppAssembly="@typeof(App).Assembly">
+    <Found Context="routeData">
+        <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
+    </Found>
+    <NotFound>
+        <LayoutView Layout="@typeof(MainLayout)"><p>Nothing here. <a href="">Back to the fleet</a>.</p></LayoutView>
+    </NotFound>
+</Router>

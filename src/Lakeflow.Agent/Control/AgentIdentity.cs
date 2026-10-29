@@ -10,15 +10,19 @@ namespace Lakeflow.Agent.Control;
 /// </summary>
 public sealed class AgentIdentity : IDisposable
 {
-    private AgentIdentity(X509Certificate2 certificate, string controlApi) => (Certificate, ControlApi) = (certificate, controlApi);
+    private AgentIdentity(X509Certificate2 certificate, string controlApi, string? caPem) =>
+        (Certificate, ControlApi, Ca) = (certificate, controlApi, string.IsNullOrEmpty(caPem) ? null : X509Certificate2.CreateFromPem(caPem));
 
     public X509Certificate2 Certificate { get; }
     public string ControlApi { get; }
+    /// <summary>The control API's CA, received at enrollment: the only CA trusted for its TLS certificate.</summary>
+    public X509Certificate2? Ca { get; }
+    public ServerTrust Trust => Ca is null ? ServerTrust.System : new ServerTrust(Ca);
     public string AgentId => Certificate.GetNameInfo(X509NameType.SimpleName, false);
 
     public static AgentIdentity? Load(LocalStore store) =>
         store.LoadIdentity() is { } saved
-            ? new AgentIdentity(X509CertificateLoader(saved.Pfx), saved.ControlApi)
+            ? new AgentIdentity(X509CertificateLoader(saved.Pfx), saved.ControlApi, saved.CaPem)
             : null;
 
     /// <summary>A new key pair and the CSR for it.</summary>
@@ -30,15 +34,15 @@ public sealed class AgentIdentity : IDisposable
     }
 
     /// <summary>Combines the issued certificate with its key and saves both.</summary>
-    public static AgentIdentity Save(LocalStore store, RSA key, string certificatePem, string controlApi)
+    public static AgentIdentity Save(LocalStore store, RSA key, string certificatePem, string controlApi, string? caPem)
     {
         using var publicOnly = X509Certificate2.CreateFromPem(certificatePem);
         using var withKey = publicOnly.CopyWithPrivateKey(key);
         var pfx = withKey.Export(X509ContentType.Pkcs12);
         try
         {
-            store.SaveIdentity(pfx, controlApi);
-            return new AgentIdentity(X509CertificateLoader(pfx), controlApi);
+            store.SaveIdentity(pfx, controlApi, caPem);
+            return new AgentIdentity(X509CertificateLoader(pfx), controlApi, caPem);
         }
         finally
         {
@@ -50,5 +54,9 @@ public sealed class AgentIdentity : IDisposable
     private static X509Certificate2 X509CertificateLoader(byte[] pfx) =>
         new(pfx, (string?)null, OperatingSystem.IsMacOS() ? X509KeyStorageFlags.DefaultKeySet : X509KeyStorageFlags.EphemeralKeySet);
 
-    public void Dispose() => Certificate.Dispose();
+    public void Dispose()
+    {
+        Certificate.Dispose();
+        Ca?.Dispose();
+    }
 }

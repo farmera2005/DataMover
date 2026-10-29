@@ -19,9 +19,12 @@ public static class AgentEndpoints
 
     public static void MapAgentEndpoints(this IEndpointRouteBuilder app)
     {
-        app.MapPost("/agents/enroll", EnrollAsync).AllowAnonymous().RequireRateLimiting("enroll");
+        app.MapPost("/agents/enroll", EnrollAsync).AllowAnonymous().RequireRateLimiting("enroll").WithMetadata(new CollectorRoute());
+        // Public: a new collector downloads it and checks it against the SHA-256 that came with its token.
+        app.MapGet("/agents/ca", (IKeyMaterial keys) => Results.Text(keys.AgentCa.ExportCertificatePem(), "application/x-pem-file"))
+            .AllowAnonymous().WithMetadata(new CollectorRoute());
 
-        var agent = app.MapGroup("/agents/{agentId}").RequireAuthorization(Policies.Agent);
+        var agent = app.MapGroup("/agents/{agentId}").RequireAuthorization(Policies.Agent).WithMetadata(new CollectorRoute());
         agent.MapPost("/renew", RenewAsync);
         agent.MapGet("/config", ConfigAsync);
         agent.MapPost("/heartbeat", HeartbeatAsync);

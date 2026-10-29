@@ -474,7 +474,7 @@ public sealed class LocalStore : IDisposable
     // ---- enrollment identity and control API ----
 
     /// <summary>The agent's certificate and private key (PFX), protected like every other secret here.</summary>
-    public void SaveIdentity(byte[] pfx, string controlApi)
+    public void SaveIdentity(byte[] pfx, string controlApi, string? caPem)
     {
         var protectedPfx = Convert.ToBase64String(_protector.Protect(pfx));
         lock (_lock)
@@ -482,17 +482,19 @@ public sealed class LocalStore : IDisposable
             using var tx = _db.BeginTransaction();
             Exec("INSERT OR REPLACE INTO meta VALUES ('identity', $v)", ("$v", protectedPfx));
             Exec("INSERT OR REPLACE INTO meta VALUES ('control_api', $v)", ("$v", controlApi));
+            Exec("INSERT OR REPLACE INTO meta VALUES ('control_api_ca', $v)", ("$v", (object?)caPem ?? DBNull.Value));
             tx.Commit();
         }
     }
 
-    public (byte[] Pfx, string ControlApi)? LoadIdentity()
+    public (byte[] Pfx, string ControlApi, string? CaPem)? LoadIdentity()
     {
         lock (_lock)
         {
             var pfx = Scalar<string?>("SELECT value FROM meta WHERE key = 'identity'");
             var api = Scalar<string?>("SELECT value FROM meta WHERE key = 'control_api'");
-            return pfx is null || api is null ? null : (_protector.Unprotect(Convert.FromBase64String(pfx)), api);
+            var ca = Scalar<string?>("SELECT value FROM meta WHERE key = 'control_api_ca'");
+            return pfx is null || api is null ? null : (_protector.Unprotect(Convert.FromBase64String(pfx)), api, ca);
         }
     }
 

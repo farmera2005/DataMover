@@ -184,3 +184,41 @@ public sealed class AuditEntry
     public string? Before { get; set; }
     public string? After { get; set; }
 }
+
+/// <summary>
+/// A console user: a local account (password hash here) or a directory user (<see cref="AuthSource"/> <c>ldap</c>, no
+/// password, role refreshed from their groups at every sign-in). A local account is never taken over by a directory
+/// user of the same name.
+/// </summary>
+public sealed class User : IAudited
+{
+    public const string Local = "local";
+    public const string Ldap = "ldap";
+
+    public Guid Id { get; set; }
+    /// <summary>Lower case; unique.</summary>
+    public required string UserName { get; set; }
+    public string? DisplayName { get; set; }
+    public string AuthSource { get; set; } = Local;
+    public ConsoleRole Role { get; set; }
+    public string? PasswordHash { get; set; }
+    public bool Disabled { get; set; }
+    /// <summary>Changes whenever the password, role or status changes, which signs the user out everywhere.</summary>
+    public string SecurityStamp { get; set; } = Guid.NewGuid().ToString("N");
+    public DateTimeOffset CreatedUtc { get; set; }
+    public DateTimeOffset? LastSignInUtc { get; set; }
+    public string AuditName => $"user {UserName}";
+}
+
+/// <summary>
+/// A setting entered in the console (Event Hubs, Fabric, sign-in, the server certificate). <see cref="Json"/> holds the
+/// readable part; <see cref="Secret"/> the encrypted part (key, password, certificate), which no API response returns.
+/// </summary>
+public sealed class AppSetting : IAudited
+{
+    public required string Key { get; set; }
+    public string? Json { get; set; }
+    public byte[]? Secret { get; set; }
+    public DateTimeOffset UpdatedUtc { get; set; }
+    public string AuditName => $"setting {Key}";
+}

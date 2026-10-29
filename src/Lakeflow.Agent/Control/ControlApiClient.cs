@@ -1,23 +1,60 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Net.Security;
 using System.Security.Authentication;
+using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using Lakeflow.Contracts;
 
 namespace Lakeflow.Agent.Control;
 
 /// <summary>Creates the HTTP handler for calls to the control API, with or without the agent's client certificate.</summary>
-public delegate HttpMessageHandler ControlApiHandlerFactory(X509Certificate2? clientCertificate);
+public delegate HttpMessageHandler ControlApiHandlerFactory(X509Certificate2? clientCertificate, ServerTrust trust);
+
+/// <summary>
+/// What the collector trusts on the control API's collector port: the Lakeflow CA, received at enrollment (and, before
+/// that, downloaded and checked against the SHA-256 that came with the enrollment token). Nothing is installed in the
+/// system's trust store. Without a CA, the system's trust applies.
+/// </summary>
+public sealed record ServerTrust(X509Certificate2? Ca, bool AcceptAny = false)
+{
+    public static readonly ServerTrust System = new(Ca: null);
+
+    /// <summary>Only to download the CA itself, which is then checked against its pinned SHA-256 before anything is sent.</summary>
+    public static readonly ServerTrust ForCaDownload = new(Ca: null, AcceptAny: true);
+
+    public static string Fingerprint(X509Certificate2 certificate) => Convert.ToHexString(SHA256.HashData(certificate.RawData)).ToLowerInvariant();
+
+    public static string NormalizeFingerprint(string text) => text.Replace(":", "").Trim().ToLowerInvariant();
+
+    public RemoteCertificateValidationCallback? Validator()
+    {
+        if (AcceptAny) return (_, _, _, _) => true;
+        if (Ca is not { } ca) return null;
+        return (_, certificate, _, _) =>
+        {
+            if (certificate is null) return false;
+            using var leaf = new X509Certificate2(certificate);
+            using var check = new X509Chain();
+            check.ChainPolicy.TrustMode = X509ChainTrustMode.CustomRootTrust;
+            check.ChainPolicy.CustomTrustStore.Add(ca);
+            check.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
+            // The name is not checked: only this deployment's CA issues these certificates, whatever name collectors use.
+            return check.Build(leaf);
+        };
+    }
+}
 
 /// <summary>The agent's calls to the control API: outbound HTTPS (TLS 1.2+) only, authenticated by client certificate.</summary>
 public sealed class ControlApiClient(HttpClient http, string agentId) : IDisposable
 {
-    public static readonly ControlApiHandlerFactory DefaultHandler = certificate => new SocketsHttpHandler
+    public static readonly ControlApiHandlerFactory DefaultHandler = (certificate, trust) => new SocketsHttpHandler
     {
         SslOptions =
         {
             EnabledSslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13,
             ClientCertificates = certificate is null ? null : new X509CertificateCollection { certificate },
+            RemoteCertificateValidationCallback = trust.Validator(),
         },
         PooledConnectionLifetime = TimeSpan.FromMinutes(10),
     };
@@ -26,6 +63,14 @@ public sealed class ControlApiClient(HttpClient http, string agentId) : IDisposa
 
     public static HttpClient CreateHttp(string baseUrl, HttpMessageHandler handler) =>
         new(handler) { BaseAddress = new Uri(baseUrl.TrimEnd('/') + "/"), Timeout = TimeSpan.FromSeconds(60) };
+
+    /// <summary>The control API's CA certificate (public), from the collectors' port.</summary>
+    public static async Task<X509Certificate2> GetCaAsync(HttpClient anonymous, CancellationToken ct)
+    {
+        using var response = await anonymous.GetAsync("agents/ca", ct);
+        await EnsureAsync(response, ct);
+        return X509Certificate2.CreateFromPem(await response.Content.ReadAsStringAsync(ct));
+    }
 
     /// <summary>Enrolls with a one-time token. Throws <see cref="ControlApiException"/> with the API's reason if refused.</summary>
     public static async Task<EnrollResponse> EnrollAsync(HttpClient anonymous, EnrollRequest request, CancellationToken ct)

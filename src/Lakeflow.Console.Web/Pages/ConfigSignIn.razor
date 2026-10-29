@@ -1,0 +1,56 @@
+@page "/config/sign-in"
+@layout ConfigLayout
+@inherits ViewModelComponent<SignInSettingsViewModel>
+@inject ConsoleApi Api
+
+<h1>Sign-in &amp; LDAP</h1>
+@if (ViewModel is { } vm)
+{
+    @if (vm.Error is not null) { <p class="error">@vm.Error</p> }
+    @if (vm.Message is not null) { <p class="info">@vm.Message</p> }
+    <p class="muted">Local accounts always sign in first (so the administrator from setup works even when the directory is down).
+       With directory sign-in on, anyone else signs in with their network account, and their role comes from their groups at every sign-in.</p>
+    <div class="columns">
+        <section class="form">
+            <label class="check"><input type="checkbox" checked="@vm.Settings.Enabled" @onchange="e => vm.Settings = vm.Settings with { Enabled = (bool)e.Value! }" /> Directory sign-in on</label>
+            <label>Directory URL<input value="@vm.Settings.Url" @onchange="e => vm.Settings = vm.Settings with { Url = S(e) }" placeholder="ldaps://dc1.corp.local:636" /></label>
+            <label class="check"><input type="checkbox" checked="@vm.Settings.StartTls" @onchange="e => vm.Settings = vm.Settings with { StartTls = (bool)e.Value! }" /> StartTLS (for ldap://)</label>
+            <label>CA certificate of the directory servers (PEM; when it is your own CA)
+                <textarea rows="4" @onchange="e => vm.Settings = vm.Settings with { CaCertificatePem = S(e) }">@vm.Settings.CaCertificatePem</textarea></label>
+            <label>Service account DN<input value="@vm.Settings.BindDn" @onchange="e => vm.Settings = vm.Settings with { BindDn = S(e) }" placeholder="CN=svc-lakeflow,OU=Service Accounts,DC=corp,DC=local" /></label>
+            <label>Service account password<input type="password" @bind="vm.BindPassword" placeholder="@(vm.Settings.HasBindPassword ? "(stored; leave empty to keep)" : "")" /></label>
+            <label>Search users under<input value="@vm.Settings.UserBaseDn" @onchange="e => vm.Settings = vm.Settings with { UserBaseDn = S(e) }" placeholder="DC=corp,DC=local" /></label>
+            <label>User filter<input value="@vm.Settings.UserFilter" @onchange="e => vm.Settings = vm.Settings with { UserFilter = S(e) }" /></label>
+            <label>Admin group DN<input value="@vm.Settings.AdminGroupDn" @onchange="e => vm.Settings = vm.Settings with { AdminGroupDn = S(e) }" /></label>
+            <label>Operator group DN<input value="@vm.Settings.OperatorGroupDn" @onchange="e => vm.Settings = vm.Settings with { OperatorGroupDn = S(e) }" /></label>
+            <label>Viewer group DN<input value="@vm.Settings.ViewerGroupDn" @onchange="e => vm.Settings = vm.Settings with { ViewerGroupDn = S(e) }" /></label>
+            <button class="primary" @onclick="() => vm.SaveCommand.ExecuteAsync(null)" disabled="@vm.IsBusy">Save</button>
+        </section>
+        <section class="form">
+            <h2>Try it</h2>
+            <p class="muted">Signs a user in with the settings as entered, without saving them or creating the user.</p>
+            <label>User name<input @bind="vm.TestUserName" /></label>
+            <label>Password<input type="password" @bind="vm.TestPassword" /></label>
+            <button @onclick="() => vm.TestCommand.ExecuteAsync(null)" disabled="@vm.IsBusy">Test sign-in</button>
+            @if (vm.TestResult is { } r)
+            {
+                <p class="@(r.Succeeded ? "info" : "error")">@r.Message</p>
+                @if (r.Groups.Count > 0)
+                {
+                    <p class="muted">Groups:</p>
+                    <ul class="muted">@foreach (var g in r.Groups) { <li>@g</li> }</ul>
+                }
+            }
+        </section>
+    </div>
+}
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        ViewModel = new SignInSettingsViewModel(Api);
+        await ViewModel.LoadCommand.ExecuteAsync(null);
+    }
+
+    private static string S(ChangeEventArgs e) => e.Value?.ToString() ?? "";
+}

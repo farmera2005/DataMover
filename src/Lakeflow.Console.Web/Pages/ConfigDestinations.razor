@@ -1,0 +1,58 @@
+@page "/config/destinations"
+@layout ConfigLayout
+@inherits ViewModelComponent<DestinationsViewModel>
+@inject ConsoleApi Api
+
+<h1>Destinations</h1>
+@if (ViewModel is { } vm)
+{
+    @if (vm.Error is not null) { <p class="error">@vm.Error</p> }
+    @if (vm.Message is not null) { <p class="info">@vm.Message</p> }
+    <div class="columns">
+        <section class="form">
+            <h2>Event Hubs</h2>
+            <p class="muted">Each division's changes go to its own hub. Use a shared access policy on the hub with only <b>Send</b>
+               (Azure portal: the hub, then Shared access policies) and paste its connection string. Collectors get short-lived tokens
+               signed with it; the key itself never leaves this server.</p>
+            <label>Division
+                <select @bind="vm.Division">
+                    @foreach (var d in vm.Divisions) { <option value="@d">@d</option> }
+                </select>
+            </label>
+            <label>Connection string<input type="password" @bind="vm.ConnectionString" placeholder="Endpoint=sb://…;SharedAccessKeyName=…;SharedAccessKey=…;EntityPath=…" /></label>
+            <button class="primary" @onclick="() => vm.SaveHubCommand.ExecuteAsync(null)" disabled="@vm.IsBusy">Save</button>
+            <table class="grid">
+                <thead><tr><th>Division</th><th>Hub</th><th>Policy</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var h in vm.Hubs)
+                    {
+                        <tr><td>@h.Division</td><td>@h.Namespace/@h.HubName</td><td>@h.PolicyName</td>
+                            <td><button class="link" @onclick="() => vm.RemoveHubAsync(h.Division, default)">Remove</button></td></tr>
+                    }
+                </tbody>
+            </table>
+        </section>
+        <section class="form">
+            <h2>Fabric (reconciliation)</h2>
+            <p class="muted">Nightly, the notebooks compare each table's row count with the source. To show the results here, give a service
+               principal read access to the silver lakehouse and enter its SQL analytics endpoint.</p>
+            <label>SQL analytics endpoint<input @bind="vm.FabricServer" placeholder="xxxx.datawarehouse.fabric.microsoft.com" /></label>
+            <label>Lakehouse<input @bind="vm.FabricDatabase" placeholder="silver" /></label>
+            <label>Application (client) id<input @bind="vm.FabricClientId" /></label>
+            <label>Client secret<input type="password" @bind="vm.FabricClientSecret" placeholder="@(vm.FabricHasSecret ? "(stored; leave empty to keep)" : "")" /></label>
+            <div class="toolbar">
+                <button class="primary" @onclick="() => vm.SaveFabricCommand.ExecuteAsync(null)" disabled="@vm.IsBusy">Save</button>
+                <button @onclick="() => vm.TestFabricCommand.ExecuteAsync(null)" disabled="@(vm.IsBusy || !vm.FabricHasSecret)">Test</button>
+            </div>
+            @if (vm.FabricTest is { } t) { <p class="@(t.Succeeded ? "info" : "error")">@t.Message</p> }
+        </section>
+    </div>
+}
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        ViewModel = new DestinationsViewModel(Api);
+        await ViewModel.LoadCommand.ExecuteAsync(null);
+    }
+}

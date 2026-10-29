@@ -1,3 +1,4 @@
+using Lakeflow.Contracts;
 using Lakeflow.Agent;
 using Lakeflow.Agent.Capture;
 using Lakeflow.Agent.Control;

@@ -55,10 +55,13 @@ public sealed class CollectorTests(ApiFactory api) : IClassFixture<ApiFactory>
         }
         var host = new CollectorHost(identity.Store, site => new SiteParts(harnesses[site].Store, harnesses[site].Pipeline),
             NullLogger<CollectorHost>.Instance, ownsSites: false, runLoops: false);
-        var control = new ControlLoop(host, api.AgentHandler, identity.Time, NullLogger<ControlLoop>.Instance, identity.Directory, () => { });
+        var control = new ControlLoop(host, (c, _) => api.AgentHandler(c), identity.Time, NullLogger<ControlLoop>.Instance, identity.Directory, () => { });
         var token = await (await admin.PostAsync("enrollment-tokens", new EnrollmentTokenRequest(null, name))).ReadAsync<EnrollmentTokenResponse>();
-        Assert.Contains("docker compose up -d", token.InstallCommand);
-        await control.EnrollAsync("https://localhost/", token.Token, "COLLECTOR-1", "1.0.0", CancellationToken.None);
+        Assert.Contains("--env-file lakeflow-collector.env up -d", token.InstallCommand);
+        Assert.Contains($"LAKEFLOW_ENROLLMENT_TOKEN={token.Token}", token.ComposeFile);
+        Assert.Contains($"LAKEFLOW_CA_SHA256={LocalKeyMaterial.Fingerprint(api.Keys.AgentCa)}", token.ComposeFile);
+        Assert.Contains("LAKEFLOW_CONTROL_API=https://localhost:8444/", token.ComposeFile);
+        await control.EnrollAsync("https://localhost/", token.Token, null, "COLLECTOR-1", "1.0.0", CancellationToken.None);
         return new Central { Identity = identity, Sites = harnesses, Host = host, Control = control };
     }
 

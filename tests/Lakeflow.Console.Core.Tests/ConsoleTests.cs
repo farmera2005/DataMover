@@ -6,30 +6,34 @@ using Lakeflow.Console.Core.ViewModels;
 using Lakeflow.ControlApi.Security;
 using Lakeflow.ControlApi.Tests;
 using Lakeflow.Contracts;
+using Microsoft.AspNetCore.Mvc.Testing.Handlers;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
 namespace Lakeflow.Console.Core.Tests;
 
 /// <summary>
-/// The console's view models against the real control API (in-process, SQL Server in Docker) and a real agent
-/// answering commands: what the WinUI pages bind to, tested end to end.
+/// The console's view models against the real control API (in-process, PostgreSQL in Docker) and a real collector
+/// answering commands: what the web pages bind to, tested end to end.
 /// </summary>
 public sealed class ConsoleTests(ApiFactory api) : IClassFixture<ApiFactory>
 {
-    private sealed class TokenFor(ApiFactory api, string user, string[] roles) : IAccessTokenProvider
-    {
-        public Task<string> GetTokenAsync(CancellationToken ct) => Task.FromResult(api.Token(user, roles));
-        public Task SignOutAsync() => Task.CompletedTask;
-    }
+    /// <summary>A browser: the API client with a cookie jar, not signed in.</summary>
+    internal static ConsoleApi Browser(ApiFactory api) =>
+        ConsoleApi.Create(new Uri("https://localhost/"), new CookieContainerHandler { InnerHandler = api.Server.CreateHandler() });
 
+    /// <summary>Signed in as a local account with the given role (Admin by default).</summary>
     private ConsoleApi Console(string user = "adam@mercerlandmark.com", params string[] roles)
     {
         Skip.If(ApiFactory.SkipReason is not null, ApiFactory.SkipReason);
-        return ConsoleApi.Create(new Uri("https://localhost/"), new TokenFor(api, user, roles.Length == 0 ? [Roles.Admin] : roles), api.Server.CreateHandler());
+        api.Console(user, roles); // creates the account
+        var console = Browser(api);
+        console.SignInAsync(new SignInRequest(user, ApiFactory.TestPassword)).GetAwaiter().GetResult();
+        return console;
     }
 
-    private static SignedInUser User(params string[] roles) => new("someone@mercerlandmark.com", roles);
+    private static SignedInUser User(params string[] roles) => new("someone@mercerlandmark.com", null,
+        roles.Contains(Roles.Admin) ? ConsoleRole.Admin : roles.Contains(Roles.Operator) ? ConsoleRole.Operator : ConsoleRole.Viewer, "local");
 
     private static string NewSite() => "con" + RandomNumberGenerator.GetHexString(6).ToLowerInvariant();
 
@@ -45,10 +49,10 @@ public sealed class ConsoleTests(ApiFactory api) : IClassFixture<ApiFactory>
         {
             var agent = new RunningAgent { Harness = await Harness.StartAsync() };
             sources(agent.Harness);
-            agent.Control = new ControlLoop(agent.Harness.Collector(), api.AgentHandler, agent.Harness.Time,
+            agent.Control = new ControlLoop(agent.Harness.Collector(), (c, _) => api.AgentHandler(c), agent.Harness.Time,
                 NullLogger<ControlLoop>.Instance, agent.Harness.Directory, () => { });
             var token = await console.CreateEnrollmentTokenAsync(new EnrollmentTokenRequest(siteId, null));
-            await agent.Control.EnrollAsync("https://localhost/", token.Token, "SCALE-PC", "1.0.0", CancellationToken.None);
+            await agent.Control.EnrollAsync("https://localhost/", token.Token, null, "SCALE-PC", "1.0.0", CancellationToken.None);
             agent._pump = Task.Run(async () =>
             {
                 while (!agent._stop.IsCancellationRequested)
@@ -72,21 +76,36 @@ public sealed class ConsoleTests(ApiFactory api) : IClassFixture<ApiFactory>
     }
 
     [SkippableFact]
-    public async Task Shell_signs_in_and_reads_the_role_from_the_token()
+    public async Task Shell_signs_in_keeps_the_session_and_signs_out()
     {
-        Console();
-        var shell = new ShellViewModel(new TokenFor(api, "otto@mercerlandmark.com", [Roles.Operator]));
+        Console("otto@mercerlandmark.com", Roles.Operator);
+        var browser = Browser(api);
+        var shell = new ShellViewModel(browser);
+        await shell.InitializeCommand.ExecuteAsync(null);
+        Assert.Equal(ShellState.SignedOut, shell.State);
+
+        (shell.UserName, shell.Password) = ("otto@mercerlandmark.com", "not the password!");
         await shell.SignInCommand.ExecuteAsync(null);
-        Assert.True(shell.IsSignedIn);
+        Assert.False(shell.IsSignedIn);
+        Assert.Contains("not correct", shell.Error);
+        Assert.Equal("", shell.Password);
+
+        (shell.UserName, shell.Password) = ("otto@mercerlandmark.com", ApiFactory.TestPassword);
+        await shell.SignInCommand.ExecuteAsync(null);
+        Assert.Equal(ShellState.SignedIn, shell.State);
         Assert.Equal("otto@mercerlandmark.com", shell.User!.Name);
         Assert.Equal(ConsoleRole.Operator, shell.User.Role);
         Assert.True(shell.User.CanOperate);
         Assert.False(shell.User.CanAdminister);
 
-        var nobody = new ShellViewModel(new TokenFor(api, "guest@mercerlandmark.com", []));
-        await nobody.SignInCommand.ExecuteAsync(null);
-        Assert.False(nobody.IsSignedIn);
-        Assert.Contains("no Lakeflow role", nobody.Error);
+        // A reload finds the session (the cookie), then signing out ends it.
+        var reloaded = new ShellViewModel(browser);
+        await reloaded.InitializeCommand.ExecuteAsync(null);
+        Assert.Equal(ShellState.SignedIn, reloaded.State);
+        await reloaded.SignOutCommand.ExecuteAsync(null);
+        var after = new ShellViewModel(browser);
+        await after.InitializeCommand.ExecuteAsync(null);
+        Assert.Equal(ShellState.SignedOut, after.State);
     }
 
     [SkippableFact]

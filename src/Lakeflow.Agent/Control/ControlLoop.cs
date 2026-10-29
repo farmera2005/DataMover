@@ -45,18 +45,34 @@ public sealed class ControlLoop(
         _client?.Dispose();
         _identity?.Dispose();
         _identity = identity;
-        _client = new ControlApiClient(ControlApiClient.CreateHttp(identity.ControlApi, handlers(identity.Certificate)), identity.AgentId);
+        _client = new ControlApiClient(ControlApiClient.CreateHttp(identity.ControlApi, handlers(identity.Certificate, identity.Trust)), identity.AgentId);
     }
 
-    /// <summary>Enrolls with a one-time token from the console (passed to the installer).</summary>
-    public async Task EnrollAsync(string controlApi, string token, string hostname, string agentVersion, CancellationToken ct)
+    /// <summary>
+    /// Enrolls with a one-time token from the console. With the CA's SHA-256 (it comes with the token), the CA is
+    /// downloaded and checked against it first, and from then on it is the only CA trusted for the control API.
+    /// </summary>
+    public async Task EnrollAsync(string controlApi, string token, string? caSha256, string hostname, string agentVersion, CancellationToken ct)
     {
+        var trust = ServerTrust.System;
+        if (!string.IsNullOrWhiteSpace(caSha256))
+        {
+            using var download = ControlApiClient.CreateHttp(controlApi, handlers(null, ServerTrust.ForCaDownload));
+            var ca = await ControlApiClient.GetCaAsync(download, ct);
+            if (ServerTrust.Fingerprint(ca) != ServerTrust.NormalizeFingerprint(caSha256))
+            {
+                ca.Dispose();
+                throw new ControlApiException(System.Net.HttpStatusCode.BadGateway,
+                    "The control API's CA does not match the one in the enrollment token; nothing was sent. Check the address.");
+            }
+            trust = new ServerTrust(ca);
+        }
         var (key, csr) = AgentIdentity.NewRequest(hostname);
         using (key)
         {
-            using var anonymous = ControlApiClient.CreateHttp(controlApi, handlers(null));
+            using var anonymous = ControlApiClient.CreateHttp(controlApi, handlers(null, trust));
             var response = await ControlApiClient.EnrollAsync(anonymous, new EnrollRequest(token, csr, hostname, agentVersion), ct);
-            Use(AgentIdentity.Save(store, key, response.CertificatePem, controlApi));
+            Use(AgentIdentity.Save(store, key, response.CertificatePem, controlApi, response.CaCertificatePem));
             log.LogInformation("Enrolled as {AgentId} ({Scope})", response.AgentId, response.SiteId is null ? "central collector" : $"site {response.SiteId}");
         }
     }
@@ -232,7 +248,7 @@ public sealed class ControlLoop(
         using (key)
         {
             var response = await client.RenewAsync(csr, ct);
-            Use(AgentIdentity.Save(store, key, response.CertificatePem, identity.ControlApi));
+            Use(AgentIdentity.Save(store, key, response.CertificatePem, identity.ControlApi, response.CaCertificatePem));
             log.LogInformation("Certificate renewed; valid until {NotAfter:u}", Identity!.Certificate.NotAfter.ToUniversalTime());
         }
     }

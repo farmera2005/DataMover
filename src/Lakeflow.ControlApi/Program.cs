@@ -1,13 +1,15 @@
+using System.Net.Security;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
-using Azure.Monitor.OpenTelemetry.AspNetCore;
 using Lakeflow.ControlApi.Data;
 using Lakeflow.ControlApi.Endpoints;
 using Lakeflow.ControlApi.Security;
 using Lakeflow.ControlApi.Services;
-using Microsoft.AspNetCore.HttpOverrides;
+using Lakeflow.Contracts;
+using Microsoft.AspNetCore.Server.Kestrel.Https;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -16,57 +18,80 @@ builder.Host.UseSerilog((context, logger) => logger
     .ReadFrom.Configuration(context.Configuration)
     .Enrich.FromLogContext()
     .WriteTo.Console(new Serilog.Formatting.Compact.CompactJsonFormatter()));
-if (!string.IsNullOrEmpty(builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"]))
-    builder.Services.AddOpenTelemetry().UseAzureMonitor();
 
-// Same wire format as the agent: snake_case names and enum values.
+// Same wire format as the collector: snake_case names and enum values.
 builder.Services.ConfigureHttpJsonOptions(o =>
 {
     o.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower;
     o.SerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseLower, allowIntegerValues: false));
 });
 
+// Nothing to configure: every value has a default that works in the Docker stack; environment variables
+// (LAKEFLOW_*, mapped below) are optional overrides, used by tests.
+builder.Configuration.AddEnvironmentVariables("LAKEFLOW_");
+var server = builder.Configuration.GetSection("Server").Get<ServerOptions>() ?? new ServerOptions();
+var listen = builder.Configuration.GetSection("Listen").Get<ListenOptions>() ?? new ListenOptions();
+builder.Services.AddSingleton(server);
+
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddHttpContextAccessor();
-builder.Services.AddScoped<IActor, HttpActor>();
-// Azure SQL with the app's managed identity (Authentication=Active Directory Default): no password anywhere.
-builder.Services.AddDbContext<LakeflowDb>(o => o.UseSqlServer(
-    builder.Configuration.GetConnectionString("Lakeflow") ?? throw new InvalidOperationException("ConnectionStrings:Lakeflow is not set."),
-    sql => sql.EnableRetryOnFailure()));
+builder.Services.AddScoped<HttpActor>();
+builder.Services.AddScoped<IActor>(sp => sp.GetRequiredService<HttpActor>());
+builder.Services.AddDbContext<LakeflowDb>(o => o.UseNpgsql(DatabaseConnectionString(builder.Configuration), npgsql => npgsql.EnableRetryOnFailure()));
 
-builder.Services.Configure<EventHubsOptions>(builder.Configuration.GetSection("EventHubs"));
-var keyVault = builder.Configuration.GetSection("KeyVault").Get<KeyVaultOptions>() ?? new KeyVaultOptions();
-if (!string.IsNullOrEmpty(keyVault.VaultUri)) builder.Services.AddSingleton<IKeyMaterial>(_ => new KeyVaultKeyMaterial(keyVault));
-else if (builder.Environment.IsDevelopment()) builder.Services.AddSingleton<IKeyMaterial, DevelopmentKeyMaterial>();
-else throw new InvalidOperationException("KeyVault:VaultUri must be set outside Development.");
+builder.Services.AddSingleton<IKeyMaterial>(sp => new LocalKeyMaterial(sp.GetRequiredService<ServerOptions>()));
+builder.Services.AddSingleton<ISecretProtector>(sp => new SettingsProtector(sp.GetRequiredService<ServerOptions>()));
+builder.Services.AddSingleton<ServerCertificates>();
 builder.Services.AddSingleton<AgentCertificates>();
+builder.Services.AddSingleton<SetupWindow>();
+builder.Services.AddSingleton<LdapDirectory>();
+builder.Services.AddScoped<SettingsStore>();
+builder.Services.AddScoped<Accounts>();
 builder.Services.AddScoped<ConfigBuilder>();
-var fabric = builder.Configuration.GetSection("Fabric").Get<FabricOptions>() ?? new FabricOptions();
-if (string.IsNullOrEmpty(fabric.SqlEndpointConnectionString)) builder.Services.AddSingleton<IReconciliationSource, NoReconciliation>();
-else builder.Services.AddSingleton<IReconciliationSource>(new SqlEndpointReconciliation(fabric));
+builder.Services.AddScoped<IReconciliationSource, SettingsReconciliation>();
 builder.Services.AddHostedService<Retention>();
+builder.Services.AddHostedService<BuiltInCollector>();
 
-builder.Services.AddLakeflowAuth(builder.Configuration);
+builder.Services.AddLakeflowAuth();
 builder.Services.AddRateLimiter(o =>
 {
     o.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-    // Enrollment is the only anonymous route: a handful of attempts per address per minute.
+    // The anonymous routes: a handful of attempts per address per minute.
     o.AddPolicy("enroll", http => RateLimitPartition.GetFixedWindowLimiter(
         http.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-        _ => new FixedWindowRateLimiterOptions
-        {
-            PermitLimit = builder.Configuration.GetValue("RateLimits:EnrollPerMinute", 10),
-            Window = TimeSpan.FromMinutes(1),
-        }));
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = builder.Configuration.GetValue("RateLimits:EnrollPerMinute", 10), Window = TimeSpan.FromMinutes(1) }));
+    o.AddPolicy("sign-in", http => RateLimitPartition.GetFixedWindowLimiter(
+        http.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = builder.Configuration.GetValue("RateLimits:SignInPerMinute", 10), Window = TimeSpan.FromMinutes(1) }));
 });
 builder.Services.AddProblemDetails();
-// App Service terminates TLS and forwards the scheme; certificate authentication needs to see HTTPS.
-builder.Services.Configure<ForwardedHeadersOptions>(o =>
+
+// Three ports: the console over HTTP and over HTTPS, and the collectors' port (HTTPS with client certificates,
+// certificate from the Lakeflow CA). Tests run in-process without Kestrel, so none of this applies to them.
+if (listen.Enabled)
 {
-    o.ForwardedHeaders = ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedFor;
-    o.KnownNetworks.Clear();
-    o.KnownProxies.Clear();
-});
+    builder.WebHost.ConfigureKestrel(kestrel =>
+    {
+        kestrel.ListenAnyIP(listen.HttpPort);
+        kestrel.ListenAnyIP(listen.HttpsPort, l => l.UseHttps(new TlsHandshakeCallbackOptions
+        {
+            OnConnection = context => ValueTask.FromResult(new SslServerAuthenticationOptions
+            {
+                ServerCertificateContext = kestrel.ApplicationServices.GetRequiredService<ServerCertificates>().WebContext,
+            }),
+        }));
+        kestrel.ListenAnyIP(listen.CollectorPort, l => l.UseHttps(new TlsHandshakeCallbackOptions
+        {
+            OnConnection = context => ValueTask.FromResult(new SslServerAuthenticationOptions
+            {
+                ServerCertificateContext = kestrel.ApplicationServices.GetRequiredService<ServerCertificates>().CollectorContext,
+                // Ask for a client certificate (enrollment comes without one); the certificate handler validates it.
+                ClientCertificateRequired = true,
+                RemoteCertificateValidationCallback = (_, _, _, _) => true,
+            }),
+        }));
+    });
+}
 
 var app = builder.Build();
 
@@ -75,19 +100,21 @@ if (app.Configuration.GetValue("Database:MigrateOnStartup", true))
     using var scope = app.Services.CreateScope();
     await scope.ServiceProvider.GetRequiredService<LakeflowDb>().Database.MigrateAsync();
 }
+using (var scope = app.Services.CreateScope())
+{
+    await SettingsEndpoints.ReloadAsync(scope.ServiceProvider.GetRequiredService<SettingsStore>(),
+        scope.ServiceProvider.GetRequiredService<ServerCertificates>(), CancellationToken.None);
+}
 
-app.UseForwardedHeaders();
 app.UseSerilogRequestLogging();
-// The web console: a static Blazor WebAssembly app, signed in with Entra ID in the browser. Its pages hold no data;
-// everything comes from this API with the user's token.
 app.Use(async (context, next) =>
 {
-    if (context.Request.Path.StartsWithSegments("/console"))
+    if (!context.Request.Path.StartsWithSegments("/agents"))
     {
+        // The console: scripts from this server only, no framing, no referrers.
         context.Response.Headers.ContentSecurityPolicy =
-            "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data:; " +
-            "connect-src 'self' https://login.microsoftonline.com; frame-src https://login.microsoftonline.com; " +
-            "frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://login.microsoftonline.com";
+            "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data:; connect-src 'self'; " +
+            "frame-ancestors 'none'; base-uri 'self'; form-action 'self'";
         context.Response.Headers.XContentTypeOptions = "nosniff";
         context.Response.Headers["Referrer-Policy"] = "no-referrer";
     }
@@ -102,27 +129,72 @@ app.Use((context, next) =>
 app.UseBlazorFrameworkFiles("/console");
 app.UseStaticFiles();
 app.UseExceptionHandler();
-app.UseCertificateForwarding();
+app.UseRouting();
+app.Use(async (context, next) =>
+{
+    // Collector routes answer only on the collectors' port, everything else only on the console ports.
+    var port = context.Connection.LocalPort;
+    if (listen.Enabled && port != 0 && context.Request.Path != "/health")
+    {
+        var collectorRoute = context.GetEndpoint()?.Metadata.GetMetadata<CollectorRoute>() is not null;
+        if (collectorRoute != (port == listen.CollectorPort))
+        {
+            context.Response.StatusCode = StatusCodes.Status404NotFound;
+            return;
+        }
+    }
+    // A signed-in browser's changes must come from the console itself (see AuthSetup.RequestHeader).
+    if (!HttpMethods.IsGet(context.Request.Method) && !HttpMethods.IsHead(context.Request.Method)
+        && context.GetEndpoint()?.Metadata.GetMetadata<CollectorRoute>() is null
+        && !context.Request.Headers.ContainsKey(AuthSetup.RequestHeader))
+    {
+        context.Response.StatusCode = StatusCodes.Status400BadRequest;
+        await context.Response.WriteAsync($"Missing {AuthSetup.RequestHeader} header.");
+        return;
+    }
+    await next();
+});
 app.UseAuthentication();
 app.UseRateLimiter();
 app.UseAuthorization();
 
 app.MapGet("/health", () => Results.Ok(new { status = "ok" })).AllowAnonymous();
-// The console's sign-in settings, from this API's configuration (nothing is built into the console).
-app.MapGet("/console/appsettings.json", (IConfiguration config) => Results.Content(System.Text.Json.JsonSerializer.Serialize(new
-{
-    AzureAd = new
-    {
-        Authority = $"https://login.microsoftonline.com/{config["Entra:TenantId"]}",
-        ClientId = config["Console:ClientId"],
-        ValidateAuthority = true,
-    },
-    ApiScope = config["Console:ApiScope"],
-}), "application/json")).AllowAnonymous();
+app.MapGet("/", () => Results.Redirect("/console/")).AllowAnonymous().ExcludeFromDescription();
 app.MapFallbackToFile("console/{*path:nonfile}", "console/index.html").AllowAnonymous();
 app.MapAgentEndpoints();
-app.MapConsoleEndpoints(app.Configuration["PublicBaseUrl"] ?? "https://<control-api>");
+app.MapAuthEndpoints();
+app.MapSettingsEndpoints();
+app.MapConsoleEndpoints();
 
 app.Run();
 
+/// <summary>
+/// The control-plane database. Default: the stack's PostgreSQL (<c>db</c>), with the password the init service
+/// generated into the secrets volume. <c>ConnectionStrings:Lakeflow</c> overrides it (tests).
+/// </summary>
+static string DatabaseConnectionString(IConfiguration config)
+{
+    if (config.GetConnectionString("Lakeflow") is { Length: > 0 } explicitString) return explicitString;
+    var passwordFile = config["Database:PasswordFile"] ?? "/run/lakeflow-secrets/db_password";
+    return new NpgsqlConnectionStringBuilder
+    {
+        Host = config["Database:Host"] ?? "db",
+        Database = config["Database:Name"] ?? "lakeflow",
+        Username = config["Database:User"] ?? "lakeflow",
+        Password = File.Exists(passwordFile) ? File.ReadAllText(passwordFile).Trim() : null,
+    }.ConnectionString;
+}
+
 public partial class Program;
+
+/// <summary>Ports inside the container (Docker publishes them; see compose.yaml).</summary>
+public sealed class ListenOptions
+{
+    public bool Enabled { get; set; } = true;
+    public int HttpPort { get; set; } = 8080;
+    public int HttpsPort { get; set; } = 8443;
+    public int CollectorPort { get; set; } = 8444;
+}
+
+/// <summary>Marks the routes collectors call, served only on the collectors' port.</summary>
+public sealed class CollectorRoute;

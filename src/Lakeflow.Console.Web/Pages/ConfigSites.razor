@@ -1,9 +1,11 @@
-@page "/admin"
-@attribute [Authorize]
+@page "/config/sites"
+@layout ConfigLayout
 @inherits ViewModelComponent<SitesViewModel>
 @inject ConsoleApi Api
+@inject BrowserFiles Files
 
 <h1>Sites and collectors</h1>
+<p class="muted">The built-in collector (part of this stack) reads any site its server can reach. Add a collector on another server only for sites it cannot.</p>
 @if (ViewModel is { } vm)
 {
     @if (vm.Error is not null) { <p class="error">@vm.Error</p> }
@@ -22,7 +24,7 @@
                     <option value="" selected="@(vm.CollectorId is null)">none yet</option>
                     @foreach (var c in vm.Collectors)
                     {
-                        <option value="@c.AgentId" selected="@(c.AgentId == vm.CollectorId)">@c.Name (@c.AgentId@(c.SiteId is null ? ", central" : $", at {c.SiteId}"))</option>
+                        <option value="@c.AgentId" selected="@(c.AgentId == vm.CollectorId)">@c.Name (@c.AgentId@(c.SiteId is null ? "" : $", at {c.SiteId}"))</option>
                     }
                 </select>
             </label>
@@ -31,13 +33,22 @@
         </section>
 
         <section class="form">
-            <h2>Central collector</h2>
-            <p class="muted">Runs in Docker on a server inside the WAN that can reach every site's SQL Server.</p>
+            <h2>Collector on another server</h2>
+            <p class="muted">For sites this server cannot reach: a collector in Docker on a server that can.</p>
             <label>Name<input @bind="vm.CollectorName" /></label>
-            <button class="primary" @onclick="() => vm.EnrollCollectorCommand.ExecuteAsync(null)">Enroll a central collector</button>
+            <button class="primary" @onclick="() => vm.EnrollCollectorCommand.ExecuteAsync(null)">Create its install file</button>
             @if (vm.Token is { } token)
             {
-                <p>Run this once on the collector host (from <code>deploy/collector</code>). The token works once, until @token.ExpiresUtc.ToLocalTime().ToString("g"), and is not shown again.</p>
+                @if (token.ComposeFile is { } file)
+                {
+                    <p>Save <b>lakeflow-collector.env</b> next to <code>deploy/collector/compose.yaml</code> on that server and run the command there.
+                       It works once, until @token.ExpiresUtc.ToLocalTime().ToString("g"), and is not shown again.</p>
+                    <button @onclick="() => SaveEnv(file)">Download lakeflow-collector.env</button>
+                }
+                else
+                {
+                    <p>Run this on the site PC. The token works once, until @token.ExpiresUtc.ToLocalTime().ToString("g"), and is not shown again.</p>
+                }
                 <pre class="command">@token.InstallCommand</pre>
             }
         </section>
@@ -75,6 +86,8 @@
         ViewModel = new SitesViewModel(Api);
         await ViewModel.LoadCommand.ExecuteAsync(null);
     }
+
+    private Task SaveEnv(string file) => Files.SaveAsync("lakeflow-collector.env", System.Text.Encoding.UTF8.GetBytes(file), "text/plain");
 
     private static string Number(double value) => double.IsNaN(value) ? "" : value.ToString(System.Globalization.CultureInfo.InvariantCulture);
 

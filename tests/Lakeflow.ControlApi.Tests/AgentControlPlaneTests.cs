@@ -15,7 +15,7 @@ public sealed class AgentControlPlaneTests(ApiFactory api) : IClassFixture<ApiFa
     private bool _apiDown;
 
     /// <summary>The agent's HTTP stack, with a switch that cuts it off from the API.</summary>
-    private HttpMessageHandler Handler(X509Certificate2? certificate) =>
+    private HttpMessageHandler Handler(X509Certificate2? certificate, ServerTrust trust) =>
         new Switch(() => _apiDown) { InnerHandler = api.AgentHandler(certificate) };
 
     private sealed class Switch(Func<bool> down) : DelegatingHandler
@@ -41,7 +41,7 @@ public sealed class AgentControlPlaneTests(ApiFactory api) : IClassFixture<ApiFa
 
         // Enroll with a token from the console, as the installer would.
         var token = await (await admin.PostAsync("enrollment-tokens", new EnrollmentTokenRequest(site, null))).ReadAsync<EnrollmentTokenResponse>();
-        await control.EnrollAsync("https://localhost/", token.Token, "SCALE-PC", "1.0.0", CancellationToken.None);
+        await control.EnrollAsync("https://localhost/", token.Token, null, "SCALE-PC", "1.0.0", CancellationToken.None);
         var agentId = control.Identity!.AgentId;
         Assert.StartsWith(site, agentId);
 
@@ -125,7 +125,7 @@ public sealed class AgentControlPlaneTests(ApiFactory api) : IClassFixture<ApiFa
         h.Source("compuweigh", "Tickets");
         using var control = new ControlLoop(h.Collector(), Handler, h.Time, NullLogger<ControlLoop>.Instance, h.Directory, () => { });
         var token = await (await admin.PostAsync("enrollment-tokens", new EnrollmentTokenRequest(site, null))).ReadAsync<EnrollmentTokenResponse>();
-        await control.EnrollAsync("https://localhost/", token.Token, "SCALE-PC", "1.0.0", CancellationToken.None);
+        await control.EnrollAsync("https://localhost/", token.Token, null, "SCALE-PC", "1.0.0", CancellationToken.None);
         var original = control.Identity!.Certificate.Thumbprint;
 
         h.Time.Advance(TimeSpan.FromDays(340)); // inside the 30-day renewal window (agent clock only)

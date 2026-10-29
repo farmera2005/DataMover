@@ -1,0 +1,12 @@
+@inject ShellViewModel Shell
+
+<div class="centered">
+    <h1>Lakeflow</h1>
+    <form class="form narrow" @onsubmit="() => Shell.SignInCommand.ExecuteAsync(null)">
+        <label>User name<input @bind="Shell.UserName" autocomplete="username" autofocus /></label>
+        <label>Password<input type="password" @bind="Shell.Password" autocomplete="current-password" /></label>
+        @if (Shell.Error is not null) { <p class="error">@Shell.Error</p> }
+        <button class="primary" type="submit" disabled="@Shell.IsBusy">Sign in</button>
+        <p class="muted">Use your Lakeflow account, or your network account if your administrator has set up directory sign-in.</p>
+    </form>
+</div>

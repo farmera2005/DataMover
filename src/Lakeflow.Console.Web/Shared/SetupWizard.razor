@@ -1,0 +1,82 @@
+@inherits ViewModelComponent<SetupViewModel>
+@inject ConsoleApi Api
+@inject NavigationManager Navigation
+
+<div class="centered wide">
+    <h1>Set up Lakeflow</h1>
+    @if (ViewModel is { } vm)
+    {
+        <ol class="steps">
+            <li class="@(vm.Step == SetupStep.Administrator ? "current" : "")">Administrator</li>
+            <li class="@(vm.Step == SetupStep.Destinations ? "current" : "")">Event Hubs</li>
+            <li class="@(vm.Step == SetupStep.FirstSite ? "current" : "")">First site</li>
+            <li class="@(vm.Step == SetupStep.Done ? "current" : "")">Done</li>
+        </ol>
+        @switch (vm.Step)
+        {
+            case SetupStep.Administrator:
+                <form class="form" @onsubmit="() => vm.CreateAdministratorCommand.ExecuteAsync(null)">
+                    <p>This account always signs in, even if directory sign-in is set up later or the directory is down. Keep its password safe.</p>
+                    <label>User name<input @bind="vm.UserName" autocomplete="username" /></label>
+                    <label>Your name (optional)<input @bind="vm.DisplayName" /></label>
+                    <label>Password (at least 12 characters)<input type="password" @bind="vm.Password" autocomplete="new-password" /></label>
+                    <label>Password again<input type="password" @bind="vm.ConfirmPassword" autocomplete="new-password" /></label>
+                    <button class="primary" type="submit" disabled="@vm.IsBusy">Create the administrator</button>
+                </form>
+                break;
+            case SetupStep.Destinations:
+                <section class="form">
+                    <p>Collectors send each division's changes to its Event Hub. In the Azure portal open the hub, then <b>Shared access policies</b>,
+                       add a policy with only <b>Send</b>, and paste its <b>Connection string–primary key</b> here.</p>
+                    <label>Division
+                        <select @bind="vm.Division">
+                            @foreach (var d in Enum.GetValues<Division>()) { <option value="@d">@d</option> }
+                        </select>
+                    </label>
+                    <label>Connection string<input type="password" @bind="vm.ConnectionString" placeholder="Endpoint=sb://…;SharedAccessKeyName=…;SharedAccessKey=…;EntityPath=…" /></label>
+                    <button @onclick="() => vm.SaveHubCommand.ExecuteAsync(null)" disabled="@vm.IsBusy">Save this hub</button>
+                    @foreach (var h in vm.Hubs) { <p class="info">✓ @h.Division: @h.Namespace/@h.HubName</p> }
+                    <div class="toolbar">
+                        <button class="primary" @onclick="vm.Next">@(vm.Hubs.Count > 0 ? "Next" : "Skip for now")</button>
+                    </div>
+                    <p class="muted">Sites wait (nothing is lost) until their division's hub is set. Hubs and the Fabric connection can be changed later under Configuration.</p>
+                </section>
+                break;
+            case SetupStep.FirstSite:
+                <form class="form" @onsubmit="() => vm.CreateSiteCommand.ExecuteAsync(null)">
+                    <p>A site is a location with one or more databases (sources). The collector built into this server reads it.</p>
+                    <label>Short id (letters and digits, e.g. stmarys)<input @bind="vm.SiteId" /></label>
+                    <label>Name<input @bind="vm.SiteName" /></label>
+                    <label>Time zone<input @bind="vm.TimeZone" /></label>
+                    <div class="toolbar">
+                        <button class="primary" type="submit" disabled="@vm.IsBusy">Create the site</button>
+                        <button type="button" @onclick="vm.Next">Skip for now</button>
+                    </div>
+                </form>
+                break;
+            default:
+                <section class="form">
+                    <p>Setup is done.@(vm.CreatedSiteId is null ? "" : " Next, add the site's database: the source wizard tests the connection and lists the tables.")</p>
+                    @if (vm.CreatedSiteId is { } site)
+                    {
+                        <button class="primary" @onclick="() => Finish(site)">Add a source to @site</button>
+                    }
+                    <button @onclick="() => Finish(null)">Go to the fleet view</button>
+                    <p class="muted">More under Configuration: users, directory sign-in, the Fabric connection, and the server's certificate.</p>
+                </section>
+                break;
+        }
+        @if (vm.Error is not null) { <p class="error">@vm.Error</p> }
+        @if (vm.Message is not null) { <p class="info">@vm.Message</p> }
+    }
+</div>
+
+@code {
+    protected override void OnInitialized() => ViewModel = new SetupViewModel(Api);
+
+    private void Finish(string? site)
+    {
+        // The shell is already signed in; leave the wizard.
+        Navigation.NavigateTo(site is null ? "" : $"sites/{site}/add-source", forceLoad: true);
+    }
+}

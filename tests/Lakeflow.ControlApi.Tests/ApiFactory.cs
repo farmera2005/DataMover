@@ -1,124 +1,131 @@
-using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
+using System.Text;
+using Lakeflow.ControlApi.Data;
 using Lakeflow.ControlApi.Security;
+using Lakeflow.ControlApi.Services;
 using Lakeflow.Contracts;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
-using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Time.Testing;
-using Microsoft.IdentityModel.JsonWebTokens;
-using Microsoft.IdentityModel.Protocols.OpenIdConnect;
-using Microsoft.IdentityModel.Tokens;
+using Npgsql;
 using Xunit;
 
 namespace Lakeflow.ControlApi.Tests;
 
 /// <summary>
-/// The real API in-process on a fresh SQL Server database (MSSQL_TEST_CONNECTION), with simulated time, a test CA,
-/// and Entra ID replaced by a local signing key, so console calls carry real, validated JWTs with app roles.
-/// Agent calls carry their client certificate the way App Service forwards it.
+/// The real API in-process on a fresh PostgreSQL database (POSTGRES_TEST_CONNECTION), with simulated time and its own
+/// data directory (master key, CA). Console clients are real local accounts signed in with the session cookie; collector
+/// calls carry their client certificate on the TLS connection, as Kestrel presents it. Every division's Event Hub is
+/// set up, with known keys (<see cref="HubKey"/>).
 /// </summary>
 public class ApiFactory : WebApplicationFactory<Program>
 {
-    public const string Issuer = "https://login.test/lakeflow/v2.0";
-    public const string Audience = "api://lakeflow-control-test";
+    public const string Namespace = "lakeflow-test.servicebus.windows.net";
+    public const string TestPassword = "correct horse battery staple";
 
-    public static string? SkipReason => Environment.GetEnvironmentVariable("MSSQL_TEST_CONNECTION") is { Length: > 0 }
-        ? null : "Set MSSQL_TEST_CONNECTION to run control API tests (scripts/test-sqlserver.sh).";
+    public static string? SkipReason => Environment.GetEnvironmentVariable("POSTGRES_TEST_CONNECTION") is { Length: > 0 }
+        ? null : "Set POSTGRES_TEST_CONNECTION to run control API tests (see README: PostgreSQL in Docker).";
 
     public FakeTimeProvider Time { get; } = new(DateTimeOffset.UtcNow);
     /// <summary>Tests enroll many agents from one address; the production default is 10.</summary>
     public int EnrollPerMinute { get; init; } = 1000;
-    public DevelopmentKeyMaterial Keys { get; } = new();
-    public RsaSecurityKey SigningKey { get; } = new(RSA.Create(2048)) { KeyId = "test" };
+    public int SignInPerMinute { get; init; } = 100000;
+    /// <summary>Set up every division's hub at start (as an administrator would in Configuration).</summary>
+    public bool SeedEventHubs { get; init; } = true;
     public string DatabaseName { get; } = $"lakeflow_api_{DateTime.UtcNow:yyyyMMddHHmmss}_{RandomNumberGenerator.GetHexString(4).ToLowerInvariant()}";
+    public string DataDirectory { get; } = Path.Combine(Path.GetTempPath(), "lakeflow-api-tests", Guid.NewGuid().ToString("N"));
 
-    public string ConnectionStringForTests => ConnectionString;
+    public IKeyMaterial Keys => Services.GetRequiredService<IKeyMaterial>();
 
-    private string ConnectionString => new SqlConnectionStringBuilder(Environment.GetEnvironmentVariable("MSSQL_TEST_CONNECTION"))
+    public static byte[] HubKey(Division division) => Encoding.UTF8.GetBytes($"test-send-key-{LakeNames.HubName(division)}");
+
+    public string ConnectionString => new NpgsqlConnectionStringBuilder(Environment.GetEnvironmentVariable("POSTGRES_TEST_CONNECTION"))
     {
-        InitialCatalog = DatabaseName,
+        Database = DatabaseName,
     }.ConnectionString;
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Development");
         builder.UseSetting("ConnectionStrings:Lakeflow", ConnectionString);
-        builder.UseSetting("EventHubs:Namespace", "lakeflow-test.servicebus.windows.net");
-        builder.UseSetting("PublicBaseUrl", "https://lakeflow.test");
-        builder.UseSetting("Entra:TenantId", "test-tenant");
-        builder.UseSetting("Entra:Audience", Audience);
+        builder.UseSetting("Server:DataDirectory", DataDirectory);
+        builder.UseSetting("Listen:Enabled", "false");
         builder.UseSetting("RateLimits:EnrollPerMinute", EnrollPerMinute.ToString());
-        builder.ConfigureTestServices(services =>
-        {
-            services.AddSingleton<TimeProvider>(Time);
-            services.AddSingleton<IKeyMaterial>(Keys);
-            services.PostConfigure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, o =>
-            {
-                o.Authority = null;
-                o.Configuration = new OpenIdConnectConfiguration();
-                o.TokenValidationParameters = new TokenValidationParameters
-                {
-                    ValidIssuer = Issuer,
-                    ValidAudience = Audience,
-                    IssuerSigningKey = SigningKey,
-                    RoleClaimType = "roles",
-                    NameClaimType = "preferred_username",
-                };
-            });
-        });
+        builder.UseSetting("RateLimits:SignInPerMinute", SignInPerMinute.ToString());
+        builder.ConfigureTestServices(services => services.AddSingleton<TimeProvider>(Time));
     }
 
-    public string Token(string user, string[] roles, string audience = Audience, SecurityKey? key = null) =>
-        new JsonWebTokenHandler().CreateToken(new SecurityTokenDescriptor
+    protected override IHost CreateHost(IHostBuilder builder)
+    {
+        var host = base.CreateHost(builder);
+        if (SeedEventHubs)
         {
-            Issuer = Issuer,
-            Audience = audience,
-            Expires = DateTime.UtcNow.AddHours(1),
-            Claims = new Dictionary<string, object> { ["preferred_username"] = user, ["roles"] = roles, ["oid"] = Guid.NewGuid().ToString() },
-            SigningCredentials = new SigningCredentials(key ?? SigningKey, SecurityAlgorithms.RsaSha256),
-        });
+            using var scope = host.Services.CreateScope();
+            var settings = scope.ServiceProvider.GetRequiredService<SettingsStore>();
+            foreach (var division in Enum.GetValues<Division>())
+                settings.SetAsync(SettingsStore.EventHub(division), new EventHubSetting(Namespace, LakeNames.HubName(division), "lakeflow-send"),
+                    HubKey(division), CancellationToken.None).GetAwaiter().GetResult();
+        }
+        return host;
+    }
 
-    /// <summary>A console client signed in as <paramref name="user"/> with the given app roles.</summary>
+    /// <summary>Creates (or updates) a local account directly in the database.</summary>
+    public async Task<Guid> EnsureUserAsync(string user, ConsoleRole role, bool disabled = false, string password = TestPassword)
+    {
+        using var scope = Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<LakeflowDb>();
+        var name = Accounts.Normalize(user);
+        var row = await db.Users.FirstOrDefaultAsync(u => u.UserName == name);
+        if (row is null) db.Users.Add(row = new User { Id = Guid.NewGuid(), UserName = name, CreatedUtc = Time.GetUtcNow() });
+        row.Role = role;
+        row.Disabled = disabled;
+        Accounts.SetPassword(row, password);
+        await db.SaveChangesAsync();
+        return row.Id;
+    }
+
+    /// <summary>A console client signed in (session cookie) as a local account with the given role (Admin by default).</summary>
     public HttpClient Console(string user = "adam@mercerlandmark.com", params string[] roles)
     {
-        var client = CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = new Uri("https://localhost/") });
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer",
-            Token(user, roles.Length == 0 ? [Roles.Admin] : roles));
+        var role = roles.Contains(Roles.Admin) || roles.Length == 0 ? ConsoleRole.Admin
+            : roles.Contains(Roles.Operator) ? ConsoleRole.Operator : ConsoleRole.Viewer;
+        EnsureUserAsync(user, role).GetAwaiter().GetResult();
+        var client = Anonymous();
+        var response = client.PostAsJsonAsync("auth/sign-in", new SignInRequest(user, TestPassword), EnvelopeJson.Options).GetAwaiter().GetResult();
+        Assert.True(response.IsSuccessStatusCode, $"sign-in as {user}: {(int)response.StatusCode}");
         return client;
     }
 
-    public HttpClient Anonymous() => CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = new Uri("https://localhost/") });
+    /// <summary>Not signed in; sends the console's request header like the real console.</summary>
+    public HttpClient Anonymous()
+    {
+        var client = CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = new Uri("https://localhost/"), HandleCookies = true });
+        client.DefaultRequestHeaders.Add(AuthSetup.RequestHeader, "1");
+        return client;
+    }
 
-    /// <summary>The handler an agent uses: TLS client certificate, as App Service forwards it.</summary>
+    /// <summary>The handler a collector uses: its client certificate on the connection, as Kestrel presents a TLS client certificate.</summary>
     public HttpMessageHandler AgentHandler(X509Certificate2? certificate) =>
-        new CertificateHeaderHandler(certificate) { InnerHandler = Server.CreateHandler() };
+        Server.CreateHandler(context => context.Connection.ClientCertificate = certificate);
 
     public HttpClient Agent(X509Certificate2 certificate) =>
         new(AgentHandler(certificate)) { BaseAddress = new Uri("https://localhost/") };
 
-    private sealed class CertificateHeaderHandler(X509Certificate2? certificate) : DelegatingHandler
-    {
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-        {
-            if (certificate is not null) request.Headers.Add(AuthSetup.ClientCertificateHeader, Convert.ToBase64String(certificate.RawData));
-            return base.SendAsync(request, cancellationToken);
-        }
-    }
-
     public override async ValueTask DisposeAsync()
     {
         await base.DisposeAsync();
+        if (Directory.Exists(DataDirectory)) Directory.Delete(DataDirectory, recursive: true);
         if (SkipReason is not null) return;
-        SqlConnection.ClearAllPools();
-        await using var connection = new SqlConnection(Environment.GetEnvironmentVariable("MSSQL_TEST_CONNECTION"));
+        NpgsqlConnection.ClearAllPools();
+        await using var connection = new NpgsqlConnection(Environment.GetEnvironmentVariable("POSTGRES_TEST_CONNECTION"));
         await connection.OpenAsync();
-        await using var command = new SqlCommand($"IF DB_ID('{DatabaseName}') IS NOT NULL BEGIN ALTER DATABASE [{DatabaseName}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE [{DatabaseName}] END", connection);
+        await using var command = new NpgsqlCommand($"DROP DATABASE IF EXISTS \"{DatabaseName}\" WITH (FORCE)", connection);
         await command.ExecuteNonQueryAsync();
     }
 }

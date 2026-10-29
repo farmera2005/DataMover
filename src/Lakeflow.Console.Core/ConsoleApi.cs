@@ -1,5 +1,4 @@
 using System.Net;
-using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Lakeflow.Contracts;
@@ -14,26 +13,93 @@ public sealed class ConsoleApiException(HttpStatusCode status, IReadOnlyList<str
     public IReadOnlyList<string> Errors { get; } = errors;
 }
 
-/// <summary>Adds the signed-in user's token to every call.</summary>
-public sealed class BearerTokenHandler(IAccessTokenProvider tokens) : DelegatingHandler
+/// <summary>
+/// Marks every call as the console's own (the API refuses changes without this header, so another site cannot act
+/// with the user's session cookie).
+/// </summary>
+public sealed class ConsoleRequestHandler : DelegatingHandler
 {
-    protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    public const string Header = "X-Lakeflow-Request";
+
+    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await tokens.GetTokenAsync(cancellationToken));
-        return await base.SendAsync(request, cancellationToken);
+        request.Headers.TryAddWithoutValidation(Header, "1");
+        return base.SendAsync(request, cancellationToken);
     }
 }
 
-/// <summary>Every console call to the control API.</summary>
+/// <summary>Every console call to the control API. The session is a cookie (the browser keeps it; tests use a cookie container).</summary>
 public sealed class ConsoleApi(HttpClient http)
 {
     private static readonly JsonSerializerOptions Json = EnvelopeJson.Options;
 
-    public static ConsoleApi Create(Uri baseUrl, IAccessTokenProvider tokens, HttpMessageHandler? inner = null) =>
-        new(new HttpClient(new BearerTokenHandler(tokens) { InnerHandler = inner ?? new HttpClientHandler() })
+    public static ConsoleApi Create(Uri baseUrl, HttpMessageHandler? inner = null) =>
+        new(new HttpClient(new ConsoleRequestHandler { InnerHandler = inner ?? new HttpClientHandler() })
         {
             BaseAddress = baseUrl, Timeout = TimeSpan.FromSeconds(60),
         });
+
+    // ---- setup and sign-in ----
+
+    public Task<SetupStatus> GetSetupStatusAsync(CancellationToken ct = default) => GetAsync<SetupStatus>("auth/setup", ct);
+    public async Task<Me> SetupAsync(SetupRequest request, CancellationToken ct = default) =>
+        await ReadAsync<Me>(await http.PostAsJsonAsync("auth/setup", request, Json, ct), ct);
+    public async Task<Me> SignInAsync(SignInRequest request, CancellationToken ct = default) =>
+        await ReadAsync<Me>(await http.PostAsJsonAsync("auth/sign-in", request, Json, ct), ct);
+    public Task SignOutAsync(CancellationToken ct = default) => SendAsync(HttpMethod.Post, "auth/sign-out", JsonContent.Create(new { }), ct);
+
+    /// <summary>The signed-in user, or null when not signed in.</summary>
+    public async Task<Me?> GetMeAsync(CancellationToken ct = default)
+    {
+        using var response = await http.GetAsync("auth/me", ct);
+        if (response.StatusCode == HttpStatusCode.Unauthorized) return null;
+        await EnsureAsync(response, ct);
+        return await response.Content.ReadFromJsonAsync<Me>(Json, ct);
+    }
+
+    public Task ChangePasswordAsync(string currentPassword, string newPassword, CancellationToken ct = default) =>
+        SendAsync(HttpMethod.Post, "auth/password", JsonContent.Create(new { current_password = currentPassword, new_password = newPassword }), ct);
+
+    // ---- users ----
+
+    public Task<List<UserDto>> GetUsersAsync(CancellationToken ct = default) => GetAsync<List<UserDto>>("users", ct);
+    public async Task<UserDto> CreateUserAsync(UserRequest request, CancellationToken ct = default) =>
+        await ReadAsync<UserDto>(await http.PostAsJsonAsync("users", request, Json, ct), ct);
+    public Task<UserDto> UpdateUserAsync(Guid id, UserRequest request, CancellationToken ct = default) => PutAsync<UserRequest, UserDto>($"users/{id}", request, ct);
+    public Task DeleteUserAsync(Guid id, CancellationToken ct = default) => SendAsync(HttpMethod.Delete, $"users/{id}", null, ct);
+
+    // ---- settings ----
+
+    public Task<List<EventHubSettingsDto>> GetEventHubsAsync(CancellationToken ct = default) => GetAsync<List<EventHubSettingsDto>>("settings/event-hubs", ct);
+    public Task<EventHubSettingsDto> PutEventHubAsync(Division division, string connectionString, CancellationToken ct = default) =>
+        PutAsync<EventHubSettingsRequest, EventHubSettingsDto>($"settings/event-hubs/{Wire(division)}", new EventHubSettingsRequest(connectionString), ct);
+    public Task DeleteEventHubAsync(Division division, CancellationToken ct = default) => SendAsync(HttpMethod.Delete, $"settings/event-hubs/{Wire(division)}", null, ct);
+
+    public async Task<FabricSettingsDto?> GetFabricAsync(CancellationToken ct = default)
+    {
+        using var response = await http.GetAsync("settings/fabric", ct);
+        await EnsureAsync(response, ct);
+        return response.StatusCode == HttpStatusCode.NoContent ? null : await response.Content.ReadFromJsonAsync<FabricSettingsDto>(Json, ct);
+    }
+    public Task<FabricSettingsDto> PutFabricAsync(FabricSettingsRequest request, CancellationToken ct = default) =>
+        PutAsync<FabricSettingsRequest, FabricSettingsDto>("settings/fabric", request, ct);
+    public async Task<SettingsTestResult> TestFabricAsync(CancellationToken ct = default) =>
+        await ReadAsync<SettingsTestResult>(await http.PostAsJsonAsync("settings/fabric/test", new { }, Json, ct), ct);
+
+    public Task<LdapSettingsDto> GetLdapAsync(CancellationToken ct = default) => GetAsync<LdapSettingsDto>("settings/ldap", ct);
+    public Task<LdapSettingsDto> PutLdapAsync(LdapSettingsRequest request, CancellationToken ct = default) =>
+        PutAsync<LdapSettingsRequest, LdapSettingsDto>("settings/ldap", request, ct);
+    public async Task<LdapTestResult> TestLdapAsync(LdapTestRequest request, CancellationToken ct = default) =>
+        await ReadAsync<LdapTestResult>(await http.PostAsJsonAsync("settings/ldap/test", request, Json, ct), ct);
+
+    public Task<ServerSettingsDto> GetServerAsync(CancellationToken ct = default) => GetAsync<ServerSettingsDto>("settings/server", ct);
+    public Task<ServerSettingsDto> PutServerAsync(ServerSettingsRequest request, CancellationToken ct = default) =>
+        PutAsync<ServerSettingsRequest, ServerSettingsDto>("settings/server", request, ct);
+    public async Task<ServerSettingsDto> UploadCertificateAsync(CertificateUploadRequest request, CancellationToken ct = default) =>
+        await ReadAsync<ServerSettingsDto>(await http.PostAsJsonAsync("settings/server/certificate", request, Json, ct), ct);
+    public Task DeleteCertificateAsync(CancellationToken ct = default) => SendAsync(HttpMethod.Delete, "settings/server/certificate", null, ct);
+
+    private static string Wire(Division division) => System.Text.Json.JsonNamingPolicy.SnakeCaseLower.ConvertName(division.ToString());
 
     public Task<FleetStatus> GetStatusAsync(CancellationToken ct = default) => GetAsync<FleetStatus>("status", ct);
     public Task<List<SiteDto>> GetSitesAsync(CancellationToken ct = default) => GetAsync<List<SiteDto>>("sites", ct);

@@ -1,0 +1,21 @@
+@inherits LayoutComponentBase
+@layout MainLayout
+@inject ShellViewModel Shell
+
+@if (Shell.User?.CanAdminister != true)
+{
+    <p>Configuration is for administrators.</p>
+}
+else
+{
+    <div class="config">
+        <nav class="side">
+            <NavLink href="config/sites">Sites and collectors</NavLink>
+            <NavLink href="config/destinations">Destinations</NavLink>
+            <NavLink href="config/users">Users</NavLink>
+            <NavLink href="config/sign-in">Sign-in &amp; LDAP</NavLink>
+            <NavLink href="config/server">Server &amp; certificate</NavLink>
+        </nav>
+        <div class="body">@Body</div>
+    </div>
+}

@@ -3,7 +3,9 @@ using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using Lakeflow.ControlApi.Security;
 using Lakeflow.Contracts;
-using Microsoft.IdentityModel.Tokens;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace Lakeflow.ControlApi.Tests;
@@ -137,7 +139,6 @@ public sealed class EnrollmentAndAuthTests(ApiFactory api) : IClassFixture<ApiFa
         var (agent, _) = await api.EnrollAsync(admin, site);
         var viewer = api.Console("val@mercerlandmark.com", Roles.Viewer);
         var operatorUser = api.Console("otto@mercerlandmark.com", Roles.Operator);
-        var nobody = api.Console("no-role@mercerlandmark.com", "Something.Else");
         var pause = new CommandRequest { Type = CommandType.PauseTable, SourceId = "compuweigh", Table = "dbo.Tickets" };
 
         Assert.Equal(HttpStatusCode.OK, (await viewer.GetAsync("status")).StatusCode);
@@ -150,15 +151,87 @@ public sealed class EnrollmentAndAuthTests(ApiFactory api) : IClassFixture<ApiFa
         Assert.Equal(HttpStatusCode.Forbidden, (await operatorUser.PostAsync("enrollment-tokens", new EnrollmentTokenRequest(site, null))).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await operatorUser.PostAsync($"agents/{agent}/revoke", new { })).StatusCode);
 
-        Assert.Equal(HttpStatusCode.Forbidden, (await nobody.GetAsync("status")).StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, (await api.Anonymous().GetAsync("status")).StatusCode);
 
-        var wrongAudience = api.Anonymous();
-        wrongAudience.DefaultRequestHeaders.Authorization = new("Bearer", api.Token("x", [Roles.Admin], audience: "api://someone-else"));
-        Assert.Equal(HttpStatusCode.Unauthorized, (await wrongAudience.GetAsync("status")).StatusCode);
-        var wrongKey = api.Anonymous();
-        wrongKey.DefaultRequestHeaders.Authorization = new("Bearer", api.Token("x", [Roles.Admin], key: new RsaSecurityKey(RSA.Create(2048))));
-        Assert.Equal(HttpStatusCode.Unauthorized, (await wrongKey.GetAsync("status")).StatusCode);
+        // A made-up session cookie is not a session.
+        var forged = api.Anonymous();
+        forged.DefaultRequestHeaders.Add("Cookie", $"{AuthSetup.CookieName}=CfDJ8made-up");
+        Assert.Equal(HttpStatusCode.Unauthorized, (await forged.GetAsync("status")).StatusCode);
+
+        // Demoting a user ends their session's extra rights at once (new security stamp).
+        await api.EnsureUserAsync("otto@mercerlandmark.com", ConsoleRole.Viewer);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await operatorUser.PostAsync($"sites/{site}/commands", pause)).StatusCode);
+    }
+
+    /// <summary>What a Viewer may call (reads), written out here so a route given the wrong policy is caught.</summary>
+    private static readonly HashSet<string> ViewerRoutes =
+    [
+        "GET /status", "GET /reconciliation", "GET /sites", "GET /sites/{siteId}", "GET /sites/{siteId}/sources",
+        "GET /sites/{siteId}/sources/{sourceId}/tables", "GET /agents", "GET /agents/{agentId}", "GET /sites/{siteId}/commands/{commandId:guid}",
+        "GET /sites/{siteId}/commands", "GET /events", "GET /audit", "GET /auth/me", "POST /auth/password", "GET /settings/server/ca.crt",
+    ];
+
+    /// <summary>What an Operator may call on top (the API itself refuses Admin-only command types).</summary>
+    private static readonly HashSet<string> OperatorRoutes = ["POST /sites/{siteId}/commands"];
+
+    private static readonly HashSet<string> OpenRoutes =
+        ["GET /health", "GET /", "GET /auth/setup", "POST /auth/setup", "POST /auth/sign-in", "POST /auth/sign-out", "POST /agents/enroll", "GET /agents/ca", "GET /console/{*path:nonfile}", "HEAD /console/{*path:nonfile}"];
+
+    /// <summary>
+    /// Walks every route the app maps (so a new one cannot be forgotten): anonymous callers get 401 everywhere but the
+    /// open routes, collector routes refuse console sessions, and Viewers and Operators get 403 on everything not listed
+    /// above for them; everything else is for Admins.
+    /// </summary>
+    [SkippableFact]
+    public async Task Every_route_is_walked_for_its_role()
+    {
+        var admin = Admin();
+        var viewer = api.Console("walk-viewer@mercerlandmark.com", Roles.Viewer);
+        var operatorUser = api.Console("walk-operator@mercerlandmark.com", Roles.Operator);
+        var anonymous = api.Anonymous();
+        var endpoints = api.Services.GetRequiredService<EndpointDataSource>().Endpoints.OfType<RouteEndpoint>().ToList();
+        var walked = new List<string>();
+        foreach (var endpoint in endpoints)
+        {
+            var template = "/" + endpoint.RoutePattern.RawText!.TrimStart('/');
+            var url = System.Text.RegularExpressions.Regex.Replace(template, @"\{(\w+)(:guid)?[^}]*\}", m => m.Groups[2].Success ? Guid.NewGuid().ToString() : "x" + m.Groups[1].Value)
+                .TrimStart('/');
+            var isAgent = endpoint.Metadata.GetOrderedMetadata<AuthorizeAttribute>().Any(a => a.Policy == Policies.Agent);
+            foreach (var method in endpoint.Metadata.GetMetadata<HttpMethodMetadata>()?.HttpMethods ?? ["GET"])
+            {
+                var route = $"{method} {template}";
+                walked.Add(route);
+                HttpRequestMessage Request() => new(new HttpMethod(method), url) { Content = method == "GET" ? null : new StringContent("{}", System.Text.Encoding.UTF8, "application/json") };
+                if (OpenRoutes.Contains(route)) continue;
+                if (isAgent)
+                {
+                    Refused((await anonymous.SendAsync(Request())).StatusCode);
+                    Refused((await admin.SendAsync(Request())).StatusCode);
+                    continue;
+                }
+                Assert.True((await anonymous.SendAsync(Request())).StatusCode == HttpStatusCode.Unauthorized, $"{route} anonymous");
+                var asViewer = (await viewer.SendAsync(Request())).StatusCode;
+                var asOperator = (await operatorUser.SendAsync(Request())).StatusCode;
+                Assert.True(ViewerRoutes.Contains(route) ? asViewer is not (HttpStatusCode.Forbidden or HttpStatusCode.Unauthorized) : asViewer == HttpStatusCode.Forbidden,
+                    $"{route} as Viewer answered {(int)asViewer}");
+                var operatorMay = ViewerRoutes.Contains(route) || OperatorRoutes.Contains(route);
+                Assert.True(operatorMay ? asOperator is not (HttpStatusCode.Forbidden or HttpStatusCode.Unauthorized) : asOperator == HttpStatusCode.Forbidden,
+                    $"{route} as Operator answered {(int)asOperator}");
+            }
+        }
+        // The lists name only routes that exist.
+        Assert.Empty(ViewerRoutes.Concat(OperatorRoutes).Concat(OpenRoutes).Except(walked));
+        Assert.True(walked.Count > 40, $"only {walked.Count} routes walked");
+    }
+
+    [SkippableFact]
+    public async Task Changes_without_the_console_header_are_refused()
+    {
+        var admin = Admin();
+        admin.DefaultRequestHeaders.Remove(AuthSetup.RequestHeader);
+        var response = await admin.PutAsync("sites/csrf", new SiteDto { SiteId = "csrf", Name = "x" });
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await admin.GetAsync("sites")).StatusCode);
     }
 
     [SkippableFact]
@@ -171,7 +244,8 @@ public sealed class EnrollmentAndAuthTests(ApiFactory api) : IClassFixture<ApiFa
             ("GET", "status"), ("GET", "sites"), ("PUT", "sites/x"), ("DELETE", "sites/x"), ("GET", "sites/x/sources"),
             ("PUT", "sites/x/sources/y"), ("PUT", "sites/x/sources/y/credential"), ("PUT", "sites/x/sources/y/tables/dbo.t"),
             ("POST", "enrollment-tokens"), ("GET", "agents"), ("POST", "agents/a/revoke"), ("POST", "sites/x/commands"),
-            ("GET", "events"), ("GET", "audit"), ("GET", $"logs/{Guid.NewGuid()}"),
+            ("GET", "events"), ("GET", "audit"), ("GET", $"logs/{Guid.NewGuid()}"), ("GET", "users"), ("POST", "users"),
+            ("GET", "settings/ldap"), ("PUT", "settings/event-hubs/grain"), ("GET", "settings/server"), ("GET", "auth/me"),
         })
         {
             var response = await anonymous.SendAsync(new HttpRequestMessage(new HttpMethod(method), url) { Content = new StringContent("{}", System.Text.Encoding.UTF8, "application/json") });

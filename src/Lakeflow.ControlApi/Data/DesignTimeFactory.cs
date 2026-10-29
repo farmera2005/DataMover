@@ -12,6 +12,6 @@ public sealed class DesignTimeFactory : IDesignTimeDbContextFactory<LakeflowDb>
     }
 
     public LakeflowDb CreateDbContext(string[] args) => new(
-        new DbContextOptionsBuilder<LakeflowDb>().UseSqlServer("Server=design;Database=design").Options,
+        new DbContextOptionsBuilder<LakeflowDb>().UseNpgsql("Host=design;Database=design").Options,
         new DesignActor(), TimeProvider.System);
 }

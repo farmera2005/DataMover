@@ -1,8 +1,7 @@
 @page "/sites/{SiteId}"
-@attribute [Authorize]
 @inherits ViewModelComponent<SiteDetailViewModel>
 @inject ConsoleApi Api
-@inject UserSession Session
+@inject ShellViewModel Shell
 @inject BrowserFiles Files
 
 @if (ViewModel is { } vm)
@@ -110,7 +109,7 @@ else
 
     protected override async Task OnParametersSetAsync()
     {
-        var user = await Session.GetAsync() ?? new SignedInUser("", []);
+        var user = Shell.User ?? new SignedInUser("", null, ConsoleRole.Viewer, "local");
         ViewModel = new SiteDetailViewModel(Api, user, SiteId);
         await ViewModel.LoadCommand.ExecuteAsync(null);
     }

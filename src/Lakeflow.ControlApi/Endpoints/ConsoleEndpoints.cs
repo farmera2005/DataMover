@@ -10,14 +10,14 @@ using Microsoft.EntityFrameworkCore;
 namespace Lakeflow.ControlApi.Endpoints;
 
 /// <summary>
-/// What the console calls, signed in with Entra ID. Viewers read; Operators also pause, resume and resnapshot;
+/// What the console calls, signed in (local account or directory). Viewers read; Operators also pause, resume and resnapshot;
 /// Admins do everything else. Every write is audited by <see cref="LakeflowDb"/>.
 /// </summary>
 public static class ConsoleEndpoints
 {
     private static readonly TimeSpan EnrollmentTokenLifetime = TimeSpan.FromHours(24);
 
-    public static void MapConsoleEndpoints(this IEndpointRouteBuilder app, string publicBaseUrl)
+    public static void MapConsoleEndpoints(this IEndpointRouteBuilder app)
     {
         var read = app.MapGroup("").RequireAuthorization(Policies.Viewer);
         var admin = app.MapGroup("").RequireAuthorization(Policies.Admin);
@@ -61,7 +61,8 @@ public static class ConsoleEndpoints
         });
 
         admin.MapPost("/enrollment-tokens", async Task<Results<Ok<EnrollmentTokenResponse>, NotFound, ValidationProblem>> (
-            EnrollmentTokenRequest request, LakeflowDb db, IActor actor, TimeProvider time, CancellationToken ct) =>
+            EnrollmentTokenRequest request, LakeflowDb db, IActor actor, TimeProvider time, SettingsStore settings, ServerOptions options,
+            IKeyMaterial keys, CancellationToken ct) =>
         {
             if (request.SiteId is not null && await db.Sites.FindAsync([request.SiteId], ct) is null) return TypedResults.NotFound();
             if (request.SiteId is null && string.IsNullOrWhiteSpace(request.Name)) return Invalid(["A central collector needs a name (e.g. central-1)."]);
@@ -73,10 +74,14 @@ public static class ConsoleEndpoints
                 CreatedUtc = now, CreatedBy = actor.Name, ExpiresUtc = now + EnrollmentTokenLifetime,
             });
             await db.SaveChangesAsync(ct);
-            var install = request.SiteId is null
-                ? $"LAKEFLOW_CONTROL_API=\"{publicBaseUrl}\" LAKEFLOW_ENROLLMENT_TOKEN=\"{token}\" docker compose up -d"
-                : $"msiexec /i LakeflowAgent.msi /qn CONTROL_API=\"{publicBaseUrl}\" ENROLLMENT_TOKEN=\"{token}\"";
-            return TypedResults.Ok(new EnrollmentTokenResponse(token, now + EnrollmentTokenLifetime, install));
+            var host = (await settings.GetAsync<ServerSetting>(SettingsStore.Server, ct))?.Host ?? "localhost";
+            var controlApi = $"https://{host}:{options.PublishedCollectorPort}/";
+            var ca = LocalKeyMaterial.Fingerprint(keys.AgentCa);
+            if (request.SiteId is not null)
+                return TypedResults.Ok(new EnrollmentTokenResponse(token, now + EnrollmentTokenLifetime,
+                    $"msiexec /i LakeflowAgent.msi /qn CONTROL_API=\"{controlApi}\" ENROLLMENT_TOKEN=\"{token}\" CA_SHA256=\"{ca}\""));
+            return TypedResults.Ok(new EnrollmentTokenResponse(token, now + EnrollmentTokenLifetime,
+                "docker compose --env-file lakeflow-collector.env up -d --build", CollectorEnvFile(request.Name!.Trim(), controlApi, token, ca)));
         });
 
         read.MapGet("/agents", async (LakeflowDb db, CancellationToken ct) =>
@@ -127,8 +132,21 @@ public static class ConsoleEndpoints
                 : TypedResults.NotFound());
     }
 
+    /// <summary>
+    /// The settings a collector on another server needs, as an env file for <c>deploy/collector/compose.yaml</c>: it
+    /// enrolls on first start and trusts only this stack's CA (by its SHA-256).
+    /// </summary>
+    public static string CollectorEnvFile(string name, string controlApi, string token, string caSha256) => $"""
+        # Lakeflow collector "{name}". Single use, valid 24 hours. In deploy/collector on the collector's server run:
+        #   docker compose --env-file lakeflow-collector.env up -d --build
+        LAKEFLOW_CONTROL_API={controlApi}
+        LAKEFLOW_ENROLLMENT_TOKEN={token}
+        LAKEFLOW_CA_SHA256={caSha256}
+
+        """;
+
     private static async Task<Ok<FleetStatus>> StatusAsync(LakeflowDb db, TimeProvider time, IReconciliationSource reconciliation,
-        ILogger<FleetStatus> log, CancellationToken ct)
+        ConfigBuilder builder, ILogger<FleetStatus> log, CancellationToken ct)
     {
         IReadOnlyList<ReconciliationResult> checks = [];
         try
@@ -145,6 +163,8 @@ public static class ConsoleEndpoints
         var agents = await db.Agents.ToDictionaryAsync(a => a.AgentId, ct);
         var beats = await db.SiteHeartbeats.ToDictionaryAsync(h => h.SiteId, ct);
         var tables = await db.Tables.ToListAsync(ct);
+        var divisions = await db.Sources.Select(s => new { s.SiteId, s.Division }).Distinct().ToListAsync(ct);
+        var hubs = await builder.HubsAsync(ct);
         var result = new List<SiteStatus>();
         foreach (var site in sites)
         {
@@ -158,6 +178,13 @@ public static class ConsoleEndpoints
                     ? new FleetHealth.TableThresholds(t.LagWarningMinutes, t.LagCriticalMinutes)
                     : new FleetHealth.TableThresholds(15, 60),
                 checks.Where(c => c.SiteId == site.SiteId));
+            var missing = divisions.Where(d => d.SiteId == site.SiteId && !hubs.ContainsKey(d.Division)).Select(d => d.Division).ToList();
+            if (missing.Count > 0)
+            {
+                // Without its Event Hub the site is not sent to its collector at all; say so first.
+                health = Health.Red;
+                reasons = [$"The Event Hub for {string.Join(", ", missing.Select(m => LakeNames.HubName(m)))} is not set up yet (Configuration, then Destinations).", .. reasons];
+            }
             result.Add(new SiteStatus
             {
                 SiteId = site.SiteId, Name = site.Name, Latitude = site.Latitude, Longitude = site.Longitude,
@@ -270,8 +297,9 @@ public static class ConsoleEndpoints
     }
 
     /// <summary>
-    /// Stores a password the console sealed to the site's current agent certificate. The API cannot open it, refuses
-    /// anything that is not a sealed value, and refuses values sealed to another certificate.
+    /// Stores a password sealed to the site's current collector certificate: sealed in the browser (the API cannot open
+    /// it; values sealed to another certificate are refused), or sealed here at once when the page had no WebCrypto
+    /// (plain HTTP). Either way only the sealed value is stored.
     /// </summary>
     private static async Task<Results<NoContent, NotFound, ValidationProblem>> PutCredentialAsync(
         string siteId, string sourceId, CredentialRequest request, LakeflowDb db, IActor actor, TimeProvider time, CancellationToken ct)
@@ -281,15 +309,26 @@ public static class ConsoleEndpoints
         var site = await db.Sites.SingleAsync(s => s.SiteId == siteId, ct);
         var agent = await db.Agents.FirstOrDefaultAsync(a => a.AgentId == request.AgentId && a.AgentId == site.AgentId && a.RevokedUtc == null, ct);
         if (agent is null) return Invalid(["That is not the collector serving this site; reload the site and try again."]);
-        if (!SealedSecret.IsWellFormed(request.Sealed)) return Invalid(["The credential must be sealed to the agent's certificate; plain passwords are refused."]);
-        if (!string.Equals(SealedSecret.KeyId(request.Sealed), agent.CertificateThumbprint, StringComparison.OrdinalIgnoreCase))
-            return Invalid(["The credential was sealed to a different certificate; reload the agent and seal again."]);
+        string sealedValue;
+        if (!string.IsNullOrEmpty(request.Password) && request.Sealed is null)
+        {
+            using var certificate = System.Security.Cryptography.X509Certificates.X509Certificate2.CreateFromPem(agent.CertificatePem);
+            using var publicKey = System.Security.Cryptography.X509Certificates.RSACertificateExtensions.GetRSAPublicKey(certificate)!;
+            sealedValue = SealedSecret.Seal(request.Password, publicKey, agent.CertificateThumbprint);
+        }
+        else
+        {
+            if (request.Sealed is null || !SealedSecret.IsWellFormed(request.Sealed)) return Invalid(["Send the password sealed to the collector's certificate, or as password."]);
+            if (!string.Equals(SealedSecret.KeyId(request.Sealed), agent.CertificateThumbprint, StringComparison.OrdinalIgnoreCase))
+                return Invalid(["The credential was sealed to a different certificate; reload the collector and seal again."]);
+            sealedValue = request.Sealed;
+        }
 
         db.SealedCredentials.RemoveRange(db.SealedCredentials.Where(c => c.AgentId == agent.AgentId && c.SourceId == sourceId));
         db.SealedCredentials.Add(new SealedCredentialRow
         {
             Id = Guid.NewGuid(), AgentId = agent.AgentId, SiteId = siteId, SourceId = sourceId, CredentialName = source.CredentialName,
-            Sealed = request.Sealed, CreatedUtc = time.GetUtcNow(), CreatedBy = actor.Name,
+            Sealed = sealedValue, CreatedUtc = time.GetUtcNow(), CreatedBy = actor.Name,
         });
         await db.SaveChangesAsync(ct);
         return TypedResults.NoContent();

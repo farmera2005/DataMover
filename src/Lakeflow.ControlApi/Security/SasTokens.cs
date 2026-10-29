@@ -2,7 +2,6 @@ using System.Globalization;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
-using Lakeflow.Contracts;
 
 namespace Lakeflow.ControlApi.Security;
 
@@ -37,12 +36,19 @@ public static class SasTokens
     }
 }
 
-public sealed class EventHubsOptions
+/// <summary>An Event Hubs connection string, as the Azure portal shows it for a shared access policy.</summary>
+public sealed record EventHubConnectionString(string Namespace, string? HubName, string PolicyName, string Key)
 {
-    /// <summary>e.g. <c>lakeflow-prod.servicebus.windows.net</c>.</summary>
-    public string Namespace { get; set; } = "";
-    /// <summary>Hub name per division when it differs from the default (<c>grain</c>, <c>feed</c>, ...).</summary>
-    public Dictionary<string, string> Hubs { get; set; } = [];
-
-    public string HubName(Division division) => Hubs.GetValueOrDefault(LakeNames.HubName(division)) ?? LakeNames.HubName(division);
+    /// <summary>Parses <c>Endpoint=sb://ns.servicebus.windows.net/;SharedAccessKeyName=..;SharedAccessKey=..;EntityPath=hub</c>.</summary>
+    public static EventHubConnectionString? TryParse(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return null;
+        var parts = text.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(p => p.Split('=', 2)).Where(p => p.Length == 2)
+            .GroupBy(p => p[0], StringComparer.OrdinalIgnoreCase).ToDictionary(g => g.Key, g => g.First()[1], StringComparer.OrdinalIgnoreCase);
+        if (!parts.TryGetValue("Endpoint", out var endpoint) || !Uri.TryCreate(endpoint, UriKind.Absolute, out var uri) || uri.Scheme != "sb") return null;
+        if (!parts.TryGetValue("SharedAccessKeyName", out var policy) || !parts.TryGetValue("SharedAccessKey", out var key)) return null;
+        if (string.IsNullOrEmpty(policy) || string.IsNullOrEmpty(key)) return null;
+        return new EventHubConnectionString(uri.Host, parts.GetValueOrDefault("EntityPath") is { Length: > 0 } hub ? hub : null, policy, key);
+    }
 }

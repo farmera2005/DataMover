@@ -6,7 +6,9 @@ const toBase64 = bytes => btoa(String.fromCharCode(...new Uint8Array(bytes)));
 const fromBase64 = text => Uint8Array.from(atob(text), c => c.charCodeAt(0));
 
 export async function sealSecret(secret, publicKeySpki, thumbprint) {
-    const subtle = globalThis.crypto.subtle;
+    // WebCrypto exists only on secure (HTTPS) pages; on plain HTTP the console sends the password for the API to seal.
+    const subtle = globalThis.crypto?.subtle;
+    if (!subtle) return null;
     const rsa = await subtle.importKey("spki", fromBase64(publicKeySpki), { name: "RSA-OAEP", hash: "SHA-256" }, false, ["encrypt"]);
     const aes = await subtle.generateKey({ name: "AES-GCM", length: 256 }, true, ["encrypt"]);
     const iv = globalThis.crypto.getRandomValues(new Uint8Array(12));
@@ -29,4 +31,9 @@ export function saveFile(name, base64, type) {
     link.download = name;
     link.click();
     setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+}
+
+// True on an HTTPS page (where passwords are sealed in the browser).
+export function isSecure() {
+    return globalThis.isSecureContext === true;
 }

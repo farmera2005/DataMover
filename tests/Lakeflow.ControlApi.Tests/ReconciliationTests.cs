@@ -1,6 +1,9 @@
 using System.Security.Cryptography;
 using Lakeflow.Contracts;
+using Lakeflow.ControlApi.Services;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Data.SqlClient;
 using Xunit;
 
@@ -12,25 +15,47 @@ namespace Lakeflow.ControlApi.Tests;
 /// </summary>
 public sealed class ReconciliationTests : IAsyncLifetime
 {
+    private static readonly string? Master = Environment.GetEnvironmentVariable("MSSQL_TEST_CONNECTION");
+
+    /// <summary>The API with its reconciliation source pointed at a database in the test SQL Server.</summary>
     private sealed class FabricApiFactory : ApiFactory
     {
+        public string SqlDatabase { get; } = "lakeflow_fabric_" + RandomNumberGenerator.GetHexString(8).ToLowerInvariant();
+
+        public string SqlConnectionString => new SqlConnectionStringBuilder(Master) { InitialCatalog = SqlDatabase }.ConnectionString;
+
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
             base.ConfigureWebHost(builder);
-            builder.UseSetting("Fabric:SqlEndpointConnectionString", ConnectionStringForTests);
+            builder.ConfigureTestServices(services => services.AddScoped<IReconciliationSource>(_ => new SqlEndpointReconciliation(SqlConnectionString)));
         }
     }
 
     private readonly FabricApiFactory _api = new();
 
-    public Task InitializeAsync() => Task.CompletedTask;
+    public async Task InitializeAsync()
+    {
+        if (Master is not { Length: > 0 }) return;
+        await using var connection = new SqlConnection(Master);
+        await connection.OpenAsync();
+        await new SqlCommand($"CREATE DATABASE [{_api.SqlDatabase}]", connection).ExecuteNonQueryAsync();
+    }
 
-    public async Task DisposeAsync() => await _api.DisposeAsync();
+    public async Task DisposeAsync()
+    {
+        await _api.DisposeAsync();
+        if (Master is not { Length: > 0 }) return;
+        SqlConnection.ClearAllPools();
+        await using var connection = new SqlConnection(Master);
+        await connection.OpenAsync();
+        await new SqlCommand($"ALTER DATABASE [{_api.SqlDatabase}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE [{_api.SqlDatabase}]", connection).ExecuteNonQueryAsync();
+    }
 
     [SkippableFact]
     public async Task Latest_results_show_in_the_console_and_a_mismatch_turns_the_site_amber()
     {
         Skip.If(ApiFactory.SkipReason is not null, ApiFactory.SkipReason);
+        Skip.If(Master is not { Length: > 0 }, "Set MSSQL_TEST_CONNECTION: the Fabric SQL endpoint is stood in for by SQL Server.");
         var admin = _api.Console();
         var site = "rec" + RandomNumberGenerator.GetHexString(6).ToLowerInvariant();
         await admin.CreateSiteAsync(site);
@@ -41,7 +66,7 @@ public sealed class ReconciliationTests : IAsyncLifetime
         }).OkAsync();
         Assert.Equal(Health.Green, (await admin.GetAsync<FleetStatus>("status")).Sites.Single(s => s.SiteId == site).Health);
 
-        await using (var connection = new SqlConnection(_api.ConnectionStringForTests))
+        await using (var connection = new SqlConnection(_api.SqlConnectionString))
         {
             await connection.OpenAsync();
             await using var command = new SqlCommand($"""
