@@ -4,7 +4,14 @@ namespace Lakeflow.Contracts;
 
 public sealed record EnrollRequest(string Token, string CsrPem, string Hostname, string AgentVersion);
 
-public sealed record EnrollResponse(string AgentId, string SiteId, string CertificatePem, string CaCertificatePem);
+/// <param name="SiteId">The site an agent installed at a site serves; null for a central collector.</param>
+public sealed record EnrollResponse(string AgentId, string? SiteId, string CertificatePem, string CaCertificatePem);
+
+/// <summary>
+/// A one-time token for a central collector (no <paramref name="SiteId"/>; it serves the sites assigned to it), or for
+/// an agent installed at one site the centre cannot reach.
+/// </summary>
+public sealed record EnrollmentTokenRequest(string? SiteId, string? Name);
 
 public sealed record RenewRequest(string CsrPem);
 
@@ -19,6 +26,8 @@ public sealed record SiteDto
     public TimeOnly? MaintenanceEnd { get; init; }
     public string? DesiredAgentVersion { get; init; }
     public long BufferCapBytes { get; init; } = BufferSettings.DefaultCapBytes;
+    /// <summary>The collector that reads this site's sources.</summary>
+    public string? CollectorId { get; init; }
     /// <summary>Read only.</summary>
     public long ConfigVersion { get; init; }
 }
@@ -57,18 +66,24 @@ public sealed record CredentialRequest(string AgentId, string Sealed);
 
 public sealed record EnrollmentTokenResponse(string Token, DateTimeOffset ExpiresUtc, string InstallCommand);
 
+/// <summary>A collector: central (serving the sites assigned to it) or installed at one site.</summary>
 public sealed record AgentDto
 {
     public required string AgentId { get; init; }
-    public required string SiteId { get; init; }
+    public required string Name { get; init; }
+    /// <summary>Set for an agent installed at a site; null for a central collector.</summary>
+    public string? SiteId { get; init; }
+    public IReadOnlyList<string> Sites { get; init; } = [];
     public required string Hostname { get; init; }
     public string? AgentVersion { get; init; }
     public required DateTimeOffset EnrolledUtc { get; init; }
-    public DateTimeOffset? LastHeartbeatUtc { get; init; }
+    public DateTimeOffset? LastSeenUtc { get; init; }
     public required DateTimeOffset CertificateExpiresUtc { get; init; }
     public required string CertificateThumbprint { get; init; }
-    /// <summary>PEM certificate; the console seals source passwords to its public key.</summary>
+    /// <summary>PEM certificate.</summary>
     public required string CertificatePem { get; init; }
+    /// <summary>The certificate's RSA public key (SubjectPublicKeyInfo, base64): what the console seals passwords to.</summary>
+    public required string PublicKeySpki { get; init; }
     public bool Revoked { get; init; }
 }
 
@@ -82,6 +97,7 @@ public sealed record CommandRequest
 public sealed record CommandDto
 {
     public required Guid CommandId { get; init; }
+    public required string SiteId { get; init; }
     public required string AgentId { get; init; }
     public required CommandType Type { get; init; }
     public string? SourceId { get; init; }
@@ -121,7 +137,7 @@ public sealed record FleetStatus(DateTimeOffset AsOfUtc, int Green, int Amber, i
 
 public sealed record AuditEntryDto(long Id, DateTimeOffset AtUtc, string Actor, string Action, string Entity, string? Before, string? After);
 
-public sealed record AgentEventDto(Guid EventId, string AgentId, string SiteId, AgentEvent Event, DateTimeOffset ReceivedUtc);
+public sealed record AgentEventDto(Guid EventId, string AgentId, string? SiteId, AgentEvent Event, DateTimeOffset ReceivedUtc);
 
 /// <summary>Validation problems, returned with 400.</summary>
 public sealed record ProblemList(IReadOnlyList<string> Errors);

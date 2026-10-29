@@ -9,7 +9,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Lakeflow.ControlApi.Endpoints;
 
-/// <summary>What agents call. Agents only ever connect out to these; nothing connects into a site.</summary>
+/// <summary>
+/// What collectors call. A collector (central, or installed at one site) only ever connects out to these, and may only
+/// report on the sites assigned to it.
+/// </summary>
 public static class AgentEndpoints
 {
     public const long MaxLogBundleBytes = 25L * 1024 * 1024;
@@ -29,8 +32,9 @@ public static class AgentEndpoints
     public static byte[] HashToken(string token) => SHA256.HashData(Encoding.UTF8.GetBytes(token));
 
     /// <summary>
-    /// Exchanges a one-time enrollment token (24 h, single use) and a CSR for a client certificate. Enrolling a new
-    /// agent for a site retires the site's previous agent, so two machines never capture the same site.
+    /// Exchanges a one-time enrollment token (24 h, single use) and a CSR for a client certificate. A site token makes an
+    /// agent for that site and assigns the site to it (retiring the site's previous site agent); a collector token makes
+    /// a central collector, to which sites are then assigned in the console.
     /// </summary>
     private static async Task<Results<Ok<EnrollResponse>, ProblemHttpResult>> EnrollAsync(
         EnrollRequest request, LakeflowDb db, AgentCertificates certificates, TimeProvider time, ILogger<EnrollRequestLog> log, CancellationToken ct)
@@ -46,7 +50,8 @@ public static class AgentEndpoints
         if (string.IsNullOrWhiteSpace(request.Hostname) || request.Hostname.Length > 256)
             return TypedResults.Problem("hostname is required.", statusCode: 400);
 
-        var agentId = $"{token.SiteId}-{Convert.ToHexString(RandomNumberGenerator.GetBytes(3)).ToLowerInvariant()}";
+        var prefix = token.SiteId ?? "collector";
+        var agentId = $"{prefix}-{Convert.ToHexString(RandomNumberGenerator.GetBytes(3)).ToLowerInvariant()}";
         System.Security.Cryptography.X509Certificates.X509Certificate2 certificate;
         try
         {
@@ -57,14 +62,19 @@ public static class AgentEndpoints
             return TypedResults.Problem(ex.Message, statusCode: 400);
         }
 
-        foreach (var previous in await db.Agents.Where(a => a.SiteId == token.SiteId && a.RevokedUtc == null).ToListAsync(ct))
+        if (token.SiteId is { } siteId)
         {
-            previous.RevokedUtc = now;
-            previous.RevokedBy = $"replaced by {agentId}";
+            foreach (var previous in await db.Agents.Where(a => a.SiteId == siteId && a.RevokedUtc == null).ToListAsync(ct))
+            {
+                previous.RevokedUtc = now;
+                previous.RevokedBy = $"replaced by {agentId}";
+            }
+            if (await db.Sites.FindAsync([siteId], ct) is { } site) site.AgentId = agentId;
         }
         db.Agents.Add(new Agent
         {
             AgentId = agentId,
+            Name = token.Name ?? token.SiteId ?? agentId,
             SiteId = token.SiteId,
             Hostname = request.Hostname,
             AgentVersion = request.AgentVersion,
@@ -76,7 +86,7 @@ public static class AgentEndpoints
         token.UsedUtc = now;
         token.UsedByAgentId = agentId;
         await db.SaveChangesAsync(ct);
-        log.LogInformation("Agent {AgentId} enrolled for site {SiteId} from {Hostname}", agentId, token.SiteId, request.Hostname);
+        log.LogInformation("Collector {AgentId} enrolled ({Scope}) from {Hostname}", agentId, token.SiteId ?? "central", request.Hostname);
         return TypedResults.Ok(new EnrollResponse(agentId, token.SiteId, AgentCertificates.Pem(certificate), AgentCertificates.Pem(certificates.Ca)));
     }
 
@@ -104,28 +114,39 @@ public static class AgentEndpoints
         return TypedResults.Ok(new EnrollResponse(agentId, agent.SiteId, AgentCertificates.Pem(certificate), AgentCertificates.Pem(certificates.Ca)));
     }
 
-    private static async Task<Ok<AgentConfig>> ConfigAsync(string agentId, LakeflowDb db, ConfigBuilder builder, CancellationToken ct)
+    private static async Task<Ok<CollectorConfig>> ConfigAsync(string agentId, LakeflowDb db, ConfigBuilder builder, TimeProvider time, CancellationToken ct)
     {
         var agent = await db.Agents.SingleAsync(a => a.AgentId == agentId, ct);
-        return TypedResults.Ok(await builder.ForAgentAsync(agent, ct));
+        agent.LastSeenUtc = time.GetUtcNow();
+        return TypedResults.Ok(await builder.ForCollectorAsync(agent, ct));
     }
 
     private static async Task<Results<NoContent, ProblemHttpResult>> HeartbeatAsync(
         string agentId, Heartbeat heartbeat, LakeflowDb db, TimeProvider time, CancellationToken ct)
     {
         if (heartbeat.AgentId != agentId) return TypedResults.Problem("agent_id does not match the certificate.", statusCode: 400);
+        if (!await db.Sites.AnyAsync(s => s.SiteId == heartbeat.SiteId && s.AgentId == agentId, ct))
+            return TypedResults.Problem($"Site {heartbeat.SiteId} is not assigned to this collector.", statusCode: 403);
+        var now = time.GetUtcNow();
         var agent = await db.Agents.SingleAsync(a => a.AgentId == agentId, ct);
-        agent.LastHeartbeatUtc = time.GetUtcNow();
-        agent.LastHeartbeatJson = EnvelopeJson.Serialize(heartbeat with { SiteId = agent.SiteId });
+        agent.LastSeenUtc = now;
         agent.AgentVersion = heartbeat.AgentVersion;
+        var row = await db.SiteHeartbeats.FindAsync([heartbeat.SiteId], ct);
+        if (row is null) db.SiteHeartbeats.Add(row = new SiteHeartbeat { SiteId = heartbeat.SiteId, AgentId = agentId, Json = "" });
+        row.AgentId = agentId;
+        row.ReceivedUtc = now;
+        row.Json = EnvelopeJson.Serialize(heartbeat);
         await db.SaveChangesAsync(ct);
         return TypedResults.NoContent();
     }
 
     /// <summary>Stores events (idempotent by event id), completes commands and retires delivered credentials.</summary>
-    private static async Task<NoContent> EventsAsync(string agentId, List<AgentEvent> events, LakeflowDb db, TimeProvider time, CancellationToken ct)
+    private static async Task<Results<NoContent, ProblemHttpResult>> EventsAsync(
+        string agentId, List<AgentEvent> events, LakeflowDb db, TimeProvider time, CancellationToken ct)
     {
-        var agent = await db.Agents.SingleAsync(a => a.AgentId == agentId, ct);
+        var served = await db.Sites.Where(s => s.AgentId == agentId).Select(s => s.SiteId).ToListAsync(ct);
+        var foreign = events.FirstOrDefault(e => e.SiteId is not null && !served.Contains(e.SiteId));
+        if (foreign is not null) return TypedResults.Problem($"Site {foreign.SiteId} is not assigned to this collector.", statusCode: 403);
         var now = time.GetUtcNow();
         var ids = events.Select(e => e.EventId).ToList();
         var known = await db.AgentEvents.Where(e => ids.Contains(e.EventId)).Select(e => e.EventId).ToListAsync(ct);
@@ -133,7 +154,7 @@ public static class AgentEndpoints
         {
             db.AgentEvents.Add(new AgentEventRow
             {
-                EventId = e.EventId, AgentId = agentId, SiteId = agent.SiteId, Kind = e.Kind, Severity = e.Severity,
+                EventId = e.EventId, AgentId = agentId, SiteId = e.SiteId, Kind = e.Kind, Severity = e.Severity,
                 OccurredUtc = e.OccurredUtc, ReceivedUtc = now, Json = EnvelopeJson.Serialize(e),
             });
             if (e is { Kind: AgentEventKind.CommandResult, CommandId: { } commandId }
@@ -157,7 +178,7 @@ public static class AgentEndpoints
         return TypedResults.NoContent();
     }
 
-    /// <summary>A zip of the agent's recent logs, sent in answer to a "collect logs" command.</summary>
+    /// <summary>A zip of the collector's recent logs, sent in answer to a "collect logs" command.</summary>
     private static async Task<Results<Created, ProblemHttpResult>> LogsAsync(
         string agentId, Guid? commandId, HttpRequest request, LakeflowDb db, TimeProvider time, CancellationToken ct)
     {

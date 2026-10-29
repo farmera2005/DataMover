@@ -140,6 +140,10 @@ public static class ApiCalls
 
     public static async Task<T> GetAsync<T>(this HttpClient client, string url) => await (await client.GetAsync(url)).ReadAsync<T>();
 
+    /// <summary>The config of the one site a site agent serves.</summary>
+    public static async Task<AgentConfig> SiteConfigAsync(this HttpClient agent, string agentId) =>
+        Assert.Single((await agent.GetAsync<CollectorConfig>($"agents/{agentId}/config")).Sites);
+
     public static async Task OkAsync(this Task<HttpResponseMessage> call)
     {
         var response = await call;
@@ -162,7 +166,7 @@ public static class ApiCalls
     /// <summary>Enrolls an agent for the site the way the agent does; returns its id and certificate with key.</summary>
     public static async Task<(string AgentId, X509Certificate2 Certificate)> EnrollAsync(this ApiFactory api, HttpClient admin, string siteId)
     {
-        var token = await (await admin.PostAsync($"sites/{siteId}/enrollment-tokens", new { })).ReadAsync<EnrollmentTokenResponse>();
+        var token = await (await admin.PostAsync("enrollment-tokens", new EnrollmentTokenRequest(siteId, null))).ReadAsync<EnrollmentTokenResponse>();
         var key = RSA.Create(3072); // kept alive: the returned certificate uses it
         var csr = new CertificateRequest("CN=scale-pc", key, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1).CreateSigningRequestPem();
         var enrolled = await (await api.Anonymous().PostAsync("agents/enroll", new EnrollRequest(token.Token, csr, "SCALE-PC", "1.0.0")))

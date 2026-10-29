@@ -18,13 +18,14 @@ public interface IActor
 public sealed class LakeflowDb(DbContextOptions<LakeflowDb> options, IActor actor, TimeProvider time) : DbContext(options)
 {
     private static readonly HashSet<string> NeverAudited = [nameof(EnrollmentToken.TokenHash), nameof(SealedCredentialRow.Sealed), nameof(Command.ResultDetails),
-        nameof(Agent.LastHeartbeatJson), nameof(Agent.LastHeartbeatUtc), nameof(Agent.SasExpiresUtc), nameof(Agent.CertificatePem)];
+        nameof(Agent.LastSeenUtc), nameof(Agent.SasExpiresUtc), nameof(Agent.CertificatePem)];
 
     public DbSet<Site> Sites => Set<Site>();
     public DbSet<Source> Sources => Set<Source>();
     public DbSet<CapturedTable> Tables => Set<CapturedTable>();
     public DbSet<EnrollmentToken> EnrollmentTokens => Set<EnrollmentToken>();
     public DbSet<Agent> Agents => Set<Agent>();
+    public DbSet<SiteHeartbeat> SiteHeartbeats => Set<SiteHeartbeat>();
     public DbSet<SealedCredentialRow> SealedCredentials => Set<SealedCredentialRow>();
     public DbSet<Command> Commands => Set<Command>();
     public DbSet<AgentEventRow> AgentEvents => Set<AgentEventRow>();
@@ -40,6 +41,8 @@ public sealed class LakeflowDb(DbContextOptions<LakeflowDb> options, IActor acto
             e.Property(x => x.Name).HasMaxLength(200);
             e.Property(x => x.TimeZone).HasMaxLength(64);
             e.Property(x => x.DesiredAgentVersion).HasMaxLength(32);
+            e.Property(x => x.AgentId).HasMaxLength(64);
+            e.HasIndex(x => x.AgentId);
             e.Ignore(x => x.AuditName);
         });
         model.Entity<Source>(e =>
@@ -78,6 +81,7 @@ public sealed class LakeflowDb(DbContextOptions<LakeflowDb> options, IActor acto
             e.Property(x => x.TokenHash).HasMaxLength(32);
             e.HasIndex(x => x.TokenHash).IsUnique();
             e.Property(x => x.CreatedBy).HasMaxLength(256);
+            e.Property(x => x.Name).HasMaxLength(100);
             e.Property(x => x.UsedByAgentId).HasMaxLength(64);
             e.HasOne<Site>().WithMany().HasForeignKey(x => x.SiteId).OnDelete(DeleteBehavior.Cascade);
             e.Ignore(x => x.AuditName);
@@ -86,6 +90,7 @@ public sealed class LakeflowDb(DbContextOptions<LakeflowDb> options, IActor acto
         {
             e.HasKey(x => x.AgentId);
             e.Property(x => x.AgentId).HasMaxLength(64);
+            e.Property(x => x.Name).HasMaxLength(100);
             e.Property(x => x.SiteId).HasMaxLength(64);
             e.Property(x => x.Hostname).HasMaxLength(256);
             e.Property(x => x.AgentVersion).HasMaxLength(32);
@@ -96,6 +101,13 @@ public sealed class LakeflowDb(DbContextOptions<LakeflowDb> options, IActor acto
             e.HasIndex(x => x.SiteId);
             e.HasOne<Site>().WithMany().HasForeignKey(x => x.SiteId).OnDelete(DeleteBehavior.Restrict);
             e.Ignore(x => x.AuditName);
+        });
+        model.Entity<SiteHeartbeat>(e =>
+        {
+            e.HasKey(x => x.SiteId);
+            e.Property(x => x.SiteId).HasMaxLength(64);
+            e.Property(x => x.AgentId).HasMaxLength(64);
+            e.HasOne<Site>().WithMany().HasForeignKey(x => x.SiteId).OnDelete(DeleteBehavior.Cascade);
         });
         model.Entity<SealedCredentialRow>(e =>
         {
@@ -113,6 +125,8 @@ public sealed class LakeflowDb(DbContextOptions<LakeflowDb> options, IActor acto
         {
             e.HasKey(x => x.CommandId);
             e.Property(x => x.AgentId).HasMaxLength(64);
+            e.Property(x => x.SiteId).HasMaxLength(64);
+            e.HasIndex(x => new { x.SiteId, x.IssuedUtc });
             e.Property(x => x.Type).HasConversion<string>().HasMaxLength(32);
             e.Property(x => x.SourceId).HasMaxLength(64);
             e.Property(x => x.TableName).HasMaxLength(260);

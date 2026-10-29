@@ -46,6 +46,10 @@ public sealed class Harness : IAsyncDisposable
         return harness;
     }
 
+    /// <summary>A collector serving this harness's site (any site id maps to it), run step by step.</summary>
+    public CollectorHost Collector() =>
+        new(Store, _ => new SiteParts(Store, Pipeline), NullLogger<CollectorHost>.Instance, ownsSites: false, runLoops: false);
+
     /// <summary>Opens the store and pipeline (again), e.g. after changing <see cref="Loggers"/>.</summary>
     public Task ReopenAsync()
     {

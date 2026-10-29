@@ -1,0 +1,100 @@
+@page "/sites/{SiteId}/add-source"
+@attribute [Authorize]
+@inherits ViewModelComponent<SourceWizardViewModel>
+@inject ConsoleApi Api
+@inject ISecretSealer Sealer
+
+<h1>Add a source</h1>
+@if (ViewModel is { } vm)
+{
+    @if (vm.Status is not null) { <p class="info">@vm.Status</p> }
+    @if (vm.IsBusy) { <p class="muted">Working…</p> }
+    @foreach (var error in vm.Errors) { <p class="error">@error</p> }
+
+    @switch (vm.Step)
+    {
+        case WizardStep.Source:
+            <section class="form">
+                <h2>1. Which system</h2>
+                <label>Engine
+                    <select @onchange="e => vm.Engine = Enum.Parse<SourceEngine>(e.Value!.ToString()!)">
+                        @foreach (var engine in vm.Engines)
+                        {
+                            <option value="@engine.Engine" selected="@(engine.Engine == vm.Engine)">@engine.Name@(engine.Available ? "" : $" ({engine.Note})")</option>
+                        }
+                    </select>
+                </label>
+                <label>Source id (unique at this site, e.g. compuweigh)<input @bind="vm.SourceId" /></label>
+                <label>Source system (shared by every site; names the silver tables)<input @bind="vm.SourceSystem" /></label>
+                <label>Division (decides the Event Hub)
+                    <select @onchange="e => vm.Division = Enum.Parse<Division>(e.Value!.ToString()!)">
+                        @foreach (var division in vm.Divisions) { <option value="@division" selected="@(division == vm.Division)">@division</option> }
+                    </select>
+                </label>
+                <button class="primary" @onclick="vm.Next">Next</button>
+            </section>
+            break;
+
+        case WizardStep.Connection:
+            <section class="form">
+                <h2>2. Connection (as the collector reaches it)</h2>
+                <label>Host<input @bind="vm.Host" /></label>
+                <label>Instance name (optional)<input @bind="vm.Instance" /></label>
+                <label>Database<input @bind="vm.Database" /></label>
+                <label>Read-only SQL login<input @bind="vm.UserName" autocomplete="off" /></label>
+                <label>Password (sealed in this browser to the collector; the console and the API never keep it)
+                    <input type="password" @bind="vm.Password" autocomplete="new-password" />
+                </label>
+                <label class="check"><input type="checkbox" @bind="vm.TrustServerCertificate" /> Trust the server's certificate (vendor servers with a self-signed one)</label>
+                <label>Most rows read per second<input type="number" @bind="vm.MaxRowsPerSecond" min="10" /></label>
+                <button @onclick="vm.Back">Back</button>
+                <button class="primary" disabled="@vm.IsBusy" @onclick="() => vm.TestConnectionCommand.ExecuteAsync(null)">Test connection</button>
+            </section>
+            break;
+
+        case WizardStep.Tables:
+            <section>
+                <h2>3. Tables to capture</h2>
+                <p class="muted">Only methods that need nothing changed on the source are offered. Change Tracking appears where the database owner has already enabled it.</p>
+                @if (vm.TablesTruncated) { <p class="muted">Showing the largest tables only.</p> }
+                <table class="grid">
+                    <thead><tr><th></th><th>Table</th><th>Rows</th><th>Method</th><th>Watermark</th><th>Key (if none)</th><th>Note</th></tr></thead>
+                    <tbody>
+                        @foreach (var t in vm.Tables)
+                        {
+                            <tr>
+                                <td><input type="checkbox" @bind="t.Selected" /></td>
+                                <td>@t.Table</td>
+                                <td>@t.Rows</td>
+                                <td>
+                                    <select @onchange="e => t.Method = Enum.TryParse<CaptureMethod>(e.Value?.ToString(), out var m) ? m : null">
+                                        <option value="" selected="@(t.Method is null)">choose…</option>
+                                        @foreach (var method in t.Methods)
+                                        {
+                                            <option value="@method" selected="@(method == t.Method)">@Format.Method(method)</option>
+                                        }
+                                    </select>
+                                </td>
+                                <td><input @bind="t.Watermark" placeholder="column" /></td>
+                                <td>@if (t.Info.KeyColumns.Count == 0) { <input @bind="t.KeyColumns" placeholder="col1, col2" /> } else { <span class="muted">@string.Join(", ", t.Info.KeyColumns)</span> }</td>
+                                <td class="muted">@t.Note</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+                <button @onclick="vm.Back">Back</button>
+                <button class="primary" disabled="@vm.IsBusy" @onclick="() => vm.FinishCommand.ExecuteAsync(null)">Save and start snapshot</button>
+            </section>
+            break;
+
+        case WizardStep.Done:
+            <p><a class="button" href="sites/@SiteId">Back to the site</a></p>
+            break;
+    }
+}
+
+@code {
+    [Parameter] public string SiteId { get; set; } = "";
+
+    protected override void OnParametersSet() => ViewModel = new SourceWizardViewModel(Api, Sealer, SiteId);
+}

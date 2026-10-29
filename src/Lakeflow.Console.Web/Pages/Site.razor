@@ -1,0 +1,140 @@
+@page "/sites/{SiteId}"
+@attribute [Authorize]
+@inherits ViewModelComponent<SiteDetailViewModel>
+@inject ConsoleApi Api
+@inject UserSession Session
+@inject BrowserFiles Files
+
+@if (ViewModel is { } vm)
+{
+    <div class="title-row">
+        <h1>@(vm.Site?.Name ?? SiteId)</h1>
+        <button @onclick="() => vm.LoadCommand.ExecuteAsync(null)">Refresh</button>
+        @if (vm.CanAdminister)
+        {
+            <a class="button" href="sites/@SiteId/add-source">Add source</a>
+            <button disabled="@(!vm.CollectLogsCommand.CanExecute(null))" @onclick="() => vm.CollectLogsCommand.ExecuteAsync(null)">Collect logs</button>
+            <button disabled="@(!vm.RestartCommand.CanExecute(null))" @onclick="Restart">Restart collector</button>
+        }
+    </div>
+    @if (vm.Error is not null) { <p class="error">@vm.Error</p> }
+    @if (vm.Message is not null) { <p class="info">@vm.Message</p> }
+
+    <dl class="facts">
+        <dt>Collector</dt><dd>@(vm.Agent is { } a ? $"{a.Name} ({a.AgentId})" : "none assigned")</dd>
+        <dt>Version</dt><dd>@(vm.Agent?.AgentVersion ?? "—")</dd>
+        <dt>Health</dt><dd>@(vm.Status is { Reasons.Count: > 0 } s ? string.Join(" ", s.Reasons) : "All tables streaming.")</dd>
+    </dl>
+
+    <h2>Tables</h2>
+    <table class="grid">
+        <thead><tr><th>Table</th><th>State</th><th>Method</th><th>Lag</th><th>Rows/min</th><th>Last capture</th><th>Last night's check</th><th></th></tr></thead>
+        <tbody>
+            @foreach (var row in vm.Tables)
+            {
+                <tr>
+                    <td><strong>@row.Table</strong><div class="muted">@row.SourceId</div>@if (row.Error is not null) { <div class="error">@row.Error</div> }</td>
+                    <td>@row.State</td>
+                    <td>@row.Method</td>
+                    <td>@row.Lag</td>
+                    <td>@row.RowsPerMinute</td>
+                    <td>@row.LastCapture</td>
+                    <td>@row.ReconciliationText</td>
+                    <td class="actions">
+                        @if (vm.CanOperate)
+                        {
+                            @if (row.IsPaused) { <button @onclick="() => Confirm(row, CommandType.ResumeTable)">Resume</button> }
+                            else { <button @onclick="() => Confirm(row, CommandType.PauseTable)">Pause</button> }
+                            <button @onclick="() => Confirm(row, CommandType.ResnapshotTable)">Resnapshot</button>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    @if (_pending is { } pending)
+    {
+        <div class="dialog">
+            <p><strong>@pending.Type for @pending.Row.Table?</strong></p>
+            <p>@(pending.Type == CommandType.ResnapshotTable
+                ? "The whole table is copied again from the site, in small throttled batches."
+                : $"This changes what lands in the lake for {pending.Row.Table}.")</p>
+            <button class="primary" @onclick="RunPending">@pending.Type</button>
+            <button @onclick="() => _pending = null">Cancel</button>
+        </div>
+    }
+
+    <h2>Recent commands</h2>
+    <table class="grid">
+        <thead><tr><th>When</th><th>Command</th><th>Table</th><th>By</th><th>Result</th></tr></thead>
+        <tbody>
+            @foreach (var c in vm.Commands)
+            {
+                <tr>
+                    <td>@c.IssuedUtc.ToLocalTime().ToString("g")</td>
+                    <td>@c.Type</td>
+                    <td>@c.Table</td>
+                    <td>@c.IssuedBy</td>
+                    <td>@(c.Result ?? "waiting for the collector")
+                        @if (c.Type == CommandType.CollectLogs && c.Result?.StartsWith("Logs uploaded") == true)
+                        {
+                            <button class="link" @onclick="() => Download(c)">Download</button>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <h2>Recent events</h2>
+    <table class="grid">
+        <thead><tr><th>When</th><th>Severity</th><th>Table</th><th>Message</th></tr></thead>
+        <tbody>
+            @foreach (var e in vm.Events)
+            {
+                <tr><td>@e.Event.OccurredUtc.ToLocalTime().ToString("g")</td><td>@e.Event.Severity</td><td>@e.Event.Table</td><td>@e.Event.Message</td></tr>
+            }
+        </tbody>
+    </table>
+}
+else
+{
+    <p class="loading">Loading…</p>
+}
+
+@code {
+    [Parameter] public string SiteId { get; set; } = "";
+
+    private (TableRow Row, CommandType Type)? _pending;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var user = await Session.GetAsync() ?? new SignedInUser("", []);
+        ViewModel = new SiteDetailViewModel(Api, user, SiteId);
+        await ViewModel.LoadCommand.ExecuteAsync(null);
+    }
+
+    private void Confirm(TableRow row, CommandType type) => _pending = (row, type);
+
+    private async Task RunPending()
+    {
+        if (_pending is not { } pending) return;
+        _pending = null;
+        var command = pending.Type switch
+        {
+            CommandType.PauseTable => ViewModel!.PauseTableCommand,
+            CommandType.ResumeTable => ViewModel!.ResumeTableCommand,
+            _ => ViewModel!.ResnapshotTableCommand,
+        };
+        await command.ExecuteAsync(pending.Row);
+    }
+
+    private async Task Restart() => await ViewModel!.RestartCommand.ExecuteAsync(null);
+
+    private async Task Download(CommandDto command)
+    {
+        if (await ViewModel!.DownloadLogsAsync(command) is { } zip)
+            await Files.SaveAsync($"{SiteId}-logs-{command.IssuedUtc:yyyyMMdd-HHmm}.zip", zip, "application/zip");
+    }
+}

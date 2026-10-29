@@ -78,6 +78,29 @@ if (app.Configuration.GetValue("Database:MigrateOnStartup", true))
 
 app.UseForwardedHeaders();
 app.UseSerilogRequestLogging();
+// The web console: a static Blazor WebAssembly app, signed in with Entra ID in the browser. Its pages hold no data;
+// everything comes from this API with the user's token.
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path.StartsWithSegments("/console"))
+    {
+        context.Response.Headers.ContentSecurityPolicy =
+            "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data:; " +
+            "connect-src 'self' https://login.microsoftonline.com; frame-src https://login.microsoftonline.com; " +
+            "frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://login.microsoftonline.com";
+        context.Response.Headers.XContentTypeOptions = "nosniff";
+        context.Response.Headers["Referrer-Policy"] = "no-referrer";
+    }
+    await next();
+});
+// Library assets (_content/...) are served at the root; the console asks for them under its own base path.
+app.Use((context, next) =>
+{
+    if (context.Request.Path.StartsWithSegments("/console/_content", out var rest)) context.Request.Path = "/_content" + rest;
+    return next();
+});
+app.UseBlazorFrameworkFiles("/console");
+app.UseStaticFiles();
 app.UseExceptionHandler();
 app.UseCertificateForwarding();
 app.UseAuthentication();
@@ -85,6 +108,18 @@ app.UseRateLimiter();
 app.UseAuthorization();
 
 app.MapGet("/health", () => Results.Ok(new { status = "ok" })).AllowAnonymous();
+// The console's sign-in settings, from this API's configuration (nothing is built into the console).
+app.MapGet("/console/appsettings.json", (IConfiguration config) => Results.Content(System.Text.Json.JsonSerializer.Serialize(new
+{
+    AzureAd = new
+    {
+        Authority = $"https://login.microsoftonline.com/{config["Entra:TenantId"]}",
+        ClientId = config["Console:ClientId"],
+        ValidateAuthority = true,
+    },
+    ApiScope = config["Console:ApiScope"],
+}), "application/json")).AllowAnonymous();
+app.MapFallbackToFile("console/{*path:nonfile}", "console/index.html").AllowAnonymous();
 app.MapAgentEndpoints();
 app.MapConsoleEndpoints(app.Configuration["PublicBaseUrl"] ?? "https://<control-api>");
 

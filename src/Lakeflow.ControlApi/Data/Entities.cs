@@ -25,6 +25,8 @@ public sealed class Site : ISiteConfig
     public TimeOnly? MaintenanceEnd { get; set; }
     public string? DesiredAgentVersion { get; set; }
     public long BufferCapBytes { get; set; } = BufferSettings.DefaultCapBytes;
+    /// <summary>The collector that reads this site.</summary>
+    public string? AgentId { get; set; }
     public long ConfigVersion { get; set; } = 1;
     public string AuditName => $"site {SiteId}";
 }
@@ -73,7 +75,9 @@ public sealed class CapturedTable : ISiteConfig
 public sealed class EnrollmentToken : IAudited
 {
     public Guid Id { get; set; }
-    public required string SiteId { get; set; }
+    /// <summary>Null for a central collector.</summary>
+    public string? SiteId { get; set; }
+    public string? Name { get; set; }
     /// <summary>SHA-256 of the token; the token itself is shown once and never stored.</summary>
     public required byte[] TokenHash { get; set; }
     public DateTimeOffset CreatedUtc { get; set; }
@@ -81,13 +85,15 @@ public sealed class EnrollmentToken : IAudited
     public DateTimeOffset ExpiresUtc { get; set; }
     public DateTimeOffset? UsedUtc { get; set; }
     public string? UsedByAgentId { get; set; }
-    public string AuditName => $"enrollment token for {SiteId}";
+    public string AuditName => SiteId is null ? $"enrollment token for collector {Name}" : $"enrollment token for {SiteId}";
 }
 
+/// <summary>A collector: central (serving the sites assigned to it) or installed at one site (<see cref="SiteId"/>).</summary>
 public sealed class Agent : IAudited
 {
     public required string AgentId { get; set; }
-    public required string SiteId { get; set; }
+    public required string Name { get; set; }
+    public string? SiteId { get; set; }
     public required string Hostname { get; set; }
     public string? AgentVersion { get; set; }
     public DateTimeOffset EnrolledUtc { get; set; }
@@ -98,11 +104,19 @@ public sealed class Agent : IAudited
     public string? PreviousThumbprint { get; set; }
     public DateTimeOffset? RevokedUtc { get; set; }
     public string? RevokedBy { get; set; }
-    public DateTimeOffset? LastHeartbeatUtc { get; set; }
-    public string? LastHeartbeatJson { get; set; }
+    public DateTimeOffset? LastSeenUtc { get; set; }
     /// <summary>Expiry of the SAS tokens last handed out; tokens are reissued when less than half their life remains.</summary>
     public DateTimeOffset? SasExpiresUtc { get; set; }
     public string AuditName => $"agent {AgentId}";
+}
+
+/// <summary>The latest heartbeat for a site, from the collector serving it.</summary>
+public sealed class SiteHeartbeat
+{
+    public required string SiteId { get; set; }
+    public required string AgentId { get; set; }
+    public DateTimeOffset ReceivedUtc { get; set; }
+    public required string Json { get; set; }
 }
 
 public sealed class SealedCredentialRow : IAudited
@@ -122,6 +136,7 @@ public sealed class SealedCredentialRow : IAudited
 public sealed class Command : IAudited
 {
     public Guid CommandId { get; set; }
+    public required string SiteId { get; set; }
     public required string AgentId { get; set; }
     public CommandType Type { get; set; }
     public string? SourceId { get; set; }
@@ -134,14 +149,14 @@ public sealed class Command : IAudited
     public bool? Succeeded { get; set; }
     /// <summary>Structured result (connection test, table list), JSON.</summary>
     public string? ResultDetails { get; set; }
-    public string AuditName => $"command {Type} for {AgentId}";
+    public string AuditName => $"command {Type} for {SiteId}";
 }
 
 public sealed class AgentEventRow
 {
     public Guid EventId { get; set; }
     public required string AgentId { get; set; }
-    public required string SiteId { get; set; }
+    public string? SiteId { get; set; }
     public AgentEventKind Kind { get; set; }
     public EventSeverity Severity { get; set; }
     public DateTimeOffset OccurredUtc { get; set; }

@@ -52,17 +52,21 @@ public sealed class ConsoleApi(HttpClient http)
     public Task<TableDto> PutTableAsync(string siteId, string sourceId, TableDto table, CancellationToken ct = default) =>
         PutAsync<TableDto, TableDto>($"sites/{E(siteId)}/sources/{E(sourceId)}/tables/{E(table.Table)}", table, ct);
 
-    public async Task<EnrollmentTokenResponse> CreateEnrollmentTokenAsync(string siteId, CancellationToken ct = default) =>
-        await ReadAsync<EnrollmentTokenResponse>(await http.PostAsync($"sites/{E(siteId)}/enrollment-tokens", JsonContent.Create(new { }), ct), ct);
+    /// <summary>A token for a central collector (no site) or for an agent installed at one site.</summary>
+    public async Task<EnrollmentTokenResponse> CreateEnrollmentTokenAsync(EnrollmentTokenRequest request, CancellationToken ct = default) =>
+        await ReadAsync<EnrollmentTokenResponse>(await http.PostAsJsonAsync("enrollment-tokens", request, Json, ct), ct);
+
+    public Task<AgentDto> GetAgentAsync(string agentId, CancellationToken ct = default) => GetAsync<AgentDto>($"agents/{E(agentId)}", ct);
 
     public Task<List<AgentDto>> GetAgentsAsync(CancellationToken ct = default) => GetAsync<List<AgentDto>>("agents", ct);
     public Task RevokeAgentAsync(string agentId, CancellationToken ct = default) => SendAsync(HttpMethod.Post, $"agents/{E(agentId)}/revoke", JsonContent.Create(new { }), ct);
 
-    public async Task<CommandDto> PostCommandAsync(string agentId, CommandRequest command, CancellationToken ct = default) =>
-        await ReadAsync<CommandDto>(await http.PostAsJsonAsync($"agents/{E(agentId)}/commands", command, Json, ct), ct);
-    public Task<CommandDto> GetCommandAsync(string agentId, Guid commandId, CancellationToken ct = default) =>
-        GetAsync<CommandDto>($"agents/{E(agentId)}/commands/{commandId}", ct);
-    public Task<List<CommandDto>> GetCommandsAsync(string agentId, CancellationToken ct = default) => GetAsync<List<CommandDto>>($"agents/{E(agentId)}/commands", ct);
+    /// <summary>Commands go to the site; the API hands them to the collector serving it.</summary>
+    public async Task<CommandDto> PostCommandAsync(string siteId, CommandRequest command, CancellationToken ct = default) =>
+        await ReadAsync<CommandDto>(await http.PostAsJsonAsync($"sites/{E(siteId)}/commands", command, Json, ct), ct);
+    public Task<CommandDto> GetCommandAsync(string siteId, Guid commandId, CancellationToken ct = default) =>
+        GetAsync<CommandDto>($"sites/{E(siteId)}/commands/{commandId}", ct);
+    public Task<List<CommandDto>> GetCommandsAsync(string siteId, CancellationToken ct = default) => GetAsync<List<CommandDto>>($"sites/{E(siteId)}/commands", ct);
 
     public Task<List<AgentEventDto>> GetEventsAsync(string? siteId, int take = 50, CancellationToken ct = default) =>
         GetAsync<List<AgentEventDto>>($"events?take={take}" + (siteId is null ? "" : $"&siteId={E(siteId)}"), ct);
@@ -78,16 +82,16 @@ public sealed class ConsoleApi(HttpClient http)
     }
 
     /// <summary>
-    /// Queues a command and waits for the agent's result (agents pull commands, polling every 10 s while one waits).
+    /// Queues a command and waits for the collector's result (collectors pull commands, every 10 s while one waits).
     /// Returns the command as it stands when it completed or when <paramref name="timeout"/> ran out.
     /// </summary>
-    public async Task<CommandDto> RunCommandAsync(string agentId, CommandRequest command, TimeSpan timeout, TimeSpan pollEvery, CancellationToken ct = default)
+    public async Task<CommandDto> RunCommandAsync(string siteId, CommandRequest command, TimeSpan timeout, TimeSpan pollEvery, CancellationToken ct = default)
     {
-        var issued = await PostCommandAsync(agentId, command, ct);
+        var issued = await PostCommandAsync(siteId, command, ct);
         var deadline = DateTime.UtcNow + timeout;
         while (true)
         {
-            var current = await GetCommandAsync(agentId, issued.CommandId, ct);
+            var current = await GetCommandAsync(siteId, issued.CommandId, ct);
             if (current.CompletedUtc is not null || DateTime.UtcNow >= deadline) return current;
             await Task.Delay(pollEvery, ct);
         }

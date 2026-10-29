@@ -1,0 +1,83 @@
+@page "/admin"
+@attribute [Authorize]
+@inherits ViewModelComponent<SitesViewModel>
+@inject ConsoleApi Api
+
+<h1>Sites and collectors</h1>
+@if (ViewModel is { } vm)
+{
+    @if (vm.Error is not null) { <p class="error">@vm.Error</p> }
+    @if (vm.Message is not null) { <p class="info">@vm.Message</p> }
+
+    <div class="columns">
+        <section class="form">
+            <h2>Site</h2>
+            <label>Site id (e.g. stmarys)<input @bind="vm.SiteId" /></label>
+            <label>Name<input @bind="vm.SiteName" /></label>
+            <label>Time zone<input @bind="vm.TimeZone" /></label>
+            <label>Latitude<input type="number" step="any" value="@Number(vm.Latitude)" @onchange="e => vm.Latitude = Parse(e)" /></label>
+            <label>Longitude<input type="number" step="any" value="@Number(vm.Longitude)" @onchange="e => vm.Longitude = Parse(e)" /></label>
+            <label>Read by collector
+                <select @onchange="e => vm.CollectorId = e.Value?.ToString() is { Length: > 0 } id ? id : null">
+                    <option value="" selected="@(vm.CollectorId is null)">none yet</option>
+                    @foreach (var c in vm.Collectors)
+                    {
+                        <option value="@c.AgentId" selected="@(c.AgentId == vm.CollectorId)">@c.Name (@c.AgentId@(c.SiteId is null ? ", central" : $", at {c.SiteId}"))</option>
+                    }
+                </select>
+            </label>
+            <button class="primary" @onclick="() => vm.SaveSiteCommand.ExecuteAsync(null)">Save site</button>
+            <button @onclick="() => vm.EnrollSiteAgentCommand.ExecuteAsync(null)" title="Only for a site the central collector cannot reach">Token for an agent at this site</button>
+        </section>
+
+        <section class="form">
+            <h2>Central collector</h2>
+            <p class="muted">Runs in Docker on a server inside the WAN that can reach every site's SQL Server.</p>
+            <label>Name<input @bind="vm.CollectorName" /></label>
+            <button class="primary" @onclick="() => vm.EnrollCollectorCommand.ExecuteAsync(null)">Enroll a central collector</button>
+            @if (vm.Token is { } token)
+            {
+                <p>Run this once on the collector host (from <code>deploy/collector</code>). The token works once, until @token.ExpiresUtc.ToLocalTime().ToString("g"), and is not shown again.</p>
+                <pre class="command">@token.InstallCommand</pre>
+            }
+        </section>
+    </div>
+
+    <h2>Sites</h2>
+    <table class="grid">
+        <thead><tr><th>Site</th><th>Name</th><th>Collector</th><th>Config version</th><th></th></tr></thead>
+        <tbody>
+            @foreach (var s in vm.Sites)
+            {
+                <tr><td>@s.SiteId</td><td>@s.Name</td><td>@(s.CollectorId ?? "—")</td><td>@s.ConfigVersion</td><td><button class="link" @onclick="() => vm.Edit(s)">Edit</button></td></tr>
+            }
+        </tbody>
+    </table>
+
+    <h2>Collectors</h2>
+    <table class="grid">
+        <thead><tr><th>Name</th><th>Id</th><th>Host</th><th>Version</th><th>Sites</th><th>Last seen</th><th>Certificate until</th></tr></thead>
+        <tbody>
+            @foreach (var c in vm.Collectors)
+            {
+                <tr>
+                    <td>@c.Name</td><td>@c.AgentId</td><td>@c.Hostname</td><td>@(c.AgentVersion ?? "—")</td><td>@string.Join(", ", c.Sites)</td>
+                    <td>@(c.LastSeenUtc?.ToLocalTime().ToString("g") ?? "never")</td><td>@c.CertificateExpiresUtc.ToLocalTime().ToString("d")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        ViewModel = new SitesViewModel(Api);
+        await ViewModel.LoadCommand.ExecuteAsync(null);
+    }
+
+    private static string Number(double value) => double.IsNaN(value) ? "" : value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+    private static double Parse(ChangeEventArgs e) =>
+        double.TryParse(e.Value?.ToString(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var v) ? v : double.NaN;
+}

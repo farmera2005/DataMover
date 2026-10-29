@@ -1,45 +1,33 @@
 # Lakeflow Console
 
-A WinUI 3 desktop app (MSIX) for the IT team. Sign-in is Entra ID through the Windows account broker; what you can
-do follows your Lakeflow group: **Viewer** (read), **Operator** (also pause, resume, resnapshot), **Admin** (also add
-sites and sources, enroll agents, collect logs, restart agents).
+A web app at `https://<control-api>/console`, served by the control API. Sign-in is Entra ID; what you can do follows
+your Lakeflow group: **Viewer** (read), **Operator** (also pause, resume, resnapshot), **Admin** (also sites,
+collectors, sources, collect logs, restart).
 
-The logic (API client, view models) is in `src/Lakeflow.Console.Core` and is tested on Linux against the real control
-API and a running agent; `src/Lakeflow.Console` is the thin WinUI layer that binds to it.
+The logic (API client, view models) is `src/Lakeflow.Console.Core`, tested against the real API and a running
+collector; `src/Lakeflow.Console.Web` is the Blazor WebAssembly layer that renders it.
 
 ## Pages
 
-- **Fleet:** every site green, amber or red (the alert thresholds), worst first, with the reason, worst table lag,
-  buffer depth, last heartbeat and agent version. Refreshes every 30 s; filter by name or state.
-- **Site detail:** the agent, each table's state, method, lag, rows/min and last night's reconciliation; recent
-  commands and events. Pause, resume and resnapshot per table (confirmed first); collect logs (download the zip from
-  the command list) and restart.
-- **Add a source (wizard):**
-  1. Engine (SQL Server now; Db2 for i in phase 3; the others in phase 4), source id, source system, division.
-  2. Connection as the scale PC sees it, and the read-only login. **Test connection** saves the source paused,
-     seals the password to the site agent's certificate *in the console*, and has the agent connect. Neither the
-     console nor the API keeps the password; only the agent can open it.
-  3. The agent lists the tables the login can read (row counts from the catalog, never by counting) and suggests a
-     method for each: Change Tracking where the owner already enabled it, else rowversion polling, else timestamp
-     polling on an indexed date/time column; nothing that changes the source. Choose tables, then **Save and start
-     snapshot**.
-
-  Testing and listing run on the agent (sites accept no inbound connections): while a command waits, the API has the
-  agent poll every 10 s instead of 60 s, so each step takes a few seconds.
-- **Sites and enrollment:** add a site and generate its one-time enrollment token and install command.
+- **Fleet:** every site green, amber or red, worst first, with the reason, worst lag, buffer, last heartbeat and
+  collector version. Refreshes every 30 s; filter by name or state.
+- **Site:** the collector serving it, each table's state, method, lag, rows/min and last night's reconciliation,
+  recent commands and events. Pause, resume, resnapshot (confirmed first); collect logs (download from the command
+  list); restart the collector.
+- **Add source (wizard):** engine and ids; the connection as the collector reaches it and a read-only login (the
+  password is sealed in your browser to the collector's certificate; the console and API never keep it); **Test
+  connection** has the collector connect; it then lists the tables the login can read and suggests a capture method
+  for each that needs no change to the source; choose tables and **Save and start snapshot**.
+- **Sites and collectors:** add or edit sites and choose the collector that reads each; enroll a central collector
+  (or an agent at a site the centre cannot reach) and get its one-time command.
 
 ## Setting up (once)
 
-1. Entra ID: register a public client app for the console (redirect URI
-   `ms-appx-web://microsoft.aad.brokerplugin/<client id>`), grant it the control API's `access_as_user` scope.
-2. Fill `src/Lakeflow.Console/appsettings.json` (API address, tenant id, client id; no secrets) and build
-   `windows/Lakeflow.Console.sln` in Release for x64.
-3. Sign the MSIX with the company code-signing certificate (the manifest's `Publisher` must match its subject) and
-   deploy it with Intune or winget.
+1. In Entra ID, register a single-page application for the console with redirect URI
+   `https://<control-api>/console/authentication/login-callback`, and grant it the control API's delegated scope
+   (e.g. `api://lakeflow-control/access_as_user`). Users get their Lakeflow role from the API's app roles.
+2. Set the API's app settings `Console__ClientId` (that registration) and `Console__ApiScope` (that scope). The console
+   reads them from `/console/appsettings.json`; nothing is built in.
 
-Replace the placeholder tiles in `src/Lakeflow.Console/Assets` with Mercer Landmark artwork.
-
-## Not in this step
-
-The map view (WinUI 3 has no built-in map control; the fleet data carries latitude and longitude for one), table
-detail, the alerts page and the audit log page come with phase 2.
+The console pages are static and hold no data; every call goes to the API with the user's token. They are served with
+a strict content security policy (scripts from the site only, sign-in frames from Entra only, no embedding).

@@ -45,9 +45,9 @@ public sealed class ConsoleTests(ApiFactory api) : IClassFixture<ApiFactory>
         {
             var agent = new RunningAgent { Harness = await Harness.StartAsync() };
             sources(agent.Harness);
-            agent.Control = new ControlLoop(agent.Harness.Pipeline, agent.Harness.Store, api.AgentHandler, agent.Harness.Time,
+            agent.Control = new ControlLoop(agent.Harness.Collector(), api.AgentHandler, agent.Harness.Time,
                 NullLogger<ControlLoop>.Instance, agent.Harness.Directory, () => { });
-            var token = await console.CreateEnrollmentTokenAsync(siteId);
+            var token = await console.CreateEnrollmentTokenAsync(new EnrollmentTokenRequest(siteId, null));
             await agent.Control.EnrollAsync("https://localhost/", token.Token, "SCALE-PC", "1.0.0", CancellationToken.None);
             agent._pump = Task.Run(async () =>
             {
@@ -106,7 +106,7 @@ public sealed class ConsoleTests(ApiFactory api) : IClassFixture<ApiFactory>
         var rows = fleet.Sites.Where(s => s.SiteId == healthy || s.SiteId == quiet).ToList();
         Assert.Equal([quiet, healthy], rows.Select(r => r.SiteId)); // red (no agent) above green
         Assert.Equal(Health.Red, rows[0].Health);
-        Assert.Equal("No agent enrolled.", rows[0].Reason);
+        Assert.Equal("No collector assigned.", rows[0].Reason);
         Assert.Equal(Health.Green, rows[1].Health);
         Assert.Equal("1.0.0", rows[1].AgentVersion);
         Assert.True(fleet.Red >= 1 && fleet.Green >= 1);
@@ -124,16 +124,16 @@ public sealed class ConsoleTests(ApiFactory api) : IClassFixture<ApiFactory>
     {
         var admin = Console();
         var site = NewSite();
-        var enrollment = new EnrollmentViewModel(admin) { SiteId = site, SiteName = "St. Marys Grain" };
-        await enrollment.SaveSiteCommand.ExecuteAsync(null);
-        Assert.Null(enrollment.Error);
+        var sites = new SitesViewModel(admin) { SiteId = site, SiteName = "St. Marys Grain" };
+        await sites.SaveSiteCommand.ExecuteAsync(null);
+        Assert.Null(sites.Error);
         await using var agent = await RunningAgent.StartAsync(api, admin, site, h =>
         {
             var source = h.Source("compuweigh", "Tickets", "Bins");
             for (var id = 1; id <= 25; id++) source.Upsert("Tickets", id, new Dictionary<string, object?> { ["name"] = $"t{id}" });
         });
 
-        var wizard = new SourceWizardViewModel(admin, site, commandTimeout: TimeSpan.FromSeconds(30), pollEvery: TimeSpan.FromMilliseconds(50));
+        var wizard = new SourceWizardViewModel(admin, new DotNetSecretSealer(), site, commandTimeout: TimeSpan.FromSeconds(30), pollEvery: TimeSpan.FromMilliseconds(50));
         wizard.Next();
         Assert.Contains(wizard.Errors, e => e.StartsWith("Source id"));
         (wizard.SourceId, wizard.SourceSystem, wizard.Engine) = ("compuweigh", "compuweigh", SourceEngine.Db2i);
@@ -180,16 +180,16 @@ public sealed class ConsoleTests(ApiFactory api) : IClassFixture<ApiFactory>
         var admin = Console();
         var lonely = NewSite();
         await admin.PutSiteAsync(new SiteDto { SiteId = lonely, Name = "No agent yet" });
-        var noAgent = new SourceWizardViewModel(admin, lonely) { SourceId = "cw", SourceSystem = "compuweigh", Host = "h", UserName = "u" };
+        var noAgent = new SourceWizardViewModel(admin, new DotNetSecretSealer(), lonely) { SourceId = "cw", SourceSystem = "compuweigh", Host = "h", UserName = "u" };
         noAgent.Next();
         await noAgent.TestConnectionCommand.ExecuteAsync(null);
-        Assert.Contains(noAgent.Errors, e => e.Contains("no agent yet"));
+        Assert.Contains(noAgent.Errors, e => e.Contains("No collector is assigned"));
 
         var site = NewSite();
         await admin.PutSiteAsync(new SiteDto { SiteId = site, Name = "Unreachable source" });
         await using var agent = await RunningAgent.StartAsync(api, admin, site, h => h.Source("cw", "Tickets"));
         agent.Harness.Connectors["cw"] = new Testing.InMemory.InMemoryConnector(agent.Harness.Sources["cw"]) { FailWith = new TimeoutException("server unreachable") };
-        var wizard = new SourceWizardViewModel(admin, site, TimeSpan.FromSeconds(30), TimeSpan.FromMilliseconds(50))
+        var wizard = new SourceWizardViewModel(admin, new DotNetSecretSealer(), site, TimeSpan.FromSeconds(30), TimeSpan.FromMilliseconds(50))
             { SourceId = "cw", SourceSystem = "compuweigh", Host = "10.9.9.9", UserName = "u", Password = "p" };
         wizard.Next();
         await wizard.TestConnectionCommand.ExecuteAsync(null);
@@ -247,7 +247,7 @@ public sealed class ConsoleTests(ApiFactory api) : IClassFixture<ApiFactory>
         for (var i = 0; i < 400 && logs?.CompletedUtc is null; i++)
         {
             await Task.Delay(25);
-            logs = (await admin.GetCommandsAsync(adminView.Agent!.AgentId)).First(c => c.Type == CommandType.CollectLogs);
+            logs = (await admin.GetCommandsAsync(site)).First(c => c.Type == CommandType.CollectLogs);
         }
         var zip = await adminView.DownloadLogsAsync(logs!);
         Assert.NotNull(zip);

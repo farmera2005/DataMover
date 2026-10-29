@@ -28,7 +28,20 @@ public enum CaptureMethod
 
 public enum AuthMethod { SqlLogin, Windows }
 
-/// <summary>Everything an agent needs, pulled from the control API every 60 s and cached locally.</summary>
+/// <summary>
+/// What one collector pulls from the control API: the config of every site assigned to it. A central collector serves
+/// many sites; an agent installed at a site is a collector serving that one site.
+/// </summary>
+public sealed record CollectorConfig
+{
+    public required string AgentId { get; init; }
+    public int ConfigPollSeconds { get; init; } = 60;
+    public int HeartbeatSeconds { get; init; } = 30;
+    public string? DesiredAgentVersion { get; init; }
+    public IReadOnlyList<AgentConfig> Sites { get; init; } = [];
+}
+
+/// <summary>Everything a collector needs for one site, pulled from the control API every 60 s and cached locally.</summary>
 public sealed record AgentConfig
 {
     public required string AgentId { get; init; }

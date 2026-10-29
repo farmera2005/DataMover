@@ -42,7 +42,7 @@ public sealed class ConfigurationTests(ApiFactory api) : IClassFixture<ApiFactor
         }).OkAsync();
         var (agent, cert) = await api.EnrollAsync(admin, site);
 
-        var config = await api.Agent(cert).GetAsync<AgentConfig>($"agents/{agent}/config");
+        var config = await api.Agent(cert).SiteConfigAsync(agent);
 
         Assert.Equal(agent, config.AgentId);
         Assert.Equal(site, config.SiteId);
@@ -73,12 +73,12 @@ public sealed class ConfigurationTests(ApiFactory api) : IClassFixture<ApiFactor
         var (agent, cert) = await api.EnrollAsync(admin, site);
         var client = api.Agent(cert);
 
-        var first = (await client.GetAsync<AgentConfig>($"agents/{agent}/config")).EventHubs[0];
+        var first = (await client.SiteConfigAsync(agent)).EventHubs[0];
         api.Time.Advance(TimeSpan.FromHours(11));
-        var same = (await client.GetAsync<AgentConfig>($"agents/{agent}/config")).EventHubs[0];
+        var same = (await client.SiteConfigAsync(agent)).EventHubs[0];
         Assert.Equal(first.SasToken, same.SasToken);
         api.Time.Advance(TimeSpan.FromHours(2));
-        var rotated = (await client.GetAsync<AgentConfig>($"agents/{agent}/config")).EventHubs[0];
+        var rotated = (await client.SiteConfigAsync(agent)).EventHubs[0];
         Assert.NotEqual(first.SasToken, rotated.SasToken);
         Assert.True(rotated.SasExpiresUtc > first.SasExpiresUtc);
     }
@@ -165,7 +165,7 @@ public sealed class ConfigurationTests(ApiFactory api) : IClassFixture<ApiFactor
         Assert.Contains("plain passwords are refused", await ProblemsAsync(await admin.PutAsync(url, new CredentialRequest(agent, "hunter2"))));
         using var otherKey = RSA.Create(2048);
         Assert.Contains("different certificate", await ProblemsAsync(await admin.PutAsync(url, new CredentialRequest(agent, SealedSecret.Seal("pw", otherKey, "OTHER")))));
-        Assert.Contains("not this site's active agent", await ProblemsAsync(await admin.PutAsync(url, new CredentialRequest("someone-else", SealedSecret.Seal("pw", cert.GetRSAPublicKey()!, cert.Thumbprint)))));
+        Assert.Contains("not the collector serving this site", await ProblemsAsync(await admin.PutAsync(url, new CredentialRequest("someone-else", SealedSecret.Seal("pw", cert.GetRSAPublicKey()!, cert.Thumbprint)))));
 
         // The console seals with the certificate the API publishes for the agent.
         var published = await admin.GetAsync<AgentDto>($"agents/{agent}");
@@ -173,7 +173,7 @@ public sealed class ConfigurationTests(ApiFactory api) : IClassFixture<ApiFactor
         await admin.PutAsync(url, new CredentialRequest(agent, SealedSecret.Seal("pw-123", publicCert.GetRSAPublicKey()!, publicCert.Thumbprint))).OkAsync();
         Assert.True((await admin.GetAsync<List<SourceDto>>($"sites/{site}/sources")).Single().CredentialPending);
 
-        var config = await api.Agent(cert).GetAsync<AgentConfig>($"agents/{agent}/config");
+        var config = await api.Agent(cert).SiteConfigAsync(agent);
         var credential = Assert.Single(config.Credentials);
         Assert.Equal("compuweigh", credential.Name);
         Assert.Equal("pw-123", SealedSecret.Open(credential.Sealed, cert.GetRSAPrivateKey()!, cert.Thumbprint));
@@ -187,7 +187,7 @@ public sealed class ConfigurationTests(ApiFactory api) : IClassFixture<ApiFactor
                 Message = "stored", Details = new System.Text.Json.Nodes.JsonObject { ["credential_id"] = credential.Id.ToString() },
             },
         }).OkAsync();
-        Assert.Empty((await api.Agent(cert).GetAsync<AgentConfig>($"agents/{agent}/config")).Credentials);
+        Assert.Empty((await api.Agent(cert).SiteConfigAsync(agent)).Credentials);
         var source = (await admin.GetAsync<List<SourceDto>>($"sites/{site}/sources")).Single();
         Assert.False(source.CredentialPending);
         Assert.NotNull(source.CredentialStoredUtc);
@@ -203,28 +203,28 @@ public sealed class ConfigurationTests(ApiFactory api) : IClassFixture<ApiFactor
         await admin.CreateSiteAsync(site);
         var (agent, cert) = await api.EnrollAsync(admin, site);
 
-        Assert.Contains("Unknown table", await ProblemsAsync(await admin.PostAsync($"agents/{agent}/commands",
+        Assert.Contains("Unknown table", await ProblemsAsync(await admin.PostAsync($"sites/{site}/commands",
             new CommandRequest { Type = CommandType.ResnapshotTable, SourceId = "compuweigh", Table = "dbo.Nope" })));
-        Assert.Contains("needs table", await ProblemsAsync(await admin.PostAsync($"agents/{agent}/commands",
+        Assert.Contains("needs table", await ProblemsAsync(await admin.PostAsync($"sites/{site}/commands",
             new CommandRequest { Type = CommandType.ResnapshotTable, SourceId = "compuweigh" })));
-        var command = await (await admin.PostAsync($"agents/{agent}/commands",
+        var command = await (await admin.PostAsync($"sites/{site}/commands",
             new CommandRequest { Type = CommandType.ResnapshotTable, SourceId = "compuweigh", Table = "dbo.Tickets" })).ReadAsync<CommandDto>();
 
-        var delivered = Assert.Single((await api.Agent(cert).GetAsync<AgentConfig>($"agents/{agent}/config")).Commands);
+        var delivered = Assert.Single((await api.Agent(cert).SiteConfigAsync(agent)).Commands);
         Assert.Equal(command.CommandId, delivered.CommandId);
         Assert.Equal("adam@mercerlandmark.com", delivered.IssuedBy);
-        Assert.Single((await api.Agent(cert).GetAsync<AgentConfig>($"agents/{agent}/config")).Commands); // still pending
+        Assert.Single((await api.Agent(cert).SiteConfigAsync(agent)).Commands); // still pending
 
         var result = new AgentEvent
         {
             EventId = Guid.NewGuid(), OccurredUtc = api.Time.GetUtcNow(), Kind = AgentEventKind.CommandResult, Severity = EventSeverity.Info,
-            CommandId = command.CommandId, Message = "Resnapshot queued.",
+            SiteId = site, CommandId = command.CommandId, Message = "Resnapshot queued.",
         };
         await api.Agent(cert).PostAsync($"agents/{agent}/events", new[] { result }).OkAsync();
         await api.Agent(cert).PostAsync($"agents/{agent}/events", new[] { result }).OkAsync(); // a retried post is harmless
 
-        Assert.Empty((await api.Agent(cert).GetAsync<AgentConfig>($"agents/{agent}/config")).Commands);
-        var done = Assert.Single(await admin.GetAsync<List<CommandDto>>($"agents/{agent}/commands"));
+        Assert.Empty((await api.Agent(cert).SiteConfigAsync(agent)).Commands);
+        var done = Assert.Single(await admin.GetAsync<List<CommandDto>>($"sites/{site}/commands"));
         Assert.Equal("Resnapshot queued.", done.Result);
         Assert.Single(await admin.GetAsync<List<AgentEventDto>>($"events?siteId={site}"));
     }
@@ -239,7 +239,7 @@ public sealed class ConfigurationTests(ApiFactory api) : IClassFixture<ApiFactor
 
         var noAgent = Status(await admin.GetAsync<FleetStatus>("status"));
         Assert.Equal(Health.Red, noAgent.Health);
-        Assert.Contains("No agent enrolled.", noAgent.Reasons);
+        Assert.Contains("No collector assigned.", noAgent.Reasons);
 
         var (agent, cert) = await api.EnrollAsync(admin, site);
         Heartbeat Beat(double lag = 30, long buffer = 0, int failures = 0, TableState state = TableState.Streaming) => new()

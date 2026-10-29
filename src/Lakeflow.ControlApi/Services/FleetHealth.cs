@@ -20,7 +20,7 @@ public static class FleetHealth
     {
         var red = new List<string>();
         var amber = new List<string>();
-        if (!hasAgent) red.Add("No agent enrolled.");
+        if (!hasAgent) red.Add("No collector assigned.");
         else if (heartbeat is null || lastHeartbeatUtc is null) red.Add("No heartbeat received yet.");
         else
         {

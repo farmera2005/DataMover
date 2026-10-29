@@ -12,9 +12,12 @@
     <PackageReference Include="Serilog.AspNetCore" />
     <PackageReference Include="Serilog.Formatting.Compact" />
     <PackageReference Include="Azure.Monitor.OpenTelemetry.AspNetCore" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Lakeflow.Contracts\Lakeflow.Contracts.csproj" />
+    <!-- The web console, served at /console. -->
+    <ProjectReference Include="..\Lakeflow.Console.Web\Lakeflow.Console.Web.csproj" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="Lakeflow.ControlApi.Tests" />

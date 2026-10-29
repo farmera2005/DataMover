@@ -35,11 +35,11 @@ public sealed class ControlApiClient(HttpClient http, string agentId) : IDisposa
         return (await response.Content.ReadFromJsonAsync<EnrollResponse>(EnvelopeJson.Options, ct))!;
     }
 
-    public async Task<AgentConfig> GetConfigAsync(CancellationToken ct)
+    public async Task<CollectorConfig> GetConfigAsync(CancellationToken ct)
     {
         using var response = await http.GetAsync($"agents/{agentId}/config", ct);
         await EnsureAsync(response, ct);
-        return (await response.Content.ReadFromJsonAsync<AgentConfig>(EnvelopeJson.Options, ct))!;
+        return (await response.Content.ReadFromJsonAsync<CollectorConfig>(EnvelopeJson.Options, ct))!;
     }
 
     public async Task SendHeartbeatAsync(Heartbeat heartbeat, CancellationToken ct)

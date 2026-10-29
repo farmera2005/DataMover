@@ -52,11 +52,13 @@ namespace Lakeflow.ControlApi.Data.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
 
-                    b.Property<string>("LastHeartbeatJson")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTimeOffset?>("LastHeartbeatUtc")
+                    b.Property<DateTimeOffset?>("LastSeenUtc")
                         .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("PreviousThumbprint")
                         .HasMaxLength(64)
@@ -73,7 +75,6 @@ namespace Lakeflow.ControlApi.Data.Migrations
                         .HasColumnType("datetimeoffset");
 
                     b.Property<string>("SiteId")
-                        .IsRequired()
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
 
@@ -119,7 +120,6 @@ namespace Lakeflow.ControlApi.Data.Migrations
                         .HasColumnType("nvarchar(16)");
 
                     b.Property<string>("SiteId")
-                        .IsRequired()
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
 
@@ -248,6 +248,11 @@ namespace Lakeflow.ControlApi.Data.Migrations
                     b.Property<string>("ResultDetails")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("SiteId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
                     b.Property<string>("SourceId")
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
@@ -267,6 +272,8 @@ namespace Lakeflow.ControlApi.Data.Migrations
                     b.HasKey("CommandId");
 
                     b.HasIndex("AgentId", "CompletedUtc");
+
+                    b.HasIndex("SiteId", "IssuedUtc");
 
                     b.ToTable("Commands");
                 });
@@ -288,8 +295,11 @@ namespace Lakeflow.ControlApi.Data.Migrations
                     b.Property<DateTimeOffset>("ExpiresUtc")
                         .HasColumnType("datetimeoffset");
 
+                    b.Property<string>("Name")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<string>("SiteId")
-                        .IsRequired()
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
 
@@ -392,6 +402,10 @@ namespace Lakeflow.ControlApi.Data.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
 
+                    b.Property<string>("AgentId")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
                     b.Property<long>("BufferCapBytes")
                         .HasColumnType("bigint");
 
@@ -426,7 +440,32 @@ namespace Lakeflow.ControlApi.Data.Migrations
 
                     b.HasKey("SiteId");
 
+                    b.HasIndex("AgentId");
+
                     b.ToTable("Sites");
+                });
+
+            modelBuilder.Entity("Lakeflow.ControlApi.Data.SiteHeartbeat", b =>
+                {
+                    b.Property<string>("SiteId")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("AgentId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("Json")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset>("ReceivedUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("SiteId");
+
+                    b.ToTable("SiteHeartbeats");
                 });
 
             modelBuilder.Entity("Lakeflow.ControlApi.Data.Source", b =>
@@ -511,8 +550,7 @@ namespace Lakeflow.ControlApi.Data.Migrations
                     b.HasOne("Lakeflow.ControlApi.Data.Site", null)
                         .WithMany()
                         .HasForeignKey("SiteId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("Lakeflow.ControlApi.Data.CapturedTable", b =>
@@ -538,8 +576,7 @@ namespace Lakeflow.ControlApi.Data.Migrations
                     b.HasOne("Lakeflow.ControlApi.Data.Site", null)
                         .WithMany()
                         .HasForeignKey("SiteId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Cascade);
                 });
 
             modelBuilder.Entity("Lakeflow.ControlApi.Data.SealedCredentialRow", b =>
@@ -547,6 +584,15 @@ namespace Lakeflow.ControlApi.Data.Migrations
                     b.HasOne("Lakeflow.ControlApi.Data.Agent", null)
                         .WithMany()
                         .HasForeignKey("AgentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Lakeflow.ControlApi.Data.SiteHeartbeat", b =>
+                {
+                    b.HasOne("Lakeflow.ControlApi.Data.Site", null)
+                        .WithMany()
+                        .HasForeignKey("SiteId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

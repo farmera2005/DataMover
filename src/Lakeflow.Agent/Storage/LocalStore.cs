@@ -455,6 +455,22 @@ public sealed class LocalStore : IDisposable
         }
     }
 
+    /// <summary>The collector's last config (every assigned site), so it restarts with them when the API is down.</summary>
+    public void SaveCollectorConfig(CollectorConfig config)
+    {
+        var protectedJson = Convert.ToBase64String(_protector.Protect(EnvelopeJson.SerializeToUtf8(config)));
+        lock (_lock) Exec("INSERT OR REPLACE INTO meta VALUES ('collector_config', $v)", ("$v", protectedJson));
+    }
+
+    public CollectorConfig? LoadCollectorConfig()
+    {
+        lock (_lock)
+        {
+            var value = Scalar<string?>("SELECT value FROM meta WHERE key = 'collector_config'");
+            return value is null ? null : EnvelopeJson.Deserialize<CollectorConfig>(_protector.Unprotect(Convert.FromBase64String(value)));
+        }
+    }
+
     // ---- enrollment identity and control API ----
 
     /// <summary>The agent's certificate and private key (PFX), protected like every other secret here.</summary>

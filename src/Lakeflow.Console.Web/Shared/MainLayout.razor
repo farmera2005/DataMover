@@ -1,0 +1,29 @@
+@inherits LayoutComponentBase
+@inject UserSession Session
+@inject NavigationManager Navigation
+
+<header class="top">
+    <a class="brand" href="">Lakeflow</a>
+    <nav>
+        <NavLink href="" Match="NavLinkMatch.All">Fleet</NavLink>
+        @if (_user?.CanAdminister == true)
+        {
+            <NavLink href="admin">Sites and collectors</NavLink>
+        }
+    </nav>
+    <AuthorizeView>
+        <Authorized>
+            <span class="user">@(_user?.Name) · @(_user?.Role)</span>
+            <button class="link" @onclick="SignOut">Sign out</button>
+        </Authorized>
+    </AuthorizeView>
+</header>
+<main>@Body</main>
+
+@code {
+    private SignedInUser? _user;
+
+    protected override async Task OnInitializedAsync() => _user = await Session.GetAsync();
+
+    private void SignOut() => Navigation.NavigateToLogout("authentication/logout");
+}

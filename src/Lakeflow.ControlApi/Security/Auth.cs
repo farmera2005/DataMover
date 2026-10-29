@@ -27,7 +27,6 @@ public static class Policies
 public static class AgentClaims
 {
     public const string AgentId = "lakeflow_agent_id";
-    public const string SiteId = "lakeflow_site_id";
 }
 
 public sealed class EntraOptions
@@ -95,7 +94,7 @@ public static class AuthSetup
             return;
         }
         context.Principal = new ClaimsPrincipal(new ClaimsIdentity(
-            [new Claim(AgentClaims.AgentId, agent.AgentId), new Claim(AgentClaims.SiteId, agent.SiteId), new Claim(ClaimTypes.Name, agent.AgentId)],
+            [new Claim(AgentClaims.AgentId, agent.AgentId), new Claim(ClaimTypes.Name, agent.AgentId)],
             context.Scheme.Name));
         context.Success();
     }

@@ -5,22 +5,18 @@ using Lakeflow.Agent.Delivery;
 using Lakeflow.Agent.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Serilog;
 
-if (!OperatingSystem.IsWindows())
-{
-    Console.Error.WriteLine("The Lakeflow agent runs on Windows (it protects its secrets with DPAPI).");
-    return 1;
-}
-
-// Optional override for testing; the installer uses the default.
+// The central collector runs in Docker on Linux; an agent installed at a site runs as a Windows service. Same program.
+// Optional overrides (the defaults suit both): LAKEFLOW_AGENT_DATA, LAKEFLOW_KEY_FILE.
 var dataDirectory = Environment.GetEnvironmentVariable("LAKEFLOW_AGENT_DATA")
-    ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Lakeflow", "Agent");
+    ?? (OperatingSystem.IsWindows()
+        ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Lakeflow", "Agent")
+        : "/var/lib/lakeflow");
 Directory.CreateDirectory(dataDirectory);
 
-AgentPipeline? pipeline = null;
-Log.Logger = AgentLogging.Configure(new LoggerConfiguration(), Path.Combine(dataDirectory, "logs"), () => pipeline?.Config?.SiteId)
-    .CreateLogger();
+Log.Logger = AgentLogging.Configure(new LoggerConfiguration(), Path.Combine(dataDirectory, "logs"), () => null).CreateLogger();
 
 try
 {
@@ -28,25 +24,39 @@ try
     builder.Services.AddWindowsService(options => options.ServiceName = "Lakeflow Agent");
     builder.Services.AddSerilog();
     builder.Services.AddSingleton(TimeProvider.System);
-    builder.Services.AddSingleton<ISecretProtector, DpapiProtector>();
-    builder.Services.AddSingleton(sp => LocalStore.Open(dataDirectory, sp.GetRequiredService<ISecretProtector>()));
-    builder.Services.AddSingleton<Lakeflow.Contracts.ICredentialStore, StoreCredentials>();
-    builder.Services.AddSingleton<IConnectorFactory, ConnectorFactory>();
-    builder.Services.AddSingleton<IEventSender, EventHubsSender>();
+    builder.Services.AddSingleton<ISecretProtector>(_ => OperatingSystem.IsWindows()
+        ? new DpapiProtector()
+        : new FileKeyProtector(Environment.GetEnvironmentVariable("LAKEFLOW_KEY_FILE") ?? "/var/lib/lakeflow-secrets/master.key"));
     var version = typeof(AgentPipeline).Assembly.GetName().Version?.ToString(3) ?? "0.0.0";
-    builder.Services.AddSingleton(sp => pipeline = ActivatorUtilities.CreateInstance<AgentPipeline>(sp, version));
+
+    builder.Services.AddSingleton(sp =>
+    {
+        var protector = sp.GetRequiredService<ISecretProtector>();
+        var loggers = sp.GetRequiredService<ILoggerFactory>();
+        var time = sp.GetRequiredService<TimeProvider>();
+        // Each site gets its own store (buffer, checkpoints, credentials) and its own Event Hubs connections.
+        SiteParts OpenSite(string siteId)
+        {
+            var store = LocalStore.Open(Path.Combine(dataDirectory, "sites", siteId), protector);
+            var pipeline = new AgentPipeline(store, new ConnectorFactory(new StoreCredentials(store), loggers), new EventHubsSender(),
+                time, loggers, version);
+            return new SiteParts(store, pipeline);
+        }
+        return new CollectorHost(LocalStore.Open(Path.Combine(dataDirectory, "collector"), protector), OpenSite,
+            loggers.CreateLogger<CollectorHost>());
+    });
     builder.Services.AddSingleton(ControlApiClient.DefaultHandler);
     builder.Services.AddSingleton(sp => ActivatorUtilities.CreateInstance<ControlLoop>(sp, Path.Combine(dataDirectory, "logs"),
-        // Exit with an error so the Windows service recovery settings start the service again.
+        // Exit with an error so the service manager (Docker restart policy, Windows service recovery) starts it again.
         (Action)(() => { Environment.ExitCode = 1; sp.GetRequiredService<IHostApplicationLifetime>().StopApplication(); })));
     builder.Services.AddSingleton(sp => ActivatorUtilities.CreateInstance<EnrollmentFile>(sp, dataDirectory, version));
     builder.Services.AddHostedService<AgentService>();
     await builder.Build().RunAsync();
-    return 0;
+    return Environment.ExitCode;
 }
 catch (Exception ex)
 {
-    Log.Fatal(ex, "Agent stopped");
+    Log.Fatal(ex, "Collector stopped");
     return 1;
 }
 finally

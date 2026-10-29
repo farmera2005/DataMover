@@ -79,6 +79,8 @@ public sealed record AgentEvent
     public required AgentEventKind Kind { get; init; }
     public required EventSeverity Severity { get; init; }
     public required string Message { get; init; }
+    /// <summary>The site the event is about; null for the collector itself.</summary>
+    public string? SiteId { get; init; }
     public string? SourceId { get; init; }
     public string? Table { get; init; }
     public Guid? CommandId { get; init; }

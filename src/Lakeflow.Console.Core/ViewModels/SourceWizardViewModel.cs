@@ -1,5 +1,4 @@
 using System.Collections.ObjectModel;
-using System.Security.Cryptography.X509Certificates;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -52,21 +51,22 @@ public sealed partial class TableChoice(SourceTableInfo info) : ObservableObject
 /// Source setup wizard: pick the engine, enter the connection, test it through the site's agent, browse the tables the
 /// login can read, choose tables and capture methods, and start the snapshot.
 ///
-/// The password is sealed here, in the console, to the agent's certificate before it leaves this machine; the control
-/// API never sees it. Testing and browsing run on the agent (sites accept no inbound connections), so each takes until
-/// the agent's next config pull (about 10 s while a command waits).
+/// The password is sealed here, in the browser, to the collector's certificate before it leaves this machine; the
+/// control API never sees it. Testing and browsing run on the collector serving the site (only it can reach the site's
+/// database), so each takes until its next config pull (about 10 s while a command waits).
 /// </summary>
 public sealed partial class SourceWizardViewModel : ObservableObject
 {
     private static readonly Regex IdPattern = new("^[a-z0-9][a-z0-9_-]{0,63}$");
     private readonly ConsoleApi _api;
+    private readonly ISecretSealer _sealer;
     private readonly TimeSpan _commandTimeout;
     private readonly TimeSpan _pollEvery;
     private AgentDto? _agent;
 
-    public SourceWizardViewModel(ConsoleApi api, string siteId, TimeSpan? commandTimeout = null, TimeSpan? pollEvery = null)
+    public SourceWizardViewModel(ConsoleApi api, ISecretSealer sealer, string siteId, TimeSpan? commandTimeout = null, TimeSpan? pollEvery = null)
     {
-        (_api, SiteId) = (api, siteId);
+        (_api, _sealer, SiteId) = (api, sealer, siteId);
         _commandTimeout = commandTimeout ?? TimeSpan.FromMinutes(3);
         _pollEvery = pollEvery ?? TimeSpan.FromSeconds(3);
     }
@@ -105,6 +105,8 @@ public sealed partial class SourceWizardViewModel : ObservableObject
     [ObservableProperty] private string? _userName;
     /// <summary>Held only until it is sealed to the agent; never stored or sent in the clear.</summary>
     [ObservableProperty] private string _password = "";
+    /// <summary>The collector the password is sealed to (set once the connection has been tested).</summary>
+    public AgentDto? Collector => _agent;
     [ObservableProperty] private bool _trustServerCertificate;
     /// <summary>A double because that is what number inputs edit.</summary>
     [ObservableProperty] private double _maxRowsPerSecond = 2000;
@@ -167,28 +169,27 @@ public sealed partial class SourceWizardViewModel : ObservableObject
         TestResult = null;
         try
         {
-            _agent = (await _api.GetAgentsAsync(ct)).Where(a => a.SiteId == SiteId && !a.Revoked).MaxBy(a => a.EnrolledUtc);
-            if (_agent is null)
+            var site = await _api.GetSiteAsync(SiteId, ct);
+            _agent = site.CollectorId is { } collector ? await _api.GetAgentAsync(collector, ct) : null;
+            if (_agent is null || _agent.Revoked)
             {
-                Errors.Add("This site has no agent yet. Enroll the site's agent first (Enrollment), then add sources.");
+                Errors.Add("No collector is assigned to this site yet. Assign one under Sites and collectors, then add sources.");
                 return;
             }
             Status = "Saving the source…";
             await _api.PutSourceAsync(SiteId, Draft(paused: true), ct);
             if (Auth == AuthMethod.SqlLogin && Password.Length > 0)
             {
-                using var certificate = X509Certificate2.CreateFromPem(_agent.CertificatePem);
-                using var key = certificate.GetRSAPublicKey()!;
-                var sealedPassword = SealedSecret.Seal(Password, key, certificate.Thumbprint);
+                var sealedPassword = await _sealer.SealAsync(Password, _agent.PublicKeySpki, _agent.CertificateThumbprint);
                 await _api.PutCredentialAsync(SiteId, SourceId, new CredentialRequest(_agent.AgentId, sealedPassword), ct);
                 Password = "";
             }
-            Status = "Waiting for the agent to connect (it checks in every few seconds)…";
-            var result = await _api.RunCommandAsync(_agent.AgentId, new CommandRequest { Type = CommandType.TestConnection, SourceId = SourceId },
+            Status = "Waiting for the collector to connect (it checks in every few seconds)…";
+            var result = await _api.RunCommandAsync(SiteId, new CommandRequest { Type = CommandType.TestConnection, SourceId = SourceId },
                 _commandTimeout, _pollEvery, ct);
             if (result.CompletedUtc is null)
             {
-                Errors.Add("The agent has not answered. Check the site's agent is running and online (fleet overview), then try again.");
+                Errors.Add("The collector has not answered. Check it is running and online (Sites and collectors), then try again.");
                 return;
             }
             TestResult = result.Details?.Deserialize<ConnectionTestResult>(EnvelopeJson.Options)
@@ -213,12 +214,12 @@ public sealed partial class SourceWizardViewModel : ObservableObject
 
     private async Task BrowseAsync(CancellationToken ct)
     {
-        var result = await _api.RunCommandAsync(_agent!.AgentId, new CommandRequest { Type = CommandType.BrowseSchema, SourceId = SourceId },
+        var result = await _api.RunCommandAsync(SiteId, new CommandRequest { Type = CommandType.BrowseSchema, SourceId = SourceId },
             _commandTimeout, _pollEvery, ct);
         var browse = result.Details?.Deserialize<SchemaBrowseResult>(EnvelopeJson.Options);
         if (result.Succeeded != true || browse is null)
         {
-            Errors.Add(result.Result ?? "The agent could not list the tables.");
+            Errors.Add(result.Result ?? "The collector could not list the tables.");
             return;
         }
         Tables.Clear();
@@ -255,7 +256,7 @@ public sealed partial class SourceWizardViewModel : ObservableObject
                 }, ct);
             }
             await _api.PutSourceAsync(SiteId, Draft(paused: false), ct);
-            Status = $"{chosen.Count} table(s) saved. The agent starts the snapshot within a minute; follow it on the site page.";
+            Status = $"{chosen.Count} table(s) saved. The collector starts the snapshot within a minute; follow it on the site page.";
             Step = WizardStep.Done;
         }
         catch (ConsoleApiException ex)

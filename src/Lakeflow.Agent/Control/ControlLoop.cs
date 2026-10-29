@@ -8,14 +8,16 @@ using Microsoft.Extensions.Logging;
 namespace Lakeflow.Agent.Control;
 
 /// <summary>
-/// The agent's side of the control plane: pulls config (with commands and sealed credentials) every 60 s, sends a
-/// heartbeat every 30 s, posts events, and renews its certificate. While the API is unreachable the agent keeps
-/// running on its cached config and retries with back-off.
+/// The collector's side of the control plane: pulls the config of every assigned site (with commands and sealed
+/// credentials) every 60 s, sends each site's heartbeat every 30 s, posts events, and renews the certificate. While the
+/// API is unreachable the collector keeps running on its cached config and retries with back-off.
 /// </summary>
 public sealed class ControlLoop(
-    AgentPipeline pipeline, LocalStore store, ControlApiHandlerFactory handlers, TimeProvider time, ILogger<ControlLoop> log,
+    CollectorHost host, ControlApiHandlerFactory handlers, TimeProvider time, ILogger<ControlLoop> log,
     string logDirectory, Action requestRestart) : IDisposable
 {
+    private LocalStore store => host.IdentityStore;
+
     public static readonly TimeSpan RenewBefore = TimeSpan.FromDays(30);
     private const long MaxLogBundle = 20L * 1024 * 1024;
 
@@ -55,7 +57,7 @@ public sealed class ControlLoop(
             using var anonymous = ControlApiClient.CreateHttp(controlApi, handlers(null));
             var response = await ControlApiClient.EnrollAsync(anonymous, new EnrollRequest(token, csr, hostname, agentVersion), ct);
             Use(AgentIdentity.Save(store, key, response.CertificatePem, controlApi));
-            log.LogInformation("Enrolled as {AgentId} for site {SiteId}", response.AgentId, response.SiteId);
+            log.LogInformation("Enrolled as {AgentId} ({Scope})", response.AgentId, response.SiteId is null ? "central collector" : $"site {response.SiteId}");
         }
     }
 
@@ -68,10 +70,13 @@ public sealed class ControlLoop(
             try
             {
                 var config = await client.GetConfigAsync(ct);
-                if (await pipeline.ApplyConfigAsync(config))
+                await host.ApplyAsync(config, cache: true, ct);
+                foreach (var siteConfig in config.Sites)
                 {
-                    await HandleCredentialsAsync(config, now);
-                    await HandleCommandsAsync(client, config, ct);
+                    if (!host.Sites.TryGetValue(siteConfig.SiteId, out var site) || site.Pipeline.Config?.ConfigVersion != siteConfig.ConfigVersion)
+                        continue; // refused config: leave its credentials and commands for when it is fixed
+                    HandleCredentials(site, siteConfig, now);
+                    await HandleCommandsAsync(client, site, siteConfig, ct);
                 }
                 _nextConfig = now + TimeSpan.FromSeconds(config.ConfigPollSeconds);
                 if (ConsecutiveFailures > 0) log.LogInformation("Control API reachable again");
@@ -89,10 +94,11 @@ public sealed class ControlLoop(
             }
         }
 
-        if (now >= _nextHeartbeat && pipeline.Config is { } current)
+        if (now >= _nextHeartbeat && host.Config is { } current)
         {
             _nextHeartbeat = now + TimeSpan.FromSeconds(current.HeartbeatSeconds);
-            await TryAsync("heartbeat", () => client.SendHeartbeatAsync(pipeline.BuildHeartbeat(), ct));
+            foreach (var site in host.Sites.Values.Where(s => s.Pipeline.Config is not null))
+                await TryAsync("heartbeat", () => client.SendHeartbeatAsync(site.Pipeline.BuildHeartbeat(), ct));
         }
 
         await FlushEventsAsync(client, ct);
@@ -104,61 +110,70 @@ public sealed class ControlLoop(
         }
     }
 
-    /// <summary>Posts pending events; they stay in the store until the API has them.</summary>
+    /// <summary>Posts pending events, each site's stamped with its site; they stay in their store until the API has them.</summary>
     public async Task FlushEventsAsync(ControlApiClient client, CancellationToken ct)
     {
-        for (var round = 0; round < 10; round++)
+        var stores = new List<(string? SiteId, LocalStore Store)> { (null, store) };
+        stores.AddRange(host.Sites.Where(s => !ReferenceEquals(s.Value.Store, store)).Select(s => ((string?)s.Key, s.Value.Store)));
+        // A collector that is also its only site's store (an agent at a site): its events belong to that site.
+        var shared = host.Sites.FirstOrDefault(s => ReferenceEquals(s.Value.Store, store)).Key;
+        if (shared is not null) stores[0] = (shared, store);
+        foreach (var (siteId, source) in stores)
         {
-            var pending = store.PeekEvents(100);
-            if (pending.Count == 0) return;
-            if (!await TryAsync("events", () => client.SendEventsAsync(pending.Select(p => p.Event).ToList(), ct))) return;
-            store.RemoveEvents(pending.Select(p => p.Id));
+            for (var round = 0; round < 10; round++)
+            {
+                var pending = source.PeekEvents(100);
+                if (pending.Count == 0) break;
+                var events = pending.Select(p => p.Event with { SiteId = p.Event.SiteId ?? siteId }).ToList();
+                if (!await TryAsync("events", () => client.SendEventsAsync(events, ct))) return;
+                source.RemoveEvents(pending.Select(p => p.Id));
+            }
         }
     }
 
-    private Task HandleCredentialsAsync(AgentConfig config, DateTimeOffset now)
+    private void HandleCredentials(SiteParts site, AgentConfig config, DateTimeOffset now)
     {
         foreach (var credential in config.Credentials)
         {
             using var key = Identity!.Certificate.GetRSAPrivateKey()!;
             try
             {
-                store.SetCredential(credential.Name, SealedSecret.Open(credential.Sealed, key, Identity.Certificate.Thumbprint));
-                if (!store.MarkHandled("credential", credential.Id, now)) continue;
-                log.LogInformation("Stored credential {Name}", credential.Name);
-                store.AddEvent(new AgentEvent
+                site.Store.SetCredential(credential.Name, SealedSecret.Open(credential.Sealed, key, Identity.Certificate.Thumbprint));
+                if (!site.Store.MarkHandled("credential", credential.Id, now)) continue;
+                log.LogInformation("Stored credential {Name} for site {SiteId}", credential.Name, config.SiteId);
+                site.Store.AddEvent(new AgentEvent
                 {
                     EventId = Guid.NewGuid(), OccurredUtc = now, Kind = AgentEventKind.CredentialStored, Severity = EventSeverity.Info,
-                    Message = $"Credential {credential.Name} stored.", Details = new JsonObject { ["credential_id"] = credential.Id.ToString() },
+                    SiteId = config.SiteId, Message = $"Credential {credential.Name} stored.",
+                    Details = new JsonObject { ["credential_id"] = credential.Id.ToString() },
                 });
                 // A source that failed for want of its password can try again straight away.
                 foreach (var source in config.Sources.Where(s => s.Connection.CredentialName == credential.Name))
-                    pipeline.RetrySourceSoon(source.SourceId);
+                    site.Pipeline.RetrySourceSoon(source.SourceId);
             }
             catch (System.Security.Cryptography.CryptographicException ex)
             {
-                if (!store.MarkHandled("credential", credential.Id, now)) continue;
+                if (!site.Store.MarkHandled("credential", credential.Id, now)) continue;
                 log.LogError("Credential {Name} could not be opened: {Error}", credential.Name, ex.Message);
-                store.AddEvent(new AgentEvent
+                site.Store.AddEvent(new AgentEvent
                 {
-                    EventId = Guid.NewGuid(), OccurredUtc = now, Kind = AgentEventKind.Error, Severity = EventSeverity.Error,
+                    EventId = Guid.NewGuid(), OccurredUtc = now, Kind = AgentEventKind.Error, Severity = EventSeverity.Error, SiteId = config.SiteId,
                     Message = $"Credential {credential.Name} could not be opened ({ex.Message}); enter it again in the console.",
                 });
             }
         }
-        return Task.CompletedTask;
     }
 
     /// <summary>Each command runs at most once, even if its result is lost and it is delivered again.</summary>
-    private async Task HandleCommandsAsync(ControlApiClient client, AgentConfig config, CancellationToken ct)
+    private async Task HandleCommandsAsync(ControlApiClient client, SiteParts site, AgentConfig config, CancellationToken ct)
     {
         foreach (var command in config.Commands)
         {
-            if (!store.MarkHandled("command", command.CommandId, time.GetUtcNow())) continue;
+            if (!site.Store.MarkHandled("command", command.CommandId, time.GetUtcNow())) continue;
             switch (command.Type)
             {
                 case CommandType.Restart:
-                    Result(command, EventSeverity.Info, "Restarting.");
+                    Result(site.Store, config.SiteId, command, EventSeverity.Info, "Restarting.");
                     await FlushEventsAsync(client, ct);
                     log.LogWarning("Restart requested by {User}", command.IssuedBy);
                     requestRestart();
@@ -167,24 +182,24 @@ public sealed class ControlLoop(
                     try
                     {
                         var location = await client.UploadLogsAsync(ZipLogs(), command.CommandId, ct);
-                        Result(command, EventSeverity.Info, $"Logs uploaded: {location}");
+                        Result(site.Store, config.SiteId, command, EventSeverity.Info, $"Logs uploaded: {location}");
                     }
                     catch (Exception ex) when (ex is HttpRequestException or ControlApiException or IOException)
                     {
-                        Result(command, EventSeverity.Warning, $"Log upload failed: {ex.Message}");
+                        Result(site.Store, config.SiteId, command, EventSeverity.Warning, $"Log upload failed: {ex.Message}");
                     }
                     break;
                 default:
-                    await pipeline.ExecuteAsync(command);
+                    await site.Pipeline.ExecuteAsync(command);
                     break;
             }
         }
     }
 
-    private void Result(AgentCommand command, EventSeverity severity, string message) => store.AddEvent(new AgentEvent
+    private void Result(LocalStore target, string siteId, AgentCommand command, EventSeverity severity, string message) => target.AddEvent(new AgentEvent
     {
         EventId = Guid.NewGuid(), OccurredUtc = time.GetUtcNow(), Kind = AgentEventKind.CommandResult, Severity = severity,
-        CommandId = command.CommandId, Message = message,
+        SiteId = siteId, CommandId = command.CommandId, Message = message,
     });
 
     /// <summary>The newest log files that fit in 20 MB.</summary>

@@ -76,24 +76,30 @@ public sealed class ConfigBuilder(LakeflowDb db, IKeyMaterial keys, IOptions<Eve
     }
 
     /// <summary>
-    /// The agent's config: settings, a SAS token per division hub (reissued once half its 24 hours have passed),
-    /// commands not yet completed, and sealed credentials not yet acknowledged.
+    /// A collector's config: for each site assigned to it, the settings, a SAS token per division hub (reissued once
+    /// half its 24 hours have passed), commands not yet completed, and sealed credentials not yet acknowledged.
     /// </summary>
-    public async Task<AgentConfig> ForAgentAsync(Agent agent, CancellationToken ct)
+    public async Task<CollectorConfig> ForCollectorAsync(Agent agent, CancellationToken ct)
     {
         var now = time.GetUtcNow();
-        var site = await db.Sites.SingleAsync(s => s.SiteId == agent.SiteId, ct);
-        var sources = await SourcesAsync(site.SiteId, ct);
+        var sites = await db.Sites.Where(s => s.AgentId == agent.AgentId).OrderBy(s => s.SiteId).ToListAsync(ct);
+        var siteIds = sites.Select(s => s.SiteId).ToList();
+        var commands = await db.Commands.Where(c => c.AgentId == agent.AgentId && c.CompletedUtc == null && siteIds.Contains(c.SiteId))
+            .OrderBy(c => c.IssuedUtc).ToListAsync(ct);
+        foreach (var command in commands) command.DeliveredUtc ??= now;
+        var credentials = await db.SealedCredentials.Where(c => c.AgentId == agent.AgentId).OrderBy(c => c.CreatedUtc).ToListAsync(ct);
 
         if (agent.SasExpiresUtc is null || agent.SasExpiresUtc - now < SasTokens.Lifetime / 2)
             agent.SasExpiresUtc = DateTimeOffset.FromUnixTimeSeconds((now + SasTokens.Lifetime).ToUnixTimeSeconds());
         var expires = agent.SasExpiresUtc.Value;
         var options = hubs.Value;
-        var targets = sources.Select(s => s.Division).Distinct().Order().Select(division =>
+        var tokens = new Dictionary<Division, EventHubTarget>();
+        EventHubTarget Hub(Division division)
         {
+            if (tokens.TryGetValue(division, out var target)) return target;
             var (policy, key) = keys.HubSendKey(division);
             var hub = options.HubName(division);
-            return new EventHubTarget
+            return tokens[division] = new EventHubTarget
             {
                 Division = division,
                 FullyQualifiedNamespace = options.Namespace,
@@ -101,31 +107,40 @@ public sealed class ConfigBuilder(LakeflowDb db, IKeyMaterial keys, IOptions<Eve
                 SasToken = SasTokens.Create(options.Namespace, hub, policy, key, expires),
                 SasExpiresUtc = expires,
             };
-        }).ToList();
+        }
 
-        var commands = await db.Commands.Where(c => c.AgentId == agent.AgentId && c.CompletedUtc == null).OrderBy(c => c.IssuedUtc).ToListAsync(ct);
-        foreach (var command in commands) command.DeliveredUtc ??= now;
-        var credentials = await db.SealedCredentials.Where(c => c.AgentId == agent.AgentId).OrderBy(c => c.CreatedUtc).ToListAsync(ct);
+        var configs = new List<AgentConfig>();
+        foreach (var site in sites)
+        {
+            var sources = await SourcesAsync(site.SiteId, ct);
+            configs.Add(new AgentConfig
+            {
+                AgentId = agent.AgentId,
+                SiteId = site.SiteId,
+                ConfigVersion = site.ConfigVersion,
+                DesiredAgentVersion = site.DesiredAgentVersion,
+                MaintenanceWindow = site.MaintenanceStart is { } start && site.MaintenanceEnd is { } end ? new MaintenanceWindow(start, end) : null,
+                SiteTimeZone = site.TimeZone,
+                EventHubs = sources.Select(s => s.Division).Distinct().Order().Select(Hub).ToList(),
+                Buffer = new BufferSettings { CapBytes = site.BufferCapBytes },
+                Sources = sources,
+                Commands = commands.Where(c => c.SiteId == site.SiteId).Select(c => new AgentCommand
+                {
+                    CommandId = c.CommandId, Type = c.Type, SourceId = c.SourceId, Table = c.TableName, IssuedUtc = c.IssuedUtc, IssuedBy = c.IssuedBy,
+                }).ToList(),
+                Credentials = credentials.Where(c => c.SiteId == site.SiteId)
+                    .Select(c => new SealedCredential(c.Id, c.CredentialName, c.Sealed)).ToList(),
+            });
+        }
         await db.SaveChangesAsync(ct);
 
-        return new AgentConfig
+        return new CollectorConfig
         {
+            AgentId = agent.AgentId,
             // Someone is waiting on a command (e.g. the setup wizard): poll every 10 s instead of 60 s for a while.
             ConfigPollSeconds = commands.Any(c => now - c.IssuedUtc < FastPollFor) ? 10 : 60,
-            AgentId = agent.AgentId,
-            SiteId = site.SiteId,
-            ConfigVersion = site.ConfigVersion,
-            DesiredAgentVersion = site.DesiredAgentVersion,
-            MaintenanceWindow = site.MaintenanceStart is { } start && site.MaintenanceEnd is { } end ? new MaintenanceWindow(start, end) : null,
-            SiteTimeZone = site.TimeZone,
-            EventHubs = targets,
-            Buffer = new BufferSettings { CapBytes = site.BufferCapBytes },
-            Sources = sources,
-            Commands = commands.Select(c => new AgentCommand
-            {
-                CommandId = c.CommandId, Type = c.Type, SourceId = c.SourceId, Table = c.TableName, IssuedUtc = c.IssuedUtc, IssuedBy = c.IssuedBy,
-            }).ToList(),
-            Credentials = credentials.Select(c => new SealedCredential(c.Id, c.CredentialName, c.Sealed)).ToList(),
+            DesiredAgentVersion = sites.Select(s => s.DesiredAgentVersion).FirstOrDefault(v => v is not null),
+            Sites = configs,
         };
     }
 }

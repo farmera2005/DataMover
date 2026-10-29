@@ -47,15 +47,26 @@ jobs:
       - run: python fabric/tools/build_notebooks.py --check
       - run: python -m pytest fabric -q
 
-  windows:
-    name: Console and agent (Windows)
+  collector-image:
+    name: Collector image (Docker)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -f deploy/collector/Dockerfile -t lakeflow-collector .
+      - name: Starts and waits for enrollment
+        run: |
+          docker run -d --name collector lakeflow-collector
+          sleep 10
+          docker logs collector 2>&1 | tee collector.log
+          grep -q "Not enrolled" collector.log
+          docker exec collector test -f /var/lib/lakeflow-secrets/master.key
+
+  site-agent:
+    name: Site agent (Windows)
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
-      - name: Build the WinUI console
-        run: dotnet build windows/Lakeflow.Console.sln -c Release -p:Platform=x64 -p:GenerateAppxPackageOnBuild=false
-      - name: Publish the agent
-        run: dotnet publish src/Lakeflow.Agent -c Release -r win-x64 --self-contained -o out/agent
+      - run: dotnet publish src/Lakeflow.Agent -c Release -r win-x64 --self-contained -o out/agent

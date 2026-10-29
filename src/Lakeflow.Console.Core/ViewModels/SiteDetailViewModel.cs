@@ -23,7 +23,7 @@ public sealed record TableRow(TableStatus Status, ReconciliationResult? Reconcil
 }
 
 /// <summary>
-/// Site detail: agent version and health, each table's state, lag and rows/min, recent events and commands, and the
+/// Site detail: the collector serving the site, its health, each table's state, lag and rows/min, recent events and commands, and the
 /// actions the user's role allows.
 /// </summary>
 public sealed partial class SiteDetailViewModel(ConsoleApi api, SignedInUser user, string siteId, TimeProvider? time = null) : ObservableObject
@@ -63,14 +63,14 @@ public sealed partial class SiteDetailViewModel(ConsoleApi api, SignedInUser use
             Site = await api.GetSiteAsync(siteId, ct);
             var fleet = await api.GetStatusAsync(ct);
             Status = fleet.Sites.FirstOrDefault(s => s.SiteId == siteId);
-            Agent = (await api.GetAgentsAsync(ct)).Where(a => a.SiteId == siteId && !a.Revoked).MaxBy(a => a.EnrolledUtc);
+            Agent = Site.CollectorId is { } collector ? await api.GetAgentAsync(collector, ct) : null;
             var checks = await api.GetReconciliationAsync(siteId, ct);
             var now = _time.GetUtcNow();
             Replace(Tables, (Status?.Heartbeat?.Tables ?? []).Select(t =>
                 new TableRow(t, checks.FirstOrDefault(c => c.SourceId == t.SourceId && c.Table == t.Table), now)));
             Replace(Sources, await api.GetSourcesAsync(siteId, ct));
             Replace(Events, await api.GetEventsAsync(siteId, 50, ct));
-            Replace(Commands, Agent is null ? [] : (await api.GetCommandsAsync(Agent.AgentId, ct)).Take(20));
+            Replace(Commands, (await api.GetCommandsAsync(siteId, ct)).Take(20));
             Error = null;
         }
         catch (Exception ex) when (ex is ConsoleApiException or HttpRequestException)
@@ -100,8 +100,8 @@ public sealed partial class SiteDetailViewModel(ConsoleApi api, SignedInUser use
         if (Agent is null) return;
         try
         {
-            var command = await api.PostCommandAsync(Agent.AgentId, new CommandRequest { Type = type, SourceId = row?.SourceId, Table = row?.Table });
-            Message = $"{type} sent; the agent picks it up within a minute.";
+            var command = await api.PostCommandAsync(siteId, new CommandRequest { Type = type, SourceId = row?.SourceId, Table = row?.Table });
+            Message = $"{type} sent; the collector picks it up within seconds.";
             Commands.Insert(0, command);
             Error = null;
         }

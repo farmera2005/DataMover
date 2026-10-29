@@ -60,26 +60,35 @@ public static class ConsoleEndpoints
             return TypedResults.NoContent();
         });
 
-        admin.MapPost("/sites/{siteId}/enrollment-tokens", async Task<Results<Ok<EnrollmentTokenResponse>, NotFound>> (
-            string siteId, LakeflowDb db, IActor actor, TimeProvider time, CancellationToken ct) =>
+        admin.MapPost("/enrollment-tokens", async Task<Results<Ok<EnrollmentTokenResponse>, NotFound, ValidationProblem>> (
+            EnrollmentTokenRequest request, LakeflowDb db, IActor actor, TimeProvider time, CancellationToken ct) =>
         {
-            if (await db.Sites.FindAsync([siteId], ct) is null) return TypedResults.NotFound();
+            if (request.SiteId is not null && await db.Sites.FindAsync([request.SiteId], ct) is null) return TypedResults.NotFound();
+            if (request.SiteId is null && string.IsNullOrWhiteSpace(request.Name)) return Invalid(["A central collector needs a name (e.g. central-1)."]);
             var token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32)).Replace('+', '-').Replace('/', '_').TrimEnd('=');
             var now = time.GetUtcNow();
             db.EnrollmentTokens.Add(new EnrollmentToken
             {
-                Id = Guid.NewGuid(), SiteId = siteId, TokenHash = AgentEndpoints.HashToken(token), CreatedUtc = now,
-                CreatedBy = actor.Name, ExpiresUtc = now + EnrollmentTokenLifetime,
+                Id = Guid.NewGuid(), SiteId = request.SiteId, Name = request.Name?.Trim(), TokenHash = AgentEndpoints.HashToken(token),
+                CreatedUtc = now, CreatedBy = actor.Name, ExpiresUtc = now + EnrollmentTokenLifetime,
             });
             await db.SaveChangesAsync(ct);
-            var install = $"msiexec /i LakeflowAgent.msi /qn CONTROL_API=\"{publicBaseUrl}\" ENROLLMENT_TOKEN=\"{token}\"";
+            var install = request.SiteId is null
+                ? $"LAKEFLOW_CONTROL_API=\"{publicBaseUrl}\" LAKEFLOW_ENROLLMENT_TOKEN=\"{token}\" docker compose up -d"
+                : $"msiexec /i LakeflowAgent.msi /qn CONTROL_API=\"{publicBaseUrl}\" ENROLLMENT_TOKEN=\"{token}\"";
             return TypedResults.Ok(new EnrollmentTokenResponse(token, now + EnrollmentTokenLifetime, install));
         });
 
         read.MapGet("/agents", async (LakeflowDb db, CancellationToken ct) =>
-            (await db.Agents.OrderBy(a => a.SiteId).ThenByDescending(a => a.EnrolledUtc).ToListAsync(ct)).Select(ToDto));
+        {
+            var assignments = await db.Sites.Where(s => s.AgentId != null).Select(s => new { s.SiteId, s.AgentId }).ToListAsync(ct);
+            return (await db.Agents.OrderBy(a => a.Name).ThenByDescending(a => a.EnrolledUtc).ToListAsync(ct))
+                .Select(a => ToDto(a, assignments.Where(x => x.AgentId == a.AgentId).Select(x => x.SiteId).Order().ToList()));
+        });
         read.MapGet("/agents/{agentId}", async Task<Results<Ok<AgentDto>, NotFound>> (string agentId, LakeflowDb db, CancellationToken ct) =>
-            await db.Agents.FindAsync([agentId], ct) is { } agent ? TypedResults.Ok(ToDto(agent)) : TypedResults.NotFound());
+            await db.Agents.FindAsync([agentId], ct) is { } agent
+                ? TypedResults.Ok(ToDto(agent, await db.Sites.Where(s => s.AgentId == agentId).Select(s => s.SiteId).OrderBy(x => x).ToListAsync(ct)))
+                : TypedResults.NotFound());
         admin.MapPost("/agents/{agentId}/revoke", async Task<Results<NoContent, NotFound>> (string agentId, LakeflowDb db, IActor actor, TimeProvider time, CancellationToken ct) =>
         {
             if (await db.Agents.FindAsync([agentId], ct) is not { } agent) return TypedResults.NotFound();
@@ -90,13 +99,13 @@ public static class ConsoleEndpoints
             return TypedResults.NoContent();
         });
 
-        operate.MapPost("/agents/{agentId}/commands", PostCommandAsync);
-        read.MapGet("/agents/{agentId}/commands/{commandId:guid}", async Task<Results<Ok<CommandDto>, NotFound>> (string agentId, Guid commandId, LakeflowDb db, CancellationToken ct) =>
-            await db.Commands.FirstOrDefaultAsync(c => c.AgentId == agentId && c.CommandId == commandId, ct) is { } command
+        operate.MapPost("/sites/{siteId}/commands", PostCommandAsync);
+        read.MapGet("/sites/{siteId}/commands/{commandId:guid}", async Task<Results<Ok<CommandDto>, NotFound>> (string siteId, Guid commandId, LakeflowDb db, CancellationToken ct) =>
+            await db.Commands.FirstOrDefaultAsync(c => c.SiteId == siteId && c.CommandId == commandId, ct) is { } command
                 ? TypedResults.Ok(ToDto(command))
                 : TypedResults.NotFound());
-        read.MapGet("/agents/{agentId}/commands", async (string agentId, LakeflowDb db, CancellationToken ct) =>
-            (await db.Commands.Where(c => c.AgentId == agentId).OrderByDescending(c => c.IssuedUtc).Take(200).ToListAsync(ct)).Select(ToDto));
+        read.MapGet("/sites/{siteId}/commands", async (string siteId, LakeflowDb db, CancellationToken ct) =>
+            (await db.Commands.Where(c => c.SiteId == siteId).OrderByDescending(c => c.IssuedUtc).Take(200).ToListAsync(ct)).Select(ToDto));
 
         read.MapGet("/events", async (string? siteId, int? take, LakeflowDb db, CancellationToken ct) =>
         {
@@ -133,14 +142,18 @@ public static class ConsoleEndpoints
         }
         var now = time.GetUtcNow();
         var sites = await db.Sites.OrderBy(s => s.Name).ToListAsync(ct);
-        var agents = await db.Agents.Where(a => a.RevokedUtc == null).ToListAsync(ct);
+        var agents = await db.Agents.ToDictionaryAsync(a => a.AgentId, ct);
+        var beats = await db.SiteHeartbeats.ToDictionaryAsync(h => h.SiteId, ct);
         var tables = await db.Tables.ToListAsync(ct);
         var result = new List<SiteStatus>();
         foreach (var site in sites)
         {
-            var agent = agents.Where(a => a.SiteId == site.SiteId).MaxBy(a => a.EnrolledUtc);
-            var heartbeat = agent?.LastHeartbeatJson is { } json ? EnvelopeJson.Deserialize<Heartbeat>(json) : null;
-            var (health, reasons) = FleetHealth.Evaluate(agent is not null, heartbeat, agent?.LastHeartbeatUtc, now, (sourceId, table) =>
+            var agent = site.AgentId is { } id ? agents.GetValueOrDefault(id) : null;
+            if (agent?.RevokedUtc is not null) agent = null;
+            // Only a heartbeat from the collector now serving the site counts.
+            var beat = agent is not null && beats.TryGetValue(site.SiteId, out var b) && b.AgentId == agent.AgentId ? b : null;
+            var heartbeat = beat is null ? null : EnvelopeJson.Deserialize<Heartbeat>(beat.Json);
+            var (health, reasons) = FleetHealth.Evaluate(agent is not null, heartbeat, beat?.ReceivedUtc, now, (sourceId, table) =>
                 tables.FirstOrDefault(t => t.SiteId == site.SiteId && t.SourceId == sourceId && t.TableName == table) is { } t
                     ? new FleetHealth.TableThresholds(t.LagWarningMinutes, t.LagCriticalMinutes)
                     : new FleetHealth.TableThresholds(15, 60),
@@ -149,7 +162,7 @@ public static class ConsoleEndpoints
             {
                 SiteId = site.SiteId, Name = site.Name, Latitude = site.Latitude, Longitude = site.Longitude,
                 Health = health, Reasons = reasons, AgentId = agent?.AgentId, AgentVersion = agent?.AgentVersion,
-                LastHeartbeatUtc = agent?.LastHeartbeatUtc,
+                LastHeartbeatUtc = beat?.ReceivedUtc,
                 WorstLagSeconds = heartbeat?.Tables.Select(t => t.LagSeconds).DefaultIfEmpty(0).Max(),
                 BufferBytes = heartbeat?.BufferBytes, BufferPercent = heartbeat?.BufferPercent, Heartbeat = heartbeat,
             });
@@ -172,6 +185,18 @@ public static class ConsoleEndpoints
         site.BufferCapBytes = dto.BufferCapBytes;
 
         var errors = new List<string>();
+        if (dto.CollectorId != site.AgentId)
+        {
+            if (dto.CollectorId is not null && await db.Agents.FirstOrDefaultAsync(a => a.AgentId == dto.CollectorId && a.RevokedUtc == null, ct) is null)
+                errors.Add($"Collector {dto.CollectorId} is not an active collector.");
+            else
+            {
+                // Passwords were sealed to the old collector's key; the new one cannot open them. Re-enter them.
+                db.SealedCredentials.RemoveRange(db.SealedCredentials.Where(c => c.SiteId == siteId));
+                foreach (var source in await db.Sources.Where(x => x.SiteId == siteId).ToListAsync(ct)) source.CredentialStoredUtc = null;
+                site.AgentId = dto.CollectorId;
+            }
+        }
         if (string.IsNullOrWhiteSpace(dto.Name)) errors.Add("name is required.");
         if (!TimeZoneInfo.TryFindSystemTimeZoneById(dto.TimeZone, out _)) errors.Add($"time_zone '{dto.TimeZone}' is not a known time zone.");
         if ((dto.MaintenanceStart is null) != (dto.MaintenanceEnd is null)) errors.Add("maintenance_start and maintenance_end go together.");
@@ -185,7 +210,7 @@ public static class ConsoleEndpoints
     {
         if (await db.Sites.FindAsync([siteId], ct) is not { } site) return TypedResults.NotFound();
         if (await db.Agents.AnyAsync(a => a.SiteId == siteId, ct))
-            return TypedResults.Conflict(new ProblemList(["The site has enrolled agents; revoke them first. Agent history is kept for the audit log."]));
+            return TypedResults.Conflict(new ProblemList(["The site has its own enrolled agent; that agent's history is kept, so the site cannot be deleted. Unassign or revoke instead."]));
         db.Sites.Remove(site);
         await db.SaveChangesAsync(ct);
         return TypedResults.NoContent();
@@ -253,8 +278,9 @@ public static class ConsoleEndpoints
     {
         if (await db.Sources.FindAsync([siteId, sourceId], ct) is not { } source) return TypedResults.NotFound();
         if (string.IsNullOrEmpty(source.CredentialName)) return Invalid(["The source has no credential_name to fill."]);
-        var agent = await db.Agents.FirstOrDefaultAsync(a => a.AgentId == request.AgentId && a.SiteId == siteId && a.RevokedUtc == null, ct);
-        if (agent is null) return Invalid(["The agent is not this site's active agent."]);
+        var site = await db.Sites.SingleAsync(s => s.SiteId == siteId, ct);
+        var agent = await db.Agents.FirstOrDefaultAsync(a => a.AgentId == request.AgentId && a.AgentId == site.AgentId && a.RevokedUtc == null, ct);
+        if (agent is null) return Invalid(["That is not the collector serving this site; reload the site and try again."]);
         if (!SealedSecret.IsWellFormed(request.Sealed)) return Invalid(["The credential must be sealed to the agent's certificate; plain passwords are refused."]);
         if (!string.Equals(SealedSecret.KeyId(request.Sealed), agent.CertificateThumbprint, StringComparison.OrdinalIgnoreCase))
             return Invalid(["The credential was sealed to a different certificate; reload the agent and seal again."]);
@@ -270,9 +296,12 @@ public static class ConsoleEndpoints
     }
 
     private static async Task<Results<Ok<CommandDto>, NotFound, ForbidHttpResult, ValidationProblem>> PostCommandAsync(
-        string agentId, CommandRequest request, HttpContext http, LakeflowDb db, IActor actor, TimeProvider time, CancellationToken ct)
+        string siteId, CommandRequest request, HttpContext http, LakeflowDb db, IActor actor, TimeProvider time, CancellationToken ct)
     {
-        if (await db.Agents.FindAsync([agentId], ct) is not { } agent || agent.RevokedUtc is not null) return TypedResults.NotFound();
+        if (await db.Sites.FindAsync([siteId], ct) is not { } site) return TypedResults.NotFound();
+        if (site.AgentId is null || await db.Agents.FindAsync([site.AgentId], ct) is not { RevokedUtc: null } agent)
+            return Invalid(["No collector is assigned to this site."]);
+        var agentId = agent.AgentId;
         // Operators pause, resume and resnapshot; restarting, pulling logs and source setup are for Admins.
         if (request.Type is CommandType.Restart or CommandType.CollectLogs or CommandType.TestConnection or CommandType.BrowseSchema
             && !http.User.IsInRole(Roles.Admin)) return TypedResults.Forbid();
@@ -283,17 +312,17 @@ public static class ConsoleEndpoints
         };
         var errors = ConfigValidator.Validate(new AgentConfig
         {
-            AgentId = agentId, SiteId = agent.SiteId, ConfigVersion = 1, EventHubs = [], Commands = [command],
+            AgentId = agentId, SiteId = siteId, ConfigVersion = 1, EventHubs = [], Commands = [command],
         }).Where(e => e.StartsWith("command")).ToList();
-        if (request.SourceId is not null && !await db.Sources.AnyAsync(s => s.SiteId == agent.SiteId && s.SourceId == request.SourceId, ct))
+        if (request.SourceId is not null && !await db.Sources.AnyAsync(s => s.SiteId == siteId && s.SourceId == request.SourceId, ct))
             errors.Add($"Unknown source {request.SourceId}.");
-        if (request.Table is not null && !await db.Tables.AnyAsync(t => t.SiteId == agent.SiteId && t.SourceId == request.SourceId && t.TableName == request.Table, ct))
+        if (request.Table is not null && !await db.Tables.AnyAsync(t => t.SiteId == siteId && t.SourceId == request.SourceId && t.TableName == request.Table, ct))
             errors.Add($"Unknown table {request.Table}.");
         if (errors.Count > 0) return Invalid(errors);
 
         var row = new Command
         {
-            CommandId = command.CommandId, AgentId = agentId, Type = command.Type, SourceId = command.SourceId, TableName = command.Table,
+            CommandId = command.CommandId, SiteId = siteId, AgentId = agentId, Type = command.Type, SourceId = command.SourceId, TableName = command.Table,
             IssuedBy = command.IssuedBy, IssuedUtc = command.IssuedUtc,
         };
         db.Commands.Add(row);
@@ -308,7 +337,7 @@ public static class ConsoleEndpoints
     {
         SiteId = s.SiteId, Name = s.Name, TimeZone = s.TimeZone, Latitude = s.Latitude, Longitude = s.Longitude,
         MaintenanceStart = s.MaintenanceStart, MaintenanceEnd = s.MaintenanceEnd, DesiredAgentVersion = s.DesiredAgentVersion,
-        BufferCapBytes = s.BufferCapBytes, ConfigVersion = s.ConfigVersion,
+        BufferCapBytes = s.BufferCapBytes, CollectorId = s.AgentId, ConfigVersion = s.ConfigVersion,
     };
 
     private static SourceDto ToDto(Source s, bool credentialPending) => new()
@@ -329,16 +358,21 @@ public static class ConsoleEndpoints
         };
     }
 
-    private static AgentDto ToDto(Agent a) => new()
+    private static AgentDto ToDto(Agent a, IReadOnlyList<string> sites)
     {
-        AgentId = a.AgentId, SiteId = a.SiteId, Hostname = a.Hostname, AgentVersion = a.AgentVersion, EnrolledUtc = a.EnrolledUtc,
-        LastHeartbeatUtc = a.LastHeartbeatUtc, CertificateExpiresUtc = a.CertificateExpiresUtc, CertificateThumbprint = a.CertificateThumbprint,
-        CertificatePem = a.CertificatePem, Revoked = a.RevokedUtc is not null,
-    };
+        using var certificate = System.Security.Cryptography.X509Certificates.X509Certificate2.CreateFromPem(a.CertificatePem);
+        return new AgentDto
+        {
+            AgentId = a.AgentId, Name = a.Name, SiteId = a.SiteId, Sites = sites, Hostname = a.Hostname, AgentVersion = a.AgentVersion,
+            EnrolledUtc = a.EnrolledUtc, LastSeenUtc = a.LastSeenUtc, CertificateExpiresUtc = a.CertificateExpiresUtc,
+            CertificateThumbprint = a.CertificateThumbprint, CertificatePem = a.CertificatePem,
+            PublicKeySpki = Convert.ToBase64String(certificate.PublicKey.ExportSubjectPublicKeyInfo()), Revoked = a.RevokedUtc is not null,
+        };
+    }
 
     private static CommandDto ToDto(Command c) => new()
     {
-        CommandId = c.CommandId, AgentId = c.AgentId, Type = c.Type, SourceId = c.SourceId, Table = c.TableName,
+        CommandId = c.CommandId, SiteId = c.SiteId, AgentId = c.AgentId, Type = c.Type, SourceId = c.SourceId, Table = c.TableName,
         IssuedBy = c.IssuedBy, IssuedUtc = c.IssuedUtc, CompletedUtc = c.CompletedUtc, Result = c.Result, Succeeded = c.Succeeded,
         Details = c.ResultDetails is null ? null : System.Text.Json.Nodes.JsonNode.Parse(c.ResultDetails)?.AsObject(),
     };

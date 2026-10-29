@@ -36,11 +36,11 @@ public sealed class AgentControlPlaneTests(ApiFactory api) : IClassFixture<ApiFa
         var source = h.Source("compuweigh", "Tickets");
         for (var id = 1; id <= 50; id++) source.Upsert("Tickets", id, new Dictionary<string, object?> { ["name"] = $"truck {id}" });
         var restarts = 0;
-        using var control = new ControlLoop(h.Pipeline, h.Store, Handler, h.Time, NullLogger<ControlLoop>.Instance,
+        using var control = new ControlLoop(h.Collector(), Handler, h.Time, NullLogger<ControlLoop>.Instance,
             Path.Combine(h.Directory, "logs"), () => restarts++);
 
         // Enroll with a token from the console, as the installer would.
-        var token = await (await admin.PostAsync($"sites/{site}/enrollment-tokens", new { })).ReadAsync<EnrollmentTokenResponse>();
+        var token = await (await admin.PostAsync("enrollment-tokens", new EnrollmentTokenRequest(site, null))).ReadAsync<EnrollmentTokenResponse>();
         await control.EnrollAsync("https://localhost/", token.Token, "SCALE-PC", "1.0.0", CancellationToken.None);
         var agentId = control.Identity!.AgentId;
         Assert.StartsWith(site, agentId);
@@ -75,18 +75,18 @@ public sealed class AgentControlPlaneTests(ApiFactory api) : IClassFixture<ApiFa
 
         // An operator pauses the table; the agent obeys and reports back.
         var operatorUser = api.Console("otto@mercerlandmark.com", Roles.Operator);
-        var pause = await (await operatorUser.PostAsync($"agents/{agentId}/commands",
+        var pause = await (await operatorUser.PostAsync($"sites/{site}/commands",
             new CommandRequest { Type = CommandType.PauseTable, SourceId = "compuweigh", Table = "dbo.Tickets" })).ReadAsync<CommandDto>();
         h.Time.Advance(TimeSpan.FromSeconds(61));
         await control.RunOnceAsync(CancellationToken.None);
         Assert.Equal(TableState.Paused, Assert.Single(h.Pipeline.BuildHeartbeat().Tables).State);
-        var completed = (await admin.GetAsync<List<CommandDto>>($"agents/{agentId}/commands")).Single(c => c.CommandId == pause.CommandId);
+        var completed = (await admin.GetAsync<List<CommandDto>>($"sites/{site}/commands")).Single(c => c.CommandId == pause.CommandId);
         Assert.Equal("Table paused.", completed.Result);
         Assert.Equal("otto@mercerlandmark.com", completed.IssuedBy);
 
         // The control API goes away: capture and delivery carry on with the cached config; events wait locally.
         _apiDown = true;
-        await admin.PostAsync($"agents/{agentId}/commands", new CommandRequest { Type = CommandType.ResumeTable, SourceId = "compuweigh", Table = "dbo.Tickets" }).OkAsync();
+        await admin.PostAsync($"sites/{site}/commands", new CommandRequest { Type = CommandType.ResumeTable, SourceId = "compuweigh", Table = "dbo.Tickets" }).OkAsync();
         for (var minute = 0; minute < 30; minute++)
         {
             h.Time.Advance(TimeSpan.FromMinutes(1));
@@ -101,14 +101,14 @@ public sealed class AgentControlPlaneTests(ApiFactory api) : IClassFixture<ApiFa
         await control.RunOnceAsync(CancellationToken.None);
         Assert.Equal(0, control.ConsecutiveFailures);
         Assert.Equal(TableState.Streaming, Assert.Single(h.Pipeline.BuildHeartbeat().Tables).State);
-        Assert.All(await admin.GetAsync<List<CommandDto>>($"agents/{agentId}/commands"), c => Assert.NotNull(c.CompletedUtc));
+        Assert.All(await admin.GetAsync<List<CommandDto>>($"sites/{site}/commands"), c => Assert.NotNull(c.CompletedUtc));
 
         // Restart is acknowledged before the service stops.
-        var restart = await (await admin.PostAsync($"agents/{agentId}/commands", new CommandRequest { Type = CommandType.Restart })).ReadAsync<CommandDto>();
+        var restart = await (await admin.PostAsync($"sites/{site}/commands", new CommandRequest { Type = CommandType.Restart })).ReadAsync<CommandDto>();
         h.Time.Advance(TimeSpan.FromSeconds(61));
         await control.RunOnceAsync(CancellationToken.None);
         Assert.Equal(1, restarts);
-        Assert.Equal("Restarting.", (await admin.GetAsync<List<CommandDto>>($"agents/{agentId}/commands")).Single(c => c.CommandId == restart.CommandId).Result);
+        Assert.Equal("Restarting.", (await admin.GetAsync<List<CommandDto>>($"sites/{site}/commands")).Single(c => c.CommandId == restart.CommandId).Result);
         // Delivered again (the agent never reported completion in time)? It is not run twice.
         await control.RunOnceAsync(CancellationToken.None);
         Assert.Equal(1, restarts);
@@ -123,8 +123,8 @@ public sealed class AgentControlPlaneTests(ApiFactory api) : IClassFixture<ApiFa
         await admin.CreateSiteAsync(site);
         await using var h = await Harness.StartAsync();
         h.Source("compuweigh", "Tickets");
-        using var control = new ControlLoop(h.Pipeline, h.Store, Handler, h.Time, NullLogger<ControlLoop>.Instance, h.Directory, () => { });
-        var token = await (await admin.PostAsync($"sites/{site}/enrollment-tokens", new { })).ReadAsync<EnrollmentTokenResponse>();
+        using var control = new ControlLoop(h.Collector(), Handler, h.Time, NullLogger<ControlLoop>.Instance, h.Directory, () => { });
+        var token = await (await admin.PostAsync("enrollment-tokens", new EnrollmentTokenRequest(site, null))).ReadAsync<EnrollmentTokenResponse>();
         await control.EnrollAsync("https://localhost/", token.Token, "SCALE-PC", "1.0.0", CancellationToken.None);
         var original = control.Identity!.Certificate.Thumbprint;
 

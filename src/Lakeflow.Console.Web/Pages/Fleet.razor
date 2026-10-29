@@ -1,0 +1,72 @@
+@page "/"
+@attribute [Authorize]
+@inherits ViewModelComponent<FleetViewModel>
+@inject ConsoleApi Api
+@implements IAsyncDisposable
+
+<h1>Fleet</h1>
+@if (ViewModel is { } vm)
+{
+    <div class="summary">
+        <span class="count red">@vm.Red need attention</span>
+        <span class="count amber">@vm.Amber warning</span>
+        <span class="count green">@vm.Green healthy</span>
+        @if (vm.IsBusy) { <span class="muted">refreshing…</span> }
+        else if (vm.AsOf is { } at) { <span class="muted">as of @at.ToLocalTime().ToString("t")</span> }
+    </div>
+    <div class="toolbar">
+        <input placeholder="Find a site" value="@vm.Filter" @oninput="e => vm.Filter = e.Value?.ToString() ?? string.Empty" />
+        <select @onchange="OnHealth">
+            <option value="">All sites</option>
+            <option value="Red">Needs attention</option>
+            <option value="Amber">Warning</option>
+            <option value="Green">Healthy</option>
+        </select>
+        <button @onclick="() => vm.RefreshCommand.ExecuteAsync(null)">Refresh</button>
+        @if (vm.Error is not null) { <span class="error">@vm.Error</span> }
+    </div>
+    <table class="grid">
+        <thead><tr><th></th><th>Site</th><th>Status</th><th>Worst lag</th><th>Buffer</th><th>Last heartbeat</th><th>Version</th></tr></thead>
+        <tbody>
+            @foreach (var site in vm.Sites)
+            {
+                <tr>
+                    <td><span class="dot @site.Health.ToString().ToLowerInvariant()" title="@site.HealthText"></span></td>
+                    <td><a href="sites/@site.SiteId"><strong>@site.Name</strong></a><div class="muted">@site.SiteId</div></td>
+                    <td>@site.Reason @if (site.MoreReasons > 0) { <span class="muted"> (+@site.MoreReasons more)</span> }</td>
+                    <td>@site.WorstLag</td>
+                    <td>@site.Buffer</td>
+                    <td>@site.LastHeartbeat</td>
+                    <td>@site.AgentVersion</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private PeriodicTimer? _timer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        ViewModel = new FleetViewModel(Api);
+        await ViewModel.RefreshCommand.ExecuteAsync(null);
+        _timer = new PeriodicTimer(TimeSpan.FromSeconds(30));
+        _ = RefreshLoopAsync(_timer);
+    }
+
+    private async Task RefreshLoopAsync(PeriodicTimer timer)
+    {
+        while (await timer.WaitForNextTickAsync()) await ViewModel!.RefreshCommand.ExecuteAsync(null);
+    }
+
+    private void OnHealth(ChangeEventArgs e) =>
+        ViewModel!.HealthFilter = Enum.TryParse<Health>(e.Value?.ToString(), out var health) ? health : null;
+
+    public ValueTask DisposeAsync()
+    {
+        _timer?.Dispose();
+        base.Dispose();
+        return ValueTask.CompletedTask;
+    }
+}

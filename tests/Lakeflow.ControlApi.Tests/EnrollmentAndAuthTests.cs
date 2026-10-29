@@ -28,7 +28,7 @@ public sealed class EnrollmentAndAuthTests(ApiFactory api) : IClassFixture<ApiFa
         var admin = Admin();
         var site = Site();
         await admin.CreateSiteAsync(site);
-        var token = await (await admin.PostAsync($"sites/{site}/enrollment-tokens", new { })).ReadAsync<EnrollmentTokenResponse>();
+        var token = await (await admin.PostAsync("enrollment-tokens", new EnrollmentTokenRequest(site, null))).ReadAsync<EnrollmentTokenResponse>();
         Assert.Contains($"ENROLLMENT_TOKEN=\"{token.Token}\"", token.InstallCommand);
         Assert.Equal(api.Time.GetUtcNow().AddHours(24), token.ExpiresUtc);
 
@@ -54,7 +54,7 @@ public sealed class EnrollmentAndAuthTests(ApiFactory api) : IClassFixture<ApiFa
         var admin = Admin();
         var site = Site();
         await admin.CreateSiteAsync(site);
-        var token = await (await admin.PostAsync($"sites/{site}/enrollment-tokens", new { })).ReadAsync<EnrollmentTokenResponse>();
+        var token = await (await admin.PostAsync("enrollment-tokens", new EnrollmentTokenRequest(site, null))).ReadAsync<EnrollmentTokenResponse>();
         var csr = new CertificateRequest("CN=x", RSA.Create(2048), HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1).CreateSigningRequestPem();
 
         Assert.Equal(HttpStatusCode.Unauthorized, (await api.Anonymous().PostAsync("agents/enroll", new EnrollRequest("made-up", csr, "PC", "1"))).StatusCode);
@@ -143,11 +143,11 @@ public sealed class EnrollmentAndAuthTests(ApiFactory api) : IClassFixture<ApiFa
         Assert.Equal(HttpStatusCode.OK, (await viewer.GetAsync("status")).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await viewer.GetAsync($"sites/{site}/sources")).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await viewer.PutAsync($"sites/{site}", new SiteDto { SiteId = site, Name = "x" })).StatusCode);
-        Assert.Equal(HttpStatusCode.Forbidden, (await viewer.PostAsync($"agents/{agent}/commands", pause)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await viewer.PostAsync($"sites/{site}/commands", pause)).StatusCode);
 
-        Assert.Equal(HttpStatusCode.OK, (await operatorUser.PostAsync($"agents/{agent}/commands", pause)).StatusCode);
-        Assert.Equal(HttpStatusCode.Forbidden, (await operatorUser.PostAsync($"agents/{agent}/commands", new CommandRequest { Type = CommandType.Restart })).StatusCode);
-        Assert.Equal(HttpStatusCode.Forbidden, (await operatorUser.PostAsync($"sites/{site}/enrollment-tokens", new { })).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await operatorUser.PostAsync($"sites/{site}/commands", pause)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await operatorUser.PostAsync($"sites/{site}/commands", new CommandRequest { Type = CommandType.Restart })).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await operatorUser.PostAsync("enrollment-tokens", new EnrollmentTokenRequest(site, null))).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await operatorUser.PostAsync($"agents/{agent}/revoke", new { })).StatusCode);
 
         Assert.Equal(HttpStatusCode.Forbidden, (await nobody.GetAsync("status")).StatusCode);
@@ -170,7 +170,7 @@ public sealed class EnrollmentAndAuthTests(ApiFactory api) : IClassFixture<ApiFa
         {
             ("GET", "status"), ("GET", "sites"), ("PUT", "sites/x"), ("DELETE", "sites/x"), ("GET", "sites/x/sources"),
             ("PUT", "sites/x/sources/y"), ("PUT", "sites/x/sources/y/credential"), ("PUT", "sites/x/sources/y/tables/dbo.t"),
-            ("POST", "sites/x/enrollment-tokens"), ("GET", "agents"), ("POST", "agents/a/revoke"), ("POST", "agents/a/commands"),
+            ("POST", "enrollment-tokens"), ("GET", "agents"), ("POST", "agents/a/revoke"), ("POST", "sites/x/commands"),
             ("GET", "events"), ("GET", "audit"), ("GET", $"logs/{Guid.NewGuid()}"),
         })
         {
