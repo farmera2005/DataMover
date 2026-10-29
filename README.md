@@ -58,124 +58,210 @@ Event Hubs hub (per division) ──► Eventstream ──► bronze.<division>_
 Lakeflow console ◄── reads ── silver SQL analytics endpoint (service principal, read-only)
 ```
 
-Set up in this order. Allow about an hour. Menu names below are as of late 2026; Microsoft renames things now and then.
+Set up in this order; allow an afternoon the first time. Menu names are as of late 2026 (Microsoft renames things now
+and then; look for the closest match). What you create, all in one Fabric workspace:
+
+| Item | Name | Created in |
+| --- | --- | --- |
+| Fabric capacity (F SKU) or trial | any, e.g. `mercerlakeflow` | step 0 |
+| Workspace | e.g. `Lakeflow` | step 1 |
+| Lakehouse | `bronze` (exactly) | step 2 |
+| Lakehouse | `silver` (exactly) | step 2 |
+| Eventstream, one per division in use | e.g. `lakeflow-grain` | step 3 |
+| Cloud connection to each hub | e.g. `lakeflow-grain-hub` | step 3 |
+| Notebook | `lakeflow_bronze_to_silver` | step 4 |
+| Notebook | `lakeflow_maintenance` | step 4 |
+| Two schedules | on the notebooks | step 6 |
+| App registration (Entra ID), shared on `silver` | `lakeflow-reconciliation` | step 7 |
 
 ### Before you start
 
-- **Event Hubs deployed** with `infra/main.bicep` (see [infra/README.md](infra/README.md)), and at least one division's hub entered in the
-  console (Configuration, Destinations) so changes are flowing.
-- **A Fabric capacity** (an F SKU, or a trial) and permission to create a workspace on it.
-- **For the console's reconciliation view** (step 6): someone who can create an app registration in Microsoft Entra ID,
-  and a Fabric administrator for one tenant setting.
+- **Event Hubs deployed** with `infra/main.bicep` (see [infra/README.md](infra/README.md)), and at least one
+  division's hub entered in the console (Configuration, Destinations), so changes are flowing.
+- **Who does what:** a Fabric administrator (tenant settings, step 0 and 7b), an Azure subscription owner or contributor
+  (only if you create the capacity in Azure), someone who can register applications in Microsoft Entra ID (step 7a),
+  and you as workspace admin for the rest.
 
-### 1. Workspace and lakehouses
+### 0. Fabric itself: enabled, and a capacity
 
-1. In Fabric, **Workspaces → New workspace**, e.g. `Lakeflow`, on your capacity (Advanced → License mode).
-   Limit access to the people who should see the data (spec: named groups only).
-2. In the workspace, **New item → Lakehouse**, named exactly `bronze`. Leave **Lakehouse schemas** unticked.
-3. Again, a lakehouse named exactly `silver`, schemas unticked.
+1. **Fabric is on for your users.** Fabric administrator: [app.fabric.microsoft.com](https://app.fabric.microsoft.com)
+   → gear icon → **Admin portal → Tenant settings → Microsoft Fabric → Users can create Fabric items**: enabled
+   (for the whole organisation or a security group that includes the people setting this up).
+2. **A capacity** runs the Eventstreams and notebooks. Pick one:
+   - **An existing F-SKU capacity** your organisation already has: ask its admin to let you assign workspaces to it
+     (Admin portal → Capacity settings → the capacity → Contributor permissions).
+   - **A new one in Azure:** Azure portal → **Create a resource** → search **Microsoft Fabric** → **Create**:
+     subscription, resource group (e.g. `rg-lakeflow`), capacity name (lower-case letters and digits, e.g.
+     `mercerlakeflow`), region (preferably your Fabric home region: Fabric → **?** → About Fabric), size **F4** to start,
+     capacity administrator (you) → **Review + create**. Or deploy `infra/fabric-capacity.bicep`:
 
-The notebooks and the console look for these two names.
+     ```bash
+     az deployment group create -g rg-lakeflow -f infra/fabric-capacity.bicep -p capacityName=mercerlakeflow administrators='["you@mercerlandmark.com"]'
+     ```
 
-### 2. One Eventstream per division hub
+     A capacity bills every hour it runs; **Pause** it in the Azure portal when not needed (paused, the notebooks and
+     Eventstreams stop; Event Hubs keeps changes 7 days, so resume within a week). Size it later from the **Fabric
+     Capacity Metrics** app.
+   - **A trial**, to try things out: Fabric → your account picture (top right) → **Start trial** (60 days, then the
+     workspace must move to a paid capacity).
 
-Repeat for each division you use (`grain`, `feed`, `agronomy`, `erp`, `other`).
+### 1. The workspace
 
-1. Get the hub's read key: Azure portal → the Event Hubs namespace → **Event Hubs** → the hub (e.g. `grain`) →
-   **Shared access policies** → `fabric-listen` → copy the **Primary key**.
-2. In the Fabric workspace, **New item → Eventstream**, e.g. `lakeflow-grain`.
-3. **Add source → Azure Event Hubs**:
-   - **Connection**: new connection; Event Hub namespace = your namespace name (e.g. `mercer-lakeflow`), Event Hub =
-     `grain`, authentication **Shared Access Key**, key name `fabric-listen`, key = the primary key from step 1.
-   - **Consumer group**: `fabric`.
-   - **Data format**: JSON.
-4. **Add destination → Lakehouse**: workspace `Lakeflow`, lakehouse `bronze`, Delta table **`grain_events`** (new;
-   the name is `<division>_events`), input data format JSON.
-5. **Publish**.
+1. Fabric → **Workspaces** (left rail) → **+ New workspace**.
+2. **Name** `Lakeflow`; description e.g. "Site data from Lakeflow".
+3. **Advanced → License mode**: **Fabric capacity**, and choose the capacity from step 0 (or **Trial**).
+4. **Apply**.
+5. **Access**: in the workspace, **Manage access** → **+ Add people or groups**. Add security groups rather than
+   people: data engineers as **Member** or **Contributor**, readers of the tables as **Viewer**. Only you need **Admin**.
+
+To change the capacity later: workspace → **Workspace settings → License info → Edit**.
+
+### 2. The two lakehouses
+
+1. In the workspace, **+ New item** → search **Lakehouse** → **Lakehouse**.
+2. **Name** `bronze` (exactly; the notebooks and the console use these names). Leave **Lakehouse schemas** unticked.
+   **Create**.
+3. Back in the workspace, **+ New item → Lakehouse** again: `silver`, schemas unticked, **Create**.
+
+Each lakehouse also gets a **SQL analytics endpoint** with the same name automatically (used in step 7). Both start
+empty: the tables appear as data arrives.
+
+### 3. An Eventstream per division hub
+
+Repeat for each division you use (`grain`, `feed`, `agronomy`, `erp`, `other`); the example is `grain`.
+
+1. **The hub's read key.** Azure portal → your Event Hubs namespace (e.g. `mercer-lakeflow`) → **Entities → Event
+   Hubs** → `grain` → **Settings → Shared access policies** → `fabric-listen` → copy the **Primary key**.
+2. **The Eventstream.** Fabric workspace → **+ New item** → search **Eventstream** → **Eventstream**; **Name**
+   `lakeflow-grain` → **Create**. (If asked for "enhanced capabilities", keep them on.)
+3. **Its source.** **Add source** (or **Connect data sources**) → **Azure Event Hubs** → **Connect**:
+   - **Connection** → **New connection**:
+     - **Event Hub namespace**: `mercer-lakeflow` (the name, not the full address)
+     - **Event Hub**: `grain`
+     - **Connection name**: `lakeflow-grain-hub`
+     - **Authentication kind**: Shared Access Key; **Shared Access Key Name** `fabric-listen`; **Shared Access Key**
+       the primary key from step 1
+     - **Connect**.
+   - **Consumer group**: `fabric` (not `$Default`).
+   - **Data format**: **Json**.
+   - **Next → Add**.
+4. **Its destination.** On the canvas, **Add destination → Lakehouse**:
+   - **Destination name**: `bronze-grain`
+   - **Workspace**: `Lakeflow`; **Lakehouse**: `bronze`
+   - **Delta table**: **Create new** → `grain_events` (always `<division>_events`)
+   - **Input data format**: **Json**
+   - **Save**.
+5. **Publish** (top right). The source and destination turn **Active** within a minute or two.
+6. **Check.** Open the source node: **Data preview** shows the change envelopes (JSON with `site_id`, `table`, `op`, ...)
+   once a collector has sent something for this division. A few minutes later `bronze` lists the table `grain_events`.
 
 One Eventstream per hub is all there is: new sites, sources and tables flow through it with no change here.
 
-Check: once a collector has sent something for that division, `bronze` shows the table `grain_events` with rows (open
-the lakehouse; give it a few minutes).
-
 If you set `allowedIpRanges` on the namespace, Fabric is refused like everyone else; see "Connect Fabric to it" in
-`infra/README.md`.
+[infra/README.md](infra/README.md).
 
-### 3. The notebooks
+### 4. The two notebooks
 
-The two notebooks are in this repository, `fabric/notebooks`.
+The notebooks come from this repository, generated from the tested code in `fabric/src` (never edit them in Fabric;
+re-import or update after a change).
 
-**With Git (recommended):** workspace → **Workspace settings → Git integration** → GitHub, repository
-`farmera2005/DataMover`, the branch you deploy from, **Git folder** `fabric/notebooks` → **Connect and sync**. The
-notebooks `lakeflow_bronze_to_silver` and `lakeflow_maintenance` appear in the workspace, and later updates arrive with
-**Source control → Update**.
+**Import (simplest):**
 
-**Without Git:** create two notebooks with those names and paste in the cells of each `notebook-content.py` (the
-lines between the `# CELL` markers).
+1. Download `fabric/import/lakeflow_bronze_to_silver.ipynb` and `fabric/import/lakeflow_maintenance.ipynb` from the
+   repository.
+2. Fabric workspace → **Import** (toolbar) → **Notebook** → **From this computer** → **Upload** → pick both files.
+3. They appear as `lakeflow_bronze_to_silver` and `lakeflow_maintenance` (keep these names).
 
-Then in **each** notebook:
+To update later, delete the two notebooks (their schedules go with them; set them again in step 6) and import again.
 
-1. Open the **Lakehouses** pane (Explorer) → **Add** → existing lakehouse → `bronze`. Make it the **default**
-   lakehouse (the notebook keeps its progress in `bronze` under `Files/lakeflow/checkpoints`).
-2. **Add** → existing lakehouse → `silver` (as a second, non-default lakehouse).
+**Or with Git integration** (updates with one click; the repository folder must hold only the notebooks):
+workspace → **Workspace settings → Git integration** → **GitHub** → add your GitHub account (a fine-grained personal
+access token with read access to this repository's contents) → repository `farmera2005/DataMover`, branch, **Git
+folder** `fabric/notebooks` → **Connect and sync**. Later: **Source control → Updates → Update all**. Fabric also lists
+the lakehouses and Eventstreams as uncommitted changes; leave them uncommitted.
 
-### 4. First run
+**Then, in each notebook** (open it):
 
-Open `lakeflow_bronze_to_silver` and **Run all**. The last cell prints one line per division: rows applied, or
-`no raw table` for divisions whose Eventstream is not set up (normal). Then `silver` shows a table per source system
-table, e.g. `compuweigh_tickets`.
+1. Left side, **Explorer** (or **Lakehouses**) → **+ Data items** / **Add** → **Existing lakehouse** → tick `bronze` →
+   **Add**. It becomes the **default** lakehouse (pin icon); the notebook keeps its progress there under
+   `Files/lakeflow/checkpoints`.
+2. **+ Data items / Add** again → `silver` → **Add** (a second lakehouse; leave `bronze` as default).
+3. Top of the first cell: the language is **PySpark (Python)**. Nothing else to change: the settings cell already names
+   `bronze` and `silver`.
+
+### 5. First run
+
+Open `lakeflow_bronze_to_silver` → **Run all**. The first run takes a few minutes while Spark starts. The last cell
+prints one line per division: what was applied, or `no raw table` for divisions without an Eventstream (normal). Then
+`silver` shows a table per source system table, e.g. `compuweigh_tickets`, and `bronze` a change table per source
+table, e.g. `grain_compuweigh_tickets_changes`.
 
 In silver, always filter `_deleted = false` (deleted rows stay a few days as tombstones). Columns are text exactly as
-the source had them; cast in the semantic model or Tableau. See `fabric/README.md` for the details.
+the source had them; cast in the semantic model or Tableau. See [fabric/README.md](fabric/README.md) for the details.
 
-### 5. Schedules
+### 6. Schedules
 
-- `lakeflow_bronze_to_silver`: **Run → Schedule** → repeat every **5 minutes**, on.
-- `lakeflow_maintenance`: monthly (e.g. first Sunday, 03:00). It removes old tombstones and compacts the tables.
+1. Open `lakeflow_bronze_to_silver` → **Run** (ribbon) → **Schedule** (or the workspace list: **...** → **Schedule**).
+2. **Scheduled run: On**; **Repeat**: by the minute, every **5** minutes; start now; your time zone → **Apply**.
+3. Same for `lakeflow_maintenance`: **Repeat** monthly (e.g. first Sunday, 03:00) → **Apply**.
 
-Event Hubs keeps changes 7 days: if the schedule stops, restart it within a week and it catches up with nothing lost.
+Each run's result shows under the notebook's **Recent runs** (or **Monitor** in the left rail). Event Hubs keeps
+changes 7 days: if the schedule stops, turn it back on within a week and it catches up with nothing lost.
 
-### 6. Reconciliation results in the console
+### 7. Reconciliation results in the console
 
 Every night the collectors count each table's rows and checksum its keys; the notebook compares silver at that exact
 point and writes the result to `silver.lakeflow_reconciliation`. To see those results (and have a mismatch turn the
 site amber), the console reads that table through the silver lakehouse's SQL analytics endpoint, as a service
 principal with read access to nothing else.
 
-#### 6a. A service principal (Microsoft Entra admin center)
+#### 7a. A service principal (Microsoft Entra admin center)
 
-1. **App registrations → New registration**: name `lakeflow-reconciliation`, single tenant, no redirect URI.
-2. Copy the **Application (client) ID**.
-3. **Certificates & secrets → New client secret**: pick an expiry (e.g. 12 months) and copy the secret's **Value**
-   right away (not the Secret ID; the value is shown once). Put the expiry date in a calendar.
+1. [entra.microsoft.com](https://entra.microsoft.com) → **Identity → Applications → App registrations** → **+ New
+   registration**.
+2. **Name** `lakeflow-reconciliation`; **Supported account types**: *Accounts in this organizational directory only*;
+   **Redirect URI**: leave empty → **Register**.
+3. On its **Overview**, copy the **Application (client) ID**.
+4. **Certificates & secrets → Client secrets → + New client secret**: description `Lakeflow console`, expiry (e.g. 12
+   months) → **Add**. Copy the **Value** column right away (not the Secret ID; the value is shown only once). Put the
+   expiry date in a calendar.
+5. Nothing under **API permissions** is needed (remove the default *User.Read* if you like).
+6. **A security group** for step 7b: **Identity → Groups → + New group**, type Security, name e.g. `Fabric service
+   principals`, **Members** → add `lakeflow-reconciliation` → **Create**.
 
-No API permissions are needed.
+#### 7b. Allow service principals in Fabric (Fabric administrator)
 
-#### 6b. Allow service principals in Fabric (Fabric administrator)
+Fabric → gear icon → **Admin portal → Tenant settings → Developer settings → Service principals can use Fabric APIs**:
+**Enabled**, **Specific security groups** → `Fabric service principals` → **Apply**. (Changes can take up to 15 minutes.)
 
-**Admin portal → Tenant settings → Developer settings → Service principals can use Fabric APIs**: enabled, ideally for
-a security group that contains `lakeflow-reconciliation` rather than the whole organisation.
+#### 7c. Read access to silver only
 
-#### 6c. Read access to silver only
+1. In the `Lakeflow` workspace, on the `silver` lakehouse (the lakehouse, not its SQL analytics endpoint) → **...**
+   → **Manage permissions** (or **Share**).
+2. **+ Add user** → search `lakeflow-reconciliation` (the app's name).
+3. Tick **Read all SQL endpoint data** only (not "Read all Apache Spark", not "Build reports") → **Grant**.
 
-In the workspace, on the `silver` lakehouse: **… → Share** → enter `lakeflow-reconciliation` → tick **Read all SQL
-endpoint data** → **Grant**. (No workspace role is needed; a workspace Viewer role would also work but sees more.)
+No workspace role is needed; a workspace Viewer role would also work but sees every item.
 
-#### 6d. The endpoint's address
+#### 7d. The endpoint's address
 
-Open `silver`, switch to its **SQL analytics endpoint** (top right), then **Settings** (or **Copy SQL connection
-string**). It looks like `xxxxxxxx.datawarehouse.fabric.microsoft.com`.
+1. In the workspace, open the **SQL analytics endpoint** named `silver` (type *SQL analytics endpoint*, listed under
+   the lakehouse), or open the lakehouse and switch from **Lakehouse** to **SQL analytics endpoint** (top right).
+2. **Settings** (gear) → **SQL endpoint** → **Copy** the **SQL connection string**, or on the endpoint's ribbon
+   **Copy SQL connection string**.
+3. It looks like `xxxxxxxx-xxxx.datawarehouse.fabric.microsoft.com`: that is the server. The database is the lakehouse
+   name, `silver`.
 
-#### 6e. Enter it in the console
+#### 7e. Enter it in the console
 
 Lakeflow console → **Configuration → Destinations → Fabric (reconciliation)**:
 
 | Field | Value |
 | --- | --- |
-| SQL analytics endpoint | the address from 6d |
+| SQL analytics endpoint | the address from 7d |
 | Lakehouse | `silver` |
-| Application (client) ID | from 6a |
-| Client secret | the value from 6a (stored encrypted; never shown again) |
+| Application (client) ID | from 7a |
+| Client secret | the value from 7a (stored encrypted; never shown again) |
 
 **Save**, then **Test**:
 
@@ -185,7 +271,7 @@ Lakeflow console → **Configuration → Destinations → Fabric (reconciliation
 
 The site page then shows each table's last check, and the fleet view turns a site amber on a mismatch over 0.1%.
 
-#### 6f. Network
+#### 7f. Network
 
 The Lakeflow server connects out to `*.datawarehouse.fabric.microsoft.com` on **TCP 1433** and to
 `login.microsoftonline.com` on 443. Allow both on the firewall (FortiGate FQDN objects).
@@ -202,9 +288,9 @@ fleet view keeps working).
 | --- | --- |
 | `AADSTS7000215` / invalid client secret | the Secret ID was copied instead of the Value, or the secret expired |
 | `AADSTS700016` / application not found | wrong client ID, or the app is in another tenant |
-| `Login failed for user '<token-identified principal>'` | the tenant setting (6b) is off for this app, or silver is not shared with it (6c) |
+| `Login failed for user '<token-identified principal>'` | the tenant setting (7b) is off for this app, or silver is not shared with it (7c) |
 | `Cannot open database "silver"` | the lakehouse name is not `silver`, or not shared with the app |
-| timeout, `network-related` | the firewall blocks 1433 to `*.datawarehouse.fabric.microsoft.com` (6f) |
+| timeout, `network-related` | the firewall blocks 1433 to `*.datawarehouse.fabric.microsoft.com` (7f) |
 
 ### Troubleshooting the data
 

@@ -1,6 +1,7 @@
 """
-Builds the Fabric notebooks (Git-integration format) from the tested package, so what runs in Fabric is exactly the
-code the tests ran. Run after changing anything under src/:
+Builds the Fabric notebooks from the tested package, so what runs in Fabric is exactly the code the tests ran: in
+Fabric's Git-integration format (notebooks/) and as Jupyter files for Workspace -> Import (import/). Run after changing
+anything under src/:
 
     python fabric/tools/build_notebooks.py
 
@@ -14,6 +15,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 PACKAGE = ROOT / "src" / "lakeflow_fabric"
 OUT = ROOT / "notebooks"
+IMPORT = ROOT / "import"
 MODULES = ("names", "checksum", "bronze", "silver", "job", "maintenance")
 
 HEADER = """# Fabric notebook source
@@ -87,12 +89,32 @@ def platform(name: str, description: str) -> str:
     }, indent=2) + "\n"
 
 
+def jupyter(description: str, settings: str, entry: str) -> str:
+    """The same cells as a Jupyter notebook, which Fabric imports as a PySpark notebook."""
+    def code(text: str) -> dict:
+        return {"cell_type": "code", "execution_count": None, "metadata": {}, "outputs": [], "source": text.splitlines(keepends=True)}
+    return json.dumps({
+        "nbformat": 4,
+        "nbformat_minor": 5,
+        "metadata": {
+            "kernel_info": {"name": "synapse_pyspark"},
+            "kernelspec": {"name": "synapse_pyspark", "display_name": "Synapse PySpark", "language": "Python"},
+            "language_info": {"name": "python"},
+        },
+        "cells": [
+            {"cell_type": "markdown", "metadata": {}, "source": [description]},
+            code(settings), code(library_code()), code(entry),
+        ],
+    }, indent=1) + "\n"
+
+
 def build() -> dict[Path, str]:
     files = {}
     for name, (description, settings, entry) in NOTEBOOKS.items():
         folder = OUT / f"{name}.Notebook"
         files[folder / "notebook-content.py"] = notebook(settings, entry)
         files[folder / ".platform"] = platform(name, description)
+        files[IMPORT / f"{name}.ipynb"] = jupyter(description, settings, entry)
     return files
 
 

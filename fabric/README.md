@@ -21,7 +21,7 @@ Step by step, with the Eventstream and console settings: [Connecting to Microsof
 2. One Eventstream per division hub (`grain`, `feed`, `agronomy`, `erp`, `other`; only the ones in use) with
    source = the hub (consumer group `fabric`, shared access key `fabric-listen`; both created by `infra/main.bicep`), input format JSON, and destination = lakehouse `bronze`,
    table `<division>_events`. One route per hub: new sites and tables need no Eventstream changes.
-3. Import the notebooks in `notebooks/` (Fabric Git integration picks up the `*.Notebook` folders). Attach `bronze`
+3. Import the notebooks: `import/*.ipynb` (Workspace → Import → Notebook), or Fabric Git integration on `notebooks/`. Attach `bronze`
    as the default lakehouse and `silver` as a second one to both.
 4. Schedule `lakeflow_bronze_to_silver` every 5 minutes and `lakeflow_maintenance` monthly.
 5. For the console's reconciliation view, share the `silver` lakehouse ("Read all SQL endpoint data") with a service
@@ -60,7 +60,8 @@ column (text or bytes) exactly, with no other change.
 
 ## Developing
 
-The notebooks are generated from `src/lakeflow_fabric`; edit the package, then:
+The notebooks (`notebooks/` for Git integration, `import/` for Import) are generated from `src/lakeflow_fabric`; edit
+the package, then:
 
 ```bash
 python fabric/tools/build_notebooks.py

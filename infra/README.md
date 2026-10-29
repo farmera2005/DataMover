@@ -16,6 +16,9 @@ console, database and collector run in the Docker stack on-prem (see the main RE
 
 There is no namespace-wide key: a key can send to its own division's hub only (CI checks the compiled template for this).
 
+`fabric-capacity.bicep` (optional) creates a Microsoft Fabric capacity (F4 by default) if you do not have one; see
+"Connecting to Microsoft Fabric" in the main README, step 0.
+
 ## Deploy
 
 In the Azure portal, open **Cloud Shell** (Bash) and upload `main.bicep` (or clone the repository), then:

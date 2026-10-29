@@ -96,6 +96,8 @@ jobs:
       - run: az bicep lint --file infra/main.bicep
       - run: az bicep build --file infra/main.bicep --outfile out/azuredeploy.json
       - run: az bicep build-params --file infra/main.example.bicepparam --outfile out/main.example.parameters.json
+      - run: az bicep lint --file infra/fabric-capacity.bicep
+      - run: az bicep build --file infra/fabric-capacity.bicep --outfile out/fabric-capacity.json
       - run: python3 infra/check_template.py out/azuredeploy.json src/Lakeflow.Contracts/Config.cs
       - uses: actions/upload-artifact@v4
         with:
