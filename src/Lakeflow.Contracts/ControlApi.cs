@@ -166,4 +166,6 @@ public sealed record ReconciliationResult
     public double MismatchPercent { get; init; }
     /// <summary><c>ok</c>, <c>within_tolerance</c> (0.1% or less) or <c>mismatch</c>.</summary>
     public required string Status { get; init; }
+    /// <summary>Where silver was checked: <c>fabric</c> or <c>snowflake</c>.</summary>
+    public string Destination { get; init; } = "fabric";
 }

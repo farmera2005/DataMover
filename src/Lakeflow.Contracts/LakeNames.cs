@@ -19,6 +19,18 @@ public static class LakeNames
     public static string SilverTable(string sourceSystem, TableRef table) =>
         $"silver.{Identifier(sourceSystem)}_{TablePart(table)}";
 
+    private static readonly char[] InvalidColumnCharacters = [' ', ',', ';', '{', '}', '(', ')', '\n', '\t', '=', '.'];
+
+    /// <summary>
+    /// A source column as a silver column, the same in Fabric and Snowflake: characters Delta rejects become <c>_</c>,
+    /// and a leading <c>_</c> gets a <c>c</c> prefix so source columns never collide with Lakeflow's own <c>_</c> columns.
+    /// </summary>
+    public static string ColumnName(string sourceColumn)
+    {
+        var name = string.Concat(sourceColumn.Select(c => InvalidColumnCharacters.Contains(c) ? '_' : c));
+        return name.Length == 0 || name.StartsWith('_') ? "c" + name : name;
+    }
+
     // The default schema adds nothing; any other schema is kept so dbo.X and audit.X stay apart.
     private static string TablePart(TableRef table) =>
         string.IsNullOrEmpty(table.Schema) || string.Equals(table.Schema, "dbo", StringComparison.OrdinalIgnoreCase)
