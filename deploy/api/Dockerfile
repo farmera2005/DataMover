@@ -5,6 +5,7 @@ COPY global.json Directory.Build.props Directory.Packages.props ./
 COPY src/Lakeflow.Contracts/ src/Lakeflow.Contracts/
 COPY src/Lakeflow.Console.Core/ src/Lakeflow.Console.Core/
 COPY src/Lakeflow.Console.Web/ src/Lakeflow.Console.Web/
+COPY src/Lakeflow.Snowflake/ src/Lakeflow.Snowflake/
 COPY src/Lakeflow.ControlApi/ src/Lakeflow.ControlApi/
 RUN dotnet publish src/Lakeflow.ControlApi -c Release -o /out
 
