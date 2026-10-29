@@ -9,7 +9,9 @@ $log = Join-Path $env:RUNNER_TEMP 'install.log'
 $p = Start-Process msiexec -Wait -PassThru -ArgumentList @('/i', (Resolve-Path $Msi), '/qn', '/l*v', $log,
     'CONTROL_API=https://lakeflow.invalid:8444/', "ENROLLMENT_TOKEN=$token", 'CA_SHA256=00ff')
 Check ($p.ExitCode -eq 0) "msiexec install exit code ($($p.ExitCode))"
-Check (-not (Select-String -Path $log -Pattern $token -SimpleMatch -Quiet)) 'the token is not in the MSI log'
+$leaks = Select-String -Path $log -Pattern $token -SimpleMatch
+$leaks | ForEach-Object { Write-Host ("leak: " + $_.Line.Replace($token, '<TOKEN>')) }
+Check ($null -eq $leaks) 'the token is not in the MSI log'
 
 $service = Get-CimInstance Win32_Service -Filter "Name='LakeflowAgent'"
 Check ($null -ne $service) 'service LakeflowAgent is installed'
