@@ -10,13 +10,17 @@ namespace Lakeflow.Agent.Control;
 /// volume only the two of them share (<c>LAKEFLOW_ENROLL_FILE</c>), so nobody copies anything;</item>
 /// <item>another collector gets <c>LAKEFLOW_CONTROL_API</c>, <c>LAKEFLOW_ENROLLMENT_TOKEN</c> and
 /// <c>LAKEFLOW_CA_SHA256</c> from the file the console offers for download;</item>
-/// <item>an agent installed at a site gets <c>enroll.json</c> in its data folder from the installer, and deletes it once enrolled.</item>
+/// <item>an agent installed at a site gets the same three from the MSI, in a registry key only it, SYSTEM and
+/// Administrators can read (<see cref="RegistryKeyPath"/>), and deletes them once enrolled.</item>
 /// </list>
 /// An already enrolled collector ignores all of these.
 /// </summary>
 public sealed class EnrollmentFile(string dataDirectory, string agentVersion, ILogger<EnrollmentFile> log)
 {
     private sealed record Pending(string ControlApi, string Token, string? CaSha256);
+
+    /// <summary>Written by the installer (installer/Package.wxs) under HKLM.</summary>
+    public const string RegistryKeyPath = @"SOFTWARE\Lakeflow\Agent\Enrollment";
 
     public string Path => Environment.GetEnvironmentVariable("LAKEFLOW_ENROLL_FILE") is { Length: > 0 } file
         ? file
@@ -30,7 +34,7 @@ public sealed class EnrollmentFile(string dataDirectory, string agentVersion, IL
             TryDelete();
             return false;
         }
-        var pending = FromEnvironment() ?? await FromFileAsync(ct);
+        var pending = FromEnvironment() ?? FromRegistry() ?? await FromFileAsync(ct);
         if (pending is null) return false;
         try
         {
@@ -51,9 +55,28 @@ public sealed class EnrollmentFile(string dataDirectory, string agentVersion, IL
         try
         {
             if (File.Exists(Path)) File.Delete(Path);
+            if (OperatingSystem.IsWindows()) Microsoft.Win32.Registry.LocalMachine.DeleteSubKey(RegistryKeyPath, throwOnMissingSubKey: false);
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
         {
+            log.LogWarning("Could not remove the used enrollment token: {Error}", ex.Message);
+        }
+    }
+
+    private Pending? FromRegistry()
+    {
+        if (!OperatingSystem.IsWindows()) return null;
+        try
+        {
+            using var key = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(RegistryKeyPath);
+            return key?.GetValue("ControlApi") is string { Length: > 0 } api && key.GetValue("Token") is string { Length: > 0 } token
+                ? new Pending(api, token, key.GetValue("CaSha256") as string is { Length: > 0 } ca ? ca : null)
+                : null;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
+        {
+            log.LogWarning("Could not read the enrollment token from the registry: {Error}", ex.Message);
+            return null;
         }
     }
 

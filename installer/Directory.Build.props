@@ -1,0 +1,6 @@
+<Project>
+  <!-- The installer builds on Windows only, with the WiX SDK; it does not take the .NET projects' settings. -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+</Project>

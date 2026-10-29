@@ -55,7 +55,7 @@ Phase 1 (pilot: one grain site, SQL Server), built step by step:
 - [x] 6. Console: sign-in, fleet overview, site detail, source setup wizard; web app (see docs/console.md)
 - [x] Central collector serving many sites, in Docker (see docs/collector.md, docs/decisions.md)
 - [x] One Docker stack, set up entirely in the browser (setup wizard, local + LDAP sign-in, settings in the console)
-- [ ] 7. Azure: Event Hubs namespace and hubs (Bicep), the optional site-agent MSI
+- [x] 7. Azure: Event Hubs namespace and hubs (Bicep, see infra/README.md); the site-agent MSI (see docs/collector.md)
 
 ## Layout
 
@@ -79,6 +79,8 @@ src/Lakeflow.Console.Web/  the web console (Blazor WebAssembly), served by the c
 compose.yaml              the stack: init (database password), db, api, collector
 deploy/api/               the control API image (with the console)
 deploy/collector/         the collector image, and a compose file for a collector on another server
+infra/                    Bicep for the Azure side: the Event Hubs namespace, a hub per division, Send/Listen policies
+installer/                WiX MSI for an agent at a site the server cannot reach (Windows service, virtual account)
 tests/Lakeflow.Testing/   ConnectorContractTests: the suite every connector must pass, plus an in-memory
                           reference source/connector used to prove the suite and to drive agent tests
 tests/Lakeflow.Contracts.Tests/
@@ -106,7 +108,8 @@ dotnet test
 
 GitHub Actions (`.github/workflows/build.yml`) runs every test (with PostgreSQL and SQL Server as service containers)
 and the Fabric tests, runs `docker compose up -d --build` and checks the stack comes up unconfigured with the built-in
-collector enrolled, and publishes the site agent for Windows.
+collector enrolled, compiles and checks the Bicep template, and builds the site-agent MSI, installs it on a Windows
+runner, checks the service, its account and its folder and registry permissions, and uninstalls it.
 
 ## Connector contract
 

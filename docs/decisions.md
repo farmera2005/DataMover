@@ -2,6 +2,15 @@
 
 SPEC.md is the starting brief. These are the places the build deliberately departs from it, and why. Newest first.
 
+## 2026-10-29: Step 7 builds Event Hubs only, and the MSI runs as a virtual account
+
+The spec's step 7 Bicep (Event Hubs, App Service, Azure SQL, Key Vault, App Insights) shrinks to Event Hubs: the rest
+moved into the Docker stack (entry below). Each hub gets its own Send-only and Listen-only policies and there is no
+namespace-wide key. The spec's "dedicated low-privilege service account" for the agent is the service's virtual
+account (`NT SERVICE\LakeflowAgent`): nothing to create in AD or rotate. The enrollment token reaches the agent through
+a registry key readable only by it, SYSTEM and Administrators (hidden from MSI logs), rather than a file in its folder.
+Self-update (phase 2) is not built yet: upgrades are a newer MSI.
+
 ## 2026-10-29: Everything in one Docker stack, set up in the browser
 
 **Decision.** The control API, web console, PostgreSQL and a built-in collector run as one Docker Compose stack on an

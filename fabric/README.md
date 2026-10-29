@@ -17,7 +17,7 @@ lakeflow_maintenance (monthly): purge old tombstones, OPTIMIZE, VACUUM
 
 1. Two lakehouses: `bronze` and `silver`.
 2. One Eventstream per division hub (`grain`, `feed`, `agronomy`, `erp`, `other`; only the ones in use) with
-   source = the hub (its own consumer group, e.g. `fabric`), input format JSON, and destination = lakehouse `bronze`,
+   source = the hub (consumer group `fabric`, shared access key `fabric-listen`; both created by `infra/main.bicep`), input format JSON, and destination = lakehouse `bronze`,
    table `<division>_events`. One route per hub: new sites and tables need no Eventstream changes.
 3. Import the notebooks in `notebooks/` (Fabric Git integration picks up the `*.Notebook` folders). Attach `bronze`
    as the default lakehouse and `silver` as a second one to both.

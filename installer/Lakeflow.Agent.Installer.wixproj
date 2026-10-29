@@ -1,0 +1,15 @@
+<Project Sdk="WixToolset.Sdk/5.0.2">
+  <!--
+    The Lakeflow agent for a site the central collector cannot reach. Build on Windows after publishing the agent:
+      dotnet publish src/Lakeflow.Agent -c Release -r win-x64 -self-contained -o out/agent
+      dotnet build installer/Lakeflow.Agent.Installer.wixproj -c Release -p:AgentPublishDir=%CD%\out\agent
+  -->
+  <PropertyGroup>
+    <OutputName>LakeflowAgent</OutputName>
+    <InstallerPlatform>x64</InstallerPlatform>
+    <Version Condition="'$(Version)' == ''">0.1.0</Version>
+    <AgentPublishDir Condition="'$(AgentPublishDir)' == ''">$(MSBuildThisFileDirectory)..\out\agent</AgentPublishDir>
+    <DefineConstants>AgentPublishDir=$(AgentPublishDir);Version=$(Version)</DefineConstants>
+    <SuppressValidation>false</SuppressValidation>
+  </PropertyGroup>
+</Project>

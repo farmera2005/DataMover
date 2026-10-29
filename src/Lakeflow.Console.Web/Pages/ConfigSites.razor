@@ -47,7 +47,7 @@
                 }
                 else
                 {
-                    <p>Run this on the site PC. The token works once, until @token.ExpiresUtc.ToLocalTime().ToString("g"), and is not shown again.</p>
+                    <p>Run this as an administrator on the site PC, with <b>LakeflowAgent.msi</b> (see docs/collector.md). The token works once, until @token.ExpiresUtc.ToLocalTime().ToString("g"), and is not shown again.</p>
                 }
                 <pre class="command">@token.InstallCommand</pre>
             }

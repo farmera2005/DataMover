@@ -22,7 +22,8 @@ Log.Logger = AgentLogging.Configure(new LoggerConfiguration(), Path.Combine(data
 try
 {
     var builder = Host.CreateApplicationBuilder(args);
-    builder.Services.AddWindowsService(options => options.ServiceName = "Lakeflow Agent");
+    // The service name matches the installer (installer/Package.wxs); its virtual account is NT SERVICE\LakeflowAgent.
+    builder.Services.AddWindowsService(options => options.ServiceName = "LakeflowAgent");
     builder.Services.AddSerilog();
     builder.Services.AddSingleton(TimeProvider.System);
     builder.Services.AddSingleton<ISecretProtector>(_ => OperatingSystem.IsWindows()

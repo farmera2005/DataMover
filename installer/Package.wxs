@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Lakeflow Agent: the collector, installed as a Windows service at a site the central collector cannot reach.
+
+  Unattended install with the command the console shows (Configuration, Sites and collectors, Token for an agent at
+  this site):
+    msiexec /i LakeflowAgent.msi /qn CONTROL_API="https://<server>:8444/" ENROLLMENT_TOKEN="<token>" CA_SHA256="<sha-256>"
+
+  - Runs as its own virtual account, NT SERVICE\LakeflowAgent (no password, no rights beyond its own folders).
+  - Its data folder (buffer, checkpoints, credentials, logs) is readable only by that account, SYSTEM and Administrators.
+  - The token goes into a registry key only those can read; the agent enrolls with it on first start and deletes it.
+    The token is a hidden property, so it never appears in an MSI log.
+  - Uninstalling removes the program and the service; the data folder is kept (its buffer may hold changes not yet sent).
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package Name="Lakeflow Agent" Manufacturer="Mercer Landmark" Version="$(var.Version)"
+           UpgradeCode="02ea2a80-db94-48b7-adfe-fd892291d1d2" Scope="perMachine" InstallerVersion="500">
+    <MajorUpgrade DowngradeErrorMessage="A newer version of the Lakeflow Agent is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <Property Id="CONTROL_API" Secure="yes" />
+    <Property Id="ENROLLMENT_TOKEN" Secure="yes" Hidden="yes" />
+    <Property Id="CA_SHA256" Secure="yes" />
+
+    <!-- SIDs: SYSTEM, Administrators, and NT SERVICE\LakeflowAgent (S-1-5-80 + SHA-1 of the upper-case service name). -->
+    <?define ServiceSid = "S-1-5-80-2136591765-628530825-2363202261-254100150-1450642212" ?>
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="Lakeflow Agent" />
+    </StandardDirectory>
+    <StandardDirectory Id="CommonAppDataFolder">
+      <Directory Id="LakeflowDataRoot" Name="Lakeflow">
+        <Directory Id="AGENTDATA" Name="Agent" />
+      </Directory>
+    </StandardDirectory>
+
+    <Feature Id="Agent" Title="Lakeflow Agent">
+      <Files Directory="INSTALLFOLDER" Include="$(var.AgentPublishDir)\**">
+        <Exclude Files="$(var.AgentPublishDir)\Lakeflow.Agent.exe" />
+        <Exclude Files="$(var.AgentPublishDir)\**\*.pdb" />
+      </Files>
+      <ComponentRef Id="Service" />
+      <ComponentRef Id="DataFolder" />
+      <ComponentRef Id="Enrollment" />
+    </Feature>
+
+    <Component Id="Service" Directory="INSTALLFOLDER">
+      <File Id="AgentExe" Source="$(var.AgentPublishDir)\Lakeflow.Agent.exe" KeyPath="yes" />
+      <ServiceInstall Id="AgentService" Name="LakeflowAgent" DisplayName="Lakeflow Agent"
+                      Description="Captures changes from this site's databases and sends them to Lakeflow (Mercer Landmark)."
+                      Type="ownProcess" Start="auto" ErrorControl="normal" Account="NT SERVICE\LakeflowAgent" Vital="yes">
+        <ServiceConfig DelayedAutoStart="yes" FailureActionsWhen="failedToStopOrReturnedError" OnInstall="yes" OnReinstall="yes" />
+        <!-- The agent exits with an error to be restarted (a console "restart" command, or after a fault). -->
+        <ServiceConfigFailureActions OnInstall="yes" OnReinstall="yes" ResetPeriod="86400">
+          <Failure Action="restart" Delay="30000" />
+          <Failure Action="restart" Delay="60000" />
+          <Failure Action="restart" Delay="300000" />
+        </ServiceConfigFailureActions>
+      </ServiceInstall>
+      <ServiceControl Id="AgentServiceControl" Name="LakeflowAgent" Start="install" Stop="both" Remove="uninstall" Wait="yes" />
+    </Component>
+
+    <Component Id="DataFolder" Directory="AGENTDATA" Guid="9b3f5a5e-41f6-4c1e-9a7e-1f4a2b6d7c30" Permanent="yes">
+      <CreateFolder>
+        <!-- Protected (no inherited "Users can read" from ProgramData); full control for the service, SYSTEM, Administrators. -->
+        <PermissionEx Sddl="O:SYG:SYD:PAI(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)(A;OICI;FA;;;$(var.ServiceSid))" />
+      </CreateFolder>
+    </Component>
+
+    <!-- Only when a token is given; transitive so a repair (without the token) does not recreate it after the agent removed it. -->
+    <Component Id="Enrollment" Directory="INSTALLFOLDER" Guid="5d7c1e0a-8f2b-4b8e-b1d4-0c6a9e3f2a71" Transitive="yes"
+               Condition="ENROLLMENT_TOKEN AND CONTROL_API">
+      <RegistryKey Root="HKLM" Key="SOFTWARE\Lakeflow\Agent\Enrollment" ForceDeleteOnUninstall="yes">
+        <RegistryValue Name="ControlApi" Type="string" Value="[CONTROL_API]" KeyPath="yes" />
+        <RegistryValue Name="Token" Type="string" Value="[ENROLLMENT_TOKEN]" />
+        <RegistryValue Name="CaSha256" Type="string" Value="[CA_SHA256]" />
+        <PermissionEx Sddl="O:SYG:SYD:PAI(A;CI;KA;;;SY)(A;CI;KA;;;BA)(A;CI;KA;;;$(var.ServiceSid))" />
+      </RegistryKey>
+    </Component>
+  </Package>
+</Wix>

@@ -55,5 +55,29 @@ Kerberos set up on the Docker host; prefer SQL logins.
 
 ## A site the centre cannot reach
 
-Generate a token for that site (**Token for an agent at this site**) and install the agent on a PC there (Windows
-service; the MSI comes with step 7). It is the same program serving that one site.
+Install the agent on a Windows PC at the site: the same program, as a Windows service serving that one site.
+
+1. In the console: **Configuration → Sites and collectors**, edit the site, **Token for an agent at this site**. It
+   shows the command, with a one-time token (24 hours) and the SHA-256 of your stack's CA.
+2. On the PC, as an administrator, with `LakeflowAgent.msi` (from CI's `LakeflowAgent-msi` artifact):
+   ```
+   msiexec /i LakeflowAgent.msi /qn CONTROL_API="https://<server>:8444/" ENROLLMENT_TOKEN="<token>" CA_SHA256="<sha-256>"
+   ```
+3. The service (**Lakeflow Agent**) starts, enrolls, and the site switches to it.
+
+What the MSI sets up (`installer/Package.wxs`):
+
+- the service `LakeflowAgent`, automatic (delayed) start, restarted by Windows if it stops with an error, running as its
+  own virtual account `NT SERVICE\LakeflowAgent` (no password, no rights beyond its own folders);
+- `C:\ProgramData\Lakeflow\Agent` for its buffer, checkpoints, credentials (DPAPI) and 14 days of logs, readable only by
+  that account, SYSTEM and Administrators;
+- the token in a registry key only they can read; the agent enrolls with it and deletes it. The token is a hidden MSI
+  property, so it never appears in an MSI log.
+
+Network: outbound only, 8444 to the Lakeflow server, 443 to Event Hubs, and SQL to the site's databases.
+Uninstalling removes the program and the service but keeps the data folder, whose buffer may hold changes not yet sent.
+Upgrades: install a newer MSI over it (major upgrade; data and enrollment are kept).
+
+The MSI is signed when CI has a code-signing certificate (secrets `AGENT_SIGNING_PFX`, base64, and
+`AGENT_SIGNING_PASSWORD`); without them it is built unsigned. CI installs it on a Windows runner and checks all of the
+above, then uninstalls it.
