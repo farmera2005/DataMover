@@ -1,0 +1,61 @@
+name: build
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Tests (Linux, SQL Server)
+    runs-on: ubuntu-latest
+    services:
+      mssql:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: "Y"
+          MSSQL_SA_PASSWORD: ${{ format('Ci1!{0}', github.run_id) }}
+        ports:
+          - 1433:1433
+        options: >-
+          --health-cmd "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$MSSQL_SA_PASSWORD\" -Q 'SELECT 1'"
+          --health-interval 5s --health-timeout 5s --health-retries 30
+    env:
+      MSSQL_TEST_CONNECTION: ${{ format('Server=tcp:127.0.0.1,1433;User ID=sa;Password=Ci1!{0};TrustServerCertificate=true;Encrypt=true', github.run_id) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - run: dotnet test Lakeflow.sln --logger "console;verbosity=minimal"
+
+  fabric:
+    name: Fabric notebooks (Spark + Delta)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install pyspark==3.5.3 delta-spark==3.2.1 pytest==8.3.3 pandas==2.2.3 pyarrow==17.0.0
+      - run: python fabric/tools/build_notebooks.py --check
+      - run: python -m pytest fabric -q
+
+  windows:
+    name: Console and agent (Windows)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Build the WinUI console
+        run: dotnet build windows/Lakeflow.Console.sln -c Release -p:Platform=x64 -p:GenerateAppxPackageOnBuild=false
+      - name: Publish the agent
+        run: dotnet publish src/Lakeflow.Agent -c Release -r win-x64 --self-contained -o out/agent

@@ -40,6 +40,11 @@ public sealed class InMemorySource
     internal Table Get(string name) =>
         _tables.TryGetValue(name, out var table) ? table : throw new InvalidOperationException($"No table {name}.");
 
+    public IReadOnlyList<string> TableNames()
+    {
+        lock (Gate) return _tables.Keys.Order().ToList();
+    }
+
     /// <summary>Ids currently in the table.</summary>
     public IReadOnlyList<int> Ids(string table)
     {

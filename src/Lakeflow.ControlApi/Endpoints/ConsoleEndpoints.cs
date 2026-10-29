@@ -91,6 +91,10 @@ public static class ConsoleEndpoints
         });
 
         operate.MapPost("/agents/{agentId}/commands", PostCommandAsync);
+        read.MapGet("/agents/{agentId}/commands/{commandId:guid}", async Task<Results<Ok<CommandDto>, NotFound>> (string agentId, Guid commandId, LakeflowDb db, CancellationToken ct) =>
+            await db.Commands.FirstOrDefaultAsync(c => c.AgentId == agentId && c.CommandId == commandId, ct) is { } command
+                ? TypedResults.Ok(ToDto(command))
+                : TypedResults.NotFound());
         read.MapGet("/agents/{agentId}/commands", async (string agentId, LakeflowDb db, CancellationToken ct) =>
             (await db.Commands.Where(c => c.AgentId == agentId).OrderByDescending(c => c.IssuedUtc).Take(200).ToListAsync(ct)).Select(ToDto));
 
@@ -269,8 +273,9 @@ public static class ConsoleEndpoints
         string agentId, CommandRequest request, HttpContext http, LakeflowDb db, IActor actor, TimeProvider time, CancellationToken ct)
     {
         if (await db.Agents.FindAsync([agentId], ct) is not { } agent || agent.RevokedUtc is not null) return TypedResults.NotFound();
-        // Operators pause, resume and resnapshot; restarting the agent and pulling its logs are for Admins.
-        if (request.Type is CommandType.Restart or CommandType.CollectLogs && !http.User.IsInRole(Roles.Admin)) return TypedResults.Forbid();
+        // Operators pause, resume and resnapshot; restarting, pulling logs and source setup are for Admins.
+        if (request.Type is CommandType.Restart or CommandType.CollectLogs or CommandType.TestConnection or CommandType.BrowseSchema
+            && !http.User.IsInRole(Roles.Admin)) return TypedResults.Forbid();
         var command = new AgentCommand
         {
             CommandId = Guid.NewGuid(), Type = request.Type, SourceId = request.SourceId, Table = request.Table,
@@ -334,7 +339,8 @@ public static class ConsoleEndpoints
     private static CommandDto ToDto(Command c) => new()
     {
         CommandId = c.CommandId, AgentId = c.AgentId, Type = c.Type, SourceId = c.SourceId, Table = c.TableName,
-        IssuedBy = c.IssuedBy, IssuedUtc = c.IssuedUtc, CompletedUtc = c.CompletedUtc, Result = c.Result,
+        IssuedBy = c.IssuedBy, IssuedUtc = c.IssuedUtc, CompletedUtc = c.CompletedUtc, Result = c.Result, Succeeded = c.Succeeded,
+        Details = c.ResultDetails is null ? null : System.Text.Json.Nodes.JsonNode.Parse(c.ResultDetails)?.AsObject(),
     };
 }
 

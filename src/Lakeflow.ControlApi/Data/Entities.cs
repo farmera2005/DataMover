@@ -131,6 +131,9 @@ public sealed class Command : IAudited
     public DateTimeOffset? DeliveredUtc { get; set; }
     public DateTimeOffset? CompletedUtc { get; set; }
     public string? Result { get; set; }
+    public bool? Succeeded { get; set; }
+    /// <summary>Structured result (connection test, table list), JSON.</summary>
+    public string? ResultDetails { get; set; }
     public string AuditName => $"command {Type} for {AgentId}";
 }
 

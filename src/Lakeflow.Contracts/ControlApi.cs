@@ -90,6 +90,9 @@ public sealed record CommandDto
     public required DateTimeOffset IssuedUtc { get; init; }
     public DateTimeOffset? CompletedUtc { get; init; }
     public string? Result { get; init; }
+    public bool? Succeeded { get; init; }
+    /// <summary>Structured result: <see cref="ConnectionTestResult"/> or <see cref="SchemaBrowseResult"/> for the wizard commands.</summary>
+    public System.Text.Json.Nodes.JsonObject? Details { get; init; }
 }
 
 public enum Health { Green, Amber, Red }

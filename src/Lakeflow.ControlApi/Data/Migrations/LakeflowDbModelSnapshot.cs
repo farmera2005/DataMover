@@ -245,9 +245,15 @@ namespace Lakeflow.ControlApi.Data.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
 
+                    b.Property<string>("ResultDetails")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("SourceId")
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
+
+                    b.Property<bool?>("Succeeded")
+                        .HasColumnType("bit");
 
                     b.Property<string>("TableName")
                         .HasMaxLength(260)

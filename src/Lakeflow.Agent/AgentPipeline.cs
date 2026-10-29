@@ -147,7 +147,9 @@ public sealed class AgentPipeline : IAsyncDisposable
         await _captureGate.WaitAsync();
         try
         {
-            var result = Execute(command);
+            var result = command.Type is CommandType.TestConnection or CommandType.BrowseSchema
+                ? await ProbeAsync(command)
+                : Execute(command);
             _log.LogInformation("Command {Type} {Source} {Table}: {Result}", command.Type, command.SourceId, command.Table, result.Message);
             _store.AddEvent(result);
             return result;
@@ -156,6 +158,20 @@ public sealed class AgentPipeline : IAsyncDisposable
         {
             _captureGate.Release();
         }
+    }
+
+    private async Task<AgentEvent> ProbeAsync(AgentCommand command)
+    {
+        var worker = command.SourceId is null ? null : _workers.GetValueOrDefault(command.SourceId);
+        var (ok, message, details) = worker is null
+            ? (false, $"Unknown source {command.SourceId}.", new System.Text.Json.Nodes.JsonObject())
+            : await worker.ProbeAsync(command.Type, CancellationToken.None);
+        return new AgentEvent
+        {
+            EventId = Guid.NewGuid(), OccurredUtc = _time.GetUtcNow(), Kind = AgentEventKind.CommandResult,
+            Severity = ok ? EventSeverity.Info : EventSeverity.Warning, CommandId = command.CommandId,
+            SourceId = command.SourceId, Message = message, Details = details,
+        };
     }
 
     private AgentEvent Execute(AgentCommand command)

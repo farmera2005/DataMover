@@ -52,7 +52,7 @@ public static partial class ConfigValidator
             if (string.IsNullOrWhiteSpace(source.Connection.Host)) errors.Add($"{where}: host is required.");
             if (source.Connection.Port is < 1 or > 65535) errors.Add($"{where}: port must be 1–65535.");
             if (source.Engine != SourceEngine.Files && source.Engine != SourceEngine.Access
-                && string.IsNullOrWhiteSpace(source.Connection.CredentialName))
+                && source.Connection.Auth == AuthMethod.SqlLogin && string.IsNullOrWhiteSpace(source.Connection.CredentialName))
                 errors.Add($"{where}: credential_name is required.");
             if (source.Connection.ConnectTimeoutSeconds is < 1 or > 60) errors.Add($"{where}: connect_timeout_seconds must be 1–60.");
             if (source.Connection.CommandTimeoutSeconds is < 1 or > 300) errors.Add($"{where}: command_timeout_seconds must be 1–300.");
@@ -78,7 +78,8 @@ public static partial class ConfigValidator
         foreach (var command in config.Commands)
         {
             var tableCommand = command.Type is CommandType.ResnapshotTable or CommandType.PauseTable or CommandType.ResumeTable;
-            var sourceCommand = tableCommand || command.Type is CommandType.PauseSource or CommandType.ResumeSource;
+            var sourceCommand = tableCommand || command.Type is CommandType.PauseSource or CommandType.ResumeSource
+                or CommandType.TestConnection or CommandType.BrowseSchema;
             if (sourceCommand && string.IsNullOrEmpty(command.SourceId)) errors.Add($"command {command.CommandId}: {command.Type} needs source_id.");
             if (tableCommand && string.IsNullOrEmpty(command.Table)) errors.Add($"command {command.CommandId}: {command.Type} needs table.");
         }

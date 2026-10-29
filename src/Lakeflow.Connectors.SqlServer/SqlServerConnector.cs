@@ -15,7 +15,7 @@ namespace Lakeflow.Connectors.SqlServer;
 /// Holds at most one connection, opened read-only with a 5 s connect timeout, 15 s command timeout,
 /// 5 s lock timeout and low deadlock priority.
 /// </summary>
-public sealed class SqlServerConnector : ISourceConnector, IKeyReader
+public sealed class SqlServerConnector : ISourceConnector, IKeyReader, ISchemaBrowser
 {
     private readonly SourceConfig _source;
     private readonly ICredentialStore _credentials;
@@ -162,6 +162,26 @@ public sealed class SqlServerConnector : ISourceConnector, IKeyReader
             after = keys[^1];
         }
     }
+
+    public async Task<ConnectionTestResult> TestConnectionAsync(CancellationToken cancellationToken)
+    {
+        await _gate.WaitAsync(cancellationToken);
+        try
+        {
+            // Always a fresh connection, so the test proves the current settings and password.
+            await DropConnectionAsync();
+            var result = await SchemaBrowser.TestAsync(() => OpenAsync(cancellationToken), CommandTimeout, cancellationToken);
+            if (!result.Succeeded) await DropConnectionAsync();
+            return result;
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
+    public Task<SchemaBrowseResult> BrowseAsync(int maxTables, CancellationToken cancellationToken) =>
+        RunAsync(connection => SchemaBrowser.BrowseAsync(connection, maxTables, CommandTimeout, cancellationToken), cancellationToken);
 
     private ICapture Capture(TableConfig table)
     {

@@ -9,6 +9,9 @@ namespace Lakeflow.ControlApi.Services;
 /// <summary>Turns the stored site configuration into what an agent pulls, and what the console's edits are validated as.</summary>
 public sealed class ConfigBuilder(LakeflowDb db, IKeyMaterial keys, IOptions<EventHubsOptions> hubs, TimeProvider time)
 {
+    /// <summary>How long after a console command the agent keeps polling quickly.</summary>
+    public static readonly TimeSpan FastPollFor = TimeSpan.FromMinutes(10);
+
     public static SourceConfig ToConfig(Source source, IEnumerable<CapturedTable> tables) => new()
     {
         SourceId = source.SourceId,
@@ -107,6 +110,8 @@ public sealed class ConfigBuilder(LakeflowDb db, IKeyMaterial keys, IOptions<Eve
 
         return new AgentConfig
         {
+            // Someone is waiting on a command (e.g. the setup wizard): poll every 10 s instead of 60 s for a while.
+            ConfigPollSeconds = commands.Any(c => now - c.IssuedUtc < FastPollFor) ? 10 : 60,
             AgentId = agent.AgentId,
             SiteId = site.SiteId,
             ConfigVersion = site.ConfigVersion,

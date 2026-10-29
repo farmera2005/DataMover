@@ -101,6 +101,14 @@ public class ConfigTests
     }
 
     [Fact]
+    public void Windows_accounts_need_no_stored_credential()
+    {
+        var config = Valid();
+        var windows = config.Sources[0] with { Connection = config.Sources[0].Connection with { Auth = AuthMethod.Windows, CredentialName = null, UserName = null } };
+        Assert.Empty(ConfigValidator.Validate(config with { Sources = [windows] }));
+    }
+
+    [Fact]
     public void Table_commands_need_a_target()
     {
         var config = Valid() with

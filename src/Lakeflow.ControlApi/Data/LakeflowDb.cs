@@ -17,7 +17,7 @@ public interface IActor
 /// </summary>
 public sealed class LakeflowDb(DbContextOptions<LakeflowDb> options, IActor actor, TimeProvider time) : DbContext(options)
 {
-    private static readonly HashSet<string> NeverAudited = [nameof(EnrollmentToken.TokenHash), nameof(SealedCredentialRow.Sealed),
+    private static readonly HashSet<string> NeverAudited = [nameof(EnrollmentToken.TokenHash), nameof(SealedCredentialRow.Sealed), nameof(Command.ResultDetails),
         nameof(Agent.LastHeartbeatJson), nameof(Agent.LastHeartbeatUtc), nameof(Agent.SasExpiresUtc), nameof(Agent.CertificatePem)];
 
     public DbSet<Site> Sites => Set<Site>();

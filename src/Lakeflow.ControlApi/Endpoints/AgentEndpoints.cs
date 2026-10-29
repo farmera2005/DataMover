@@ -141,6 +141,8 @@ public static class AgentEndpoints
             {
                 command.CompletedUtc = e.OccurredUtc;
                 command.Result = e.Message.Length > 2000 ? e.Message[..2000] : e.Message;
+                command.Succeeded = e.Severity == EventSeverity.Info;
+                command.ResultDetails = e.Details?.ToJsonString();
             }
             if (e.Kind == AgentEventKind.CredentialStored
                 && Guid.TryParse(e.Details?["credential_id"]?.GetValue<string>(), out var credentialId)

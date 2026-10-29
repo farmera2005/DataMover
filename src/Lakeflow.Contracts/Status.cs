@@ -2,7 +2,14 @@ using System.Text.Json.Nodes;
 
 namespace Lakeflow.Contracts;
 
-public enum CommandType { ResnapshotTable, PauseTable, ResumeTable, PauseSource, ResumeSource, Restart, CollectLogs }
+public enum CommandType
+{
+    ResnapshotTable, PauseTable, ResumeTable, PauseSource, ResumeSource, Restart, CollectLogs,
+    /// <summary>Connect to the source and report what the login can do (setup wizard). Result details: <see cref="ConnectionTestResult"/>.</summary>
+    TestConnection,
+    /// <summary>List the tables the login can read, with what each supports (setup wizard). Result details: <see cref="SchemaBrowseResult"/>.</summary>
+    BrowseSchema,
+}
 
 /// <summary>Queued by the console, delivered on the agent's next config poll (sites never accept inbound connections).</summary>
 public sealed record AgentCommand

@@ -11,7 +11,7 @@ namespace Lakeflow.Testing.InMemory;
 /// like rowversion polling (upserts only, deletes by key reconciliation). Used to prove the contract suite and to
 /// drive agent tests without a database.
 /// </summary>
-public sealed class InMemoryConnector(InMemorySource source) : ISourceConnector, IKeyReader
+public sealed class InMemoryConnector(InMemorySource source) : ISourceConnector, IKeyReader, ISchemaBrowser
 {
     public SourceEngine Engine => SourceEngine.SqlServer;
 
@@ -125,6 +125,26 @@ public sealed class InMemoryConnector(InMemorySource source) : ISourceConnector,
             yield return Key(id);
         }
         await Task.CompletedTask;
+    }
+
+    public Task<ConnectionTestResult> TestConnectionAsync(CancellationToken cancellationToken) => Task.FromResult(FailWith is { } error
+        ? new ConnectionTestResult { Succeeded = false, Error = error.Message }
+        : new ConnectionTestResult { Succeeded = true, ServerVersion = "in-memory", Database = "memory", Login = "test", ChangeTrackingEnabled = true });
+
+    public Task<SchemaBrowseResult> BrowseAsync(int maxTables, CancellationToken cancellationToken)
+    {
+        ThrowIfFailing();
+        var names = source.TableNames();
+        var tables = names.Take(maxTables).Select(name =>
+        {
+            var (method, watermark, note) = SourceTableInfo.Suggest(true, true, null, []);
+            return new SourceTableInfo
+            {
+                Table = $"dbo.{name}", RowCount = source.Ids(name).Count, KeyColumns = ["id"], ChangeTrackingEnabled = true,
+                SuggestedMethod = method, SuggestedWatermark = watermark, Note = note,
+            };
+        }).ToList();
+        return Task.FromResult(new SchemaBrowseResult(tables, names.Count > maxTables));
     }
 
     public ValueTask DisposeAsync() => ValueTask.CompletedTask;

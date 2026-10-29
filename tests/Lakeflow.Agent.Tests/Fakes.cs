@@ -41,6 +41,12 @@ public sealed class FakeSender : IEventSender
     public int Attempts { get; private set; }
     public IReadOnlyList<EventHubTarget> Targets { get; private set; } = [];
 
+    /// <summary>A copy of what has been received, safe to read while the agent runs on another thread.</summary>
+    public List<ChangeEnvelope> Snapshot()
+    {
+        lock (Received) return [.. Received];
+    }
+
     public void UpdateTargets(IReadOnlyList<EventHubTarget> targets) => Targets = targets;
 
     public Task<int> SendAsync(string hub, string partitionKey, IReadOnlyList<OutboxEvent> events, CancellationToken cancellationToken)
@@ -58,7 +64,7 @@ public sealed class FakeSender : IEventSender
             }
             var envelope = EnvelopeJson.Deserialize<ChangeEnvelope>(e.Payload);
             if (envelope.PartitionKey != partitionKey) throw new InvalidOperationException("event sent with the wrong partition key");
-            Received.Add(envelope);
+            lock (Received) Received.Add(envelope);
             PartitionKeys.Add(partitionKey);
             Hubs.Add(hub);
             count++;

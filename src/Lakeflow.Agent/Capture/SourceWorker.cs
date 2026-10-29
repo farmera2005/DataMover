@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using Lakeflow.Agent.Storage;
 using Lakeflow.Contracts;
@@ -226,6 +227,37 @@ internal sealed class SourceWorker : IAsyncDisposable
         // Throttle: never read faster than the source's row budget.
         var pause = TimeSpan.FromSeconds((double)rows / Config.MaxRowsPerSecond);
         runtime.NextRun = hasMore ? now + pause : now + TimeSpan.FromSeconds(Math.Max(table.PollIntervalSeconds, pause.TotalSeconds));
+    }
+
+    public const int MaxBrowseTables = 500;
+
+    /// <summary>Setup-wizard commands, run over this source's one connection. Never throws; failures are results.</summary>
+    public async Task<(bool Succeeded, string Message, JsonObject Details)> ProbeAsync(CommandType type, CancellationToken ct)
+    {
+        using var scope = _log.BeginScope(new Dictionary<string, object> { ["source_id"] = Config.SourceId });
+        try
+        {
+            _connector ??= _factory.Create(Config);
+            if (_connector is not ISchemaBrowser browser)
+                return (false, $"The {Config.Engine} connector cannot test connections or browse tables yet.", new JsonObject());
+            if (type == CommandType.TestConnection)
+            {
+                var test = await browser.TestConnectionAsync(ct);
+                _log.LogInformation("Connection test: {Result}", test.Succeeded ? "succeeded" : test.Error);
+                if (test.Succeeded) { ConsecutiveFailures = 0; NextAttempt = DateTimeOffset.MinValue; }
+                return (test.Succeeded, test.Succeeded ? $"Connected to {test.Database} as {test.Login}." : $"Connection failed: {test.Error}",
+                    (JsonObject)JsonSerializer.SerializeToNode(test, EnvelopeJson.Options)!);
+            }
+            var browse = await browser.BrowseAsync(MaxBrowseTables, ct);
+            return (true, $"{browse.Tables.Count} tables{(browse.Truncated ? $" (first {MaxBrowseTables})" : "")}.",
+                (JsonObject)JsonSerializer.SerializeToNode(browse, EnvelopeJson.Options)!);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _log.LogWarning(ex, "{Command} failed", type);
+            await DropConnectorAsync();
+            return (false, $"{type} failed: {ex.Message}", new JsonObject());
+        }
     }
 
     private static bool ReconcileDue(AgentConfig agent, TableRecord record, DateTimeOffset now)
