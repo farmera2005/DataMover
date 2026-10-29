@@ -86,6 +86,18 @@ public sealed class ConsoleApi(HttpClient http)
     public async Task<SettingsTestResult> TestFabricAsync(CancellationToken ct = default) =>
         await ReadAsync<SettingsTestResult>(await http.PostAsJsonAsync("settings/fabric/test", new { }, Json, ct), ct);
 
+    public Task<SnowflakeSettingsDto> GetSnowflakeAsync(CancellationToken ct = default) => GetAsync<SnowflakeSettingsDto>("settings/snowflake", ct);
+    public Task<SnowflakeSettingsDto> PutSnowflakeAsync(SnowflakeSettingsRequest request, CancellationToken ct = default) =>
+        PutAsync<SnowflakeSettingsRequest, SnowflakeSettingsDto>("settings/snowflake", request, ct);
+    public async Task<SnowflakeSettingsDto> GenerateSnowflakeKeyAsync(CancellationToken ct = default) =>
+        await ReadAsync<SnowflakeSettingsDto>(await http.PostAsJsonAsync("settings/snowflake/key", new { }, Json, ct), ct);
+    public Task<SnowflakeSettingsDto> PutSnowflakeHubAsync(Division division, string connectionString, CancellationToken ct = default) =>
+        PutAsync<EventHubSettingsRequest, SnowflakeSettingsDto>($"settings/snowflake/hubs/{Wire(division)}", new EventHubSettingsRequest(connectionString), ct);
+    public Task DeleteSnowflakeHubAsync(Division division, CancellationToken ct = default) => SendAsync(HttpMethod.Delete, $"settings/snowflake/hubs/{Wire(division)}", null, ct);
+    public async Task<SettingsTestResult> TestSnowflakeAsync(CancellationToken ct = default) =>
+        await ReadAsync<SettingsTestResult>(await http.PostAsJsonAsync("settings/snowflake/test", new { }, Json, ct), ct);
+    public Task<SnowflakeStatusDto> GetSnowflakeStatusAsync(CancellationToken ct = default) => GetAsync<SnowflakeStatusDto>("settings/snowflake/status", ct);
+
     public Task<LdapSettingsDto> GetLdapAsync(CancellationToken ct = default) => GetAsync<LdapSettingsDto>("settings/ldap", ct);
     public Task<LdapSettingsDto> PutLdapAsync(LdapSettingsRequest request, CancellationToken ct = default) =>
         PutAsync<LdapSettingsRequest, LdapSettingsDto>("settings/ldap", request, ct);

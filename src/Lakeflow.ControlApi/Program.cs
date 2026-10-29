@@ -50,7 +50,19 @@ builder.Services.AddSingleton<LdapDirectory>();
 builder.Services.AddScoped<SettingsStore>();
 builder.Services.AddScoped<Accounts>();
 builder.Services.AddScoped<ConfigBuilder>();
-builder.Services.AddScoped<IReconciliationSource, SettingsReconciliation>();
+builder.Services.AddScoped<SettingsReconciliation>();
+builder.Services.AddScoped<SnowflakeSettingsReader>();
+builder.Services.AddScoped<SnowflakeReconciliation>();
+builder.Services.AddScoped<IReconciliationSource, AllReconciliation>();
+// Snowflake: statements can run for minutes (the SQL API waits up to 10).
+builder.Services.AddHttpClient("snowflake", c => c.Timeout = TimeSpan.FromMinutes(11));
+builder.Services.AddSingleton(sp => new Lakeflow.Snowflake.SnowflakeRunner(
+    settings => settings.Hubs.Select(h => (Lakeflow.Snowflake.IHubReader)new Lakeflow.Snowflake.EventHubsReader(
+        LakeNames.HubName(h.Division), h.ListenConnectionString, settings.ConsumerGroup)).ToArray(),
+    sp.GetRequiredService<IHttpClientFactory>().CreateClient("snowflake"), sp.GetRequiredService<TimeProvider>(),
+    sp.GetRequiredService<ILoggerFactory>()));
+builder.Services.AddSingleton<SnowflakeHost>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<SnowflakeHost>());
 builder.Services.AddHostedService<Retention>();
 builder.Services.AddHostedService<BuiltInCollector>();
 
@@ -172,6 +184,7 @@ app.MapFallbackToFile("console/{*path:nonfile}", "console/index.html").AllowAnon
 app.MapAgentEndpoints();
 app.MapAuthEndpoints();
 app.MapSettingsEndpoints();
+app.MapSnowflakeEndpoints();
 app.MapConsoleEndpoints();
 
 app.Run();

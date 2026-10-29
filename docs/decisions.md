@@ -2,6 +2,21 @@
 
 SPEC.md is the starting brief. These are the places the build deliberately departs from it, and why. Newest first.
 
+## 2026-10-29: Snowflake through Lakeflow's own forwarder, over REST
+
+Snowflake is a second destination next to Fabric, fed by a forwarder inside the control API rather than Snowflake's
+Kafka connector or an Azure Function: it reads each hub with its own consumer group (`snowflake`, Listen-only key
+`snowflake-listen`), so Fabric and Snowflake never share offsets, and it needs no extra service to deploy. It talks to
+Snowflake only over HTTPS: the SQL API (`/api/v2/statements`) and the Snowpipe Streaming REST API, both signed in with a
+key-pair JWT. The Snowflake .NET driver was left out because it pulls in conflicting Microsoft.Extensions versions.
+The key pair is generated on the server and only the public key leaves it, inside a setup script an ACCOUNTADMIN runs
+once; the service user is `TYPE = SERVICE` with no password. One streaming channel per hub partition uses the Event
+Hubs sequence number as its offset token, so a restart resumes exactly where Snowflake's committed data ends. Silver is
+rebuilt on a timer with plain SQL that is safe to repeat (no multi-statement transactions over REST) and follows the
+same rules as the Fabric notebook, tested on the same fixture the notebook tests use. Snowflake's own documentation site is
+blocked from the build environment, so the REST paths follow its published API and are proven only by the end-to-end
+test (`SNOWFLAKE_TEST_*` secrets in CI) against a real account.
+
 ## 2026-10-29: Step 7 builds Event Hubs only, and the MSI runs as a virtual account
 
 The spec's step 7 Bicep (Event Hubs, App Service, Azure SQL, Key Vault, App Insights) shrinks to Event Hubs: the rest

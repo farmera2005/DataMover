@@ -1,0 +1,114 @@
+@page "/config/snowflake"
+@layout ConfigLayout
+@inherits ViewModelComponent<SnowflakeViewModel>
+@inject ConsoleApi Api
+
+<h1>Snowflake</h1>
+@if (ViewModel is { } vm)
+{
+    @if (vm.Error is not null) { <p class="error">@vm.Error</p> }
+    @if (vm.Message is not null) { <p class="info">@vm.Message</p> }
+    <p class="muted">Optional, alongside or instead of Fabric. This server reads each division's Event Hub with its own consumer group
+       (<b>snowflake</b>), streams the changes into <b>BRONZE.EVENTS</b> with Snowpipe Streaming, and builds the <b>SILVER</b> tables
+       on a schedule. Step by step: "Connecting to Snowflake" in the Lakeflow README.</p>
+    <div class="columns">
+        <section class="form">
+            <h2>1. Account</h2>
+            <label>Account identifier<input value="@vm.Settings.Account" @onchange="e => vm.Settings = vm.Settings with { Account = S(e) }" placeholder="myorg-myaccount" /></label>
+            <label>User<input value="@vm.Settings.User" @onchange="e => vm.Settings = vm.Settings with { User = S(e) }" /></label>
+            <label>Role<input value="@vm.Settings.Role" @onchange="e => vm.Settings = vm.Settings with { Role = S(e) }" /></label>
+            <label>Warehouse<input value="@vm.Settings.Warehouse" @onchange="e => vm.Settings = vm.Settings with { Warehouse = S(e) }" /></label>
+            <label>Database<input value="@vm.Settings.Database" @onchange="e => vm.Settings = vm.Settings with { Database = S(e) }" /></label>
+            <label>Build silver every (minutes)<input type="number" min="1" max="1440" value="@vm.Settings.SilverIntervalMinutes"
+                @onchange="e => vm.Settings = vm.Settings with { SilverIntervalMinutes = int.TryParse(S(e), out var m) ? m : 0 }" /></label>
+            <button class="primary" @onclick="() => vm.SaveCommand.ExecuteAsync(null)" disabled="@vm.IsBusy">Save</button>
+
+            <h2>2. Key pair and setup script</h2>
+            @if (vm.Settings.PublicKey is null)
+            {
+                <p class="muted">Lakeflow signs in with a key pair. Generate it here; the private key stays on this server.</p>
+            }
+            else
+            {
+                <p class="muted">Key @vm.Settings.PublicKeyFingerprint. A Snowflake administrator (ACCOUNTADMIN) runs this once in a Snowsight
+                   worksheet (Projects, then Worksheets, then +, then SQL worksheet; paste it, then Run All). It creates the role, an X-Small
+                   warehouse that suspends after 60 seconds, the database and the service user with this public key.</p>
+                <pre class="command">@vm.Settings.SetupScript</pre>
+            }
+            <div class="toolbar">
+                <button @onclick="() => vm.GenerateKeyCommand.ExecuteAsync(null)" disabled="@vm.IsBusy">@(vm.Settings.PublicKey is null ? "Generate key pair" : "Generate a new key pair")</button>
+                <button @onclick="() => vm.TestCommand.ExecuteAsync(null)" disabled="@(vm.IsBusy || vm.Settings.PublicKey is null)">Test connection</button>
+            </div>
+            @if (vm.TestResult is { } t) { <p class="@(t.Succeeded ? "info" : "error")">@t.Message</p> }
+        </section>
+        <section class="form">
+            <h2>3. Event Hubs to read</h2>
+            <p class="muted">For each hub, a shared access policy with only <b>Listen</b> (the Bicep template creates <b>snowflake-listen</b>
+               and the <b>snowflake</b> consumer group when deployed with <code>snowflake=true</code>). Paste its connection string.</p>
+            <label>Division
+                <select @bind="vm.Division">
+                    @foreach (var d in vm.Divisions) { <option value="@d">@d</option> }
+                </select>
+            </label>
+            <label>Connection string<input type="password" @bind="vm.ConnectionString" placeholder="Endpoint=sb://…;SharedAccessKeyName=snowflake-listen;SharedAccessKey=…;EntityPath=…" /></label>
+            <button class="primary" @onclick="() => vm.SaveHubCommand.ExecuteAsync(null)" disabled="@vm.IsBusy">Save</button>
+            <table class="grid">
+                <thead><tr><th>Division</th><th>Hub</th><th>Listen key</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var h in vm.Settings.Hubs)
+                    {
+                        <tr><td>@h.Division</td><td>@h.Namespace/@h.HubName</td><td>@(h.HasListenKey ? "stored" : "not set")</td>
+                            <td>@if (h.HasListenKey) { <button class="link" @onclick="() => vm.RemoveHubAsync(h.Division, default)">Remove</button> }</td></tr>
+                    }
+                </tbody>
+            </table>
+
+            <h2>4. Turn it on</h2>
+            <label class="check"><input type="checkbox" checked="@vm.Settings.Enabled" disabled="@vm.IsBusy"
+                @onchange="e => vm.SetEnabledAsync((bool)e.Value!, default)" /> Forward changes to Snowflake</label>
+
+            @if (vm.Status is { } s)
+            {
+                <h2>Status</h2>
+                <p class="@(s.SetupError is null ? "muted" : "error")">
+                    @(s.SetupError ?? (s.Running ? "Running." : "Not running."))
+                    <button class="link" @onclick="() => vm.RefreshStatusCommand.ExecuteAsync(null)">Refresh</button>
+                </p>
+                <p class="muted">Silver: last built @Ago(s.SilverLastSuccessUtc) (@s.SilverLastRows rows)@(s.SilverNextRunUtc is { } n ? $", next {n.ToLocalTime():t}" : "").</p>
+                @if (s.SilverLastError is not null) { <p class="error">@s.SilverLastError</p> }
+                @if (s.Partitions.Count > 0)
+                {
+                    <table class="grid">
+                        <thead><tr><th>Hub partition</th><th>Rows sent</th><th>Last sent</th><th>Behind</th><th></th></tr></thead>
+                        <tbody>
+                            @foreach (var p in s.Partitions)
+                            {
+                                <tr><td>@p.Division/@p.PartitionId</td><td>@p.RowsSent</td><td>@Ago(p.LastSentUtc)</td>
+                                    <td>@(p.LastEnqueuedUtc is { } q && p.LastSentUtc is { } sent && q > sent ? Ago(sent) : "up to date")</td>
+                                    <td class="@(p.LastError is null ? "" : "error")">@p.LastError</td></tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+            }
+        </section>
+    </div>
+}
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        ViewModel = new SnowflakeViewModel(Api);
+        await ViewModel.LoadCommand.ExecuteAsync(null);
+    }
+
+    private static string S(ChangeEventArgs e) => e.Value?.ToString()?.Trim() ?? "";
+
+    private static string Ago(DateTimeOffset? when) => when is not { } w ? "never" : (DateTimeOffset.UtcNow - w) switch
+    {
+        var d when d.TotalMinutes < 1 => "just now",
+        var d when d.TotalHours < 1 => $"{(int)d.TotalMinutes} min ago",
+        var d when d.TotalDays < 1 => $"{(int)d.TotalHours} h ago",
+        var d => $"{(int)d.TotalDays} d ago",
+    };
+}

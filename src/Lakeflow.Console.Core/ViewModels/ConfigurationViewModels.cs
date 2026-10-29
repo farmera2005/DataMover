@@ -134,6 +134,62 @@ public sealed partial class DestinationsViewModel(ConsoleApi api) : FormViewMode
     public Task TestFabricAsync(CancellationToken ct) => RunAsync(async () => FabricTest = await api.TestFabricAsync(ct));
 }
 
+/// <summary>
+/// Snowflake: the account, the key pair the server generates (the setup script carries its public half), each hub's
+/// snowflake-listen key, a connection test, and what the forwarder and the silver build are doing.
+/// </summary>
+public sealed partial class SnowflakeViewModel(ConsoleApi api) : FormViewModel
+{
+    public IReadOnlyList<Division> Divisions { get; } = Enum.GetValues<Division>();
+
+    [ObservableProperty] private SnowflakeSettingsDto _settings = new();
+    [ObservableProperty] private Division _division = Division.Grain;
+    [ObservableProperty] private string _connectionString = "";
+    [ObservableProperty] private SettingsTestResult? _testResult;
+    [ObservableProperty] private SnowflakeStatusDto? _status;
+
+    [RelayCommand]
+    public Task LoadAsync(CancellationToken ct) => RunAsync(async () =>
+    {
+        Settings = await api.GetSnowflakeAsync(ct);
+        Status = await api.GetSnowflakeStatusAsync(ct);
+    });
+
+    [RelayCommand]
+    public Task RefreshStatusAsync(CancellationToken ct) => RunAsync(async () => Status = await api.GetSnowflakeStatusAsync(ct));
+
+    [RelayCommand]
+    public Task SaveAsync(CancellationToken ct) => RunAsync(async () => Settings = await api.PutSnowflakeAsync(Request(Settings.Enabled), ct),
+        "Snowflake settings saved.");
+
+    public Task SetEnabledAsync(bool enabled, CancellationToken ct) => RunAsync(async () =>
+        Settings = await api.PutSnowflakeAsync(Request(enabled), ct),
+        enabled ? "Forwarding to Snowflake is on. The first rows arrive within a minute; silver follows on its schedule." : "Forwarding to Snowflake is off.");
+
+    [RelayCommand]
+    public Task GenerateKeyAsync(CancellationToken ct) => RunAsync(async () => Settings = await api.GenerateSnowflakeKeyAsync(ct),
+        "New key pair generated. Run the setup script (or its ALTER USER line) in Snowflake so the new key is accepted.");
+
+    [RelayCommand]
+    public Task SaveHubAsync(CancellationToken ct) => RunAsync(async () =>
+    {
+        Settings = await api.PutSnowflakeHubAsync(Division, ConnectionString.Trim(), ct);
+        ConnectionString = "";
+    }, $"{Division}: the forwarder reads this hub with the snowflake consumer group.");
+
+    public Task RemoveHubAsync(Division division, CancellationToken ct) => RunAsync(async () =>
+    {
+        await api.DeleteSnowflakeHubAsync(division, ct);
+        Settings = await api.GetSnowflakeAsync(ct);
+    }, $"{division} is no longer forwarded to Snowflake.");
+
+    [RelayCommand]
+    public Task TestAsync(CancellationToken ct) => RunAsync(async () => TestResult = await api.TestSnowflakeAsync(ct));
+
+    private SnowflakeSettingsRequest Request(bool enabled) =>
+        new(enabled, Settings.Account, Settings.User, Settings.Role, Settings.Warehouse, Settings.Database, Settings.SilverIntervalMinutes);
+}
+
 /// <summary>Sign-in: directory (AD/LDAP) sign-in, with roles from groups, tested with a real user before it is turned on.</summary>
 public sealed partial class SignInSettingsViewModel(ConsoleApi api) : FormViewModel
 {

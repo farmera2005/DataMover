@@ -82,3 +82,39 @@ public sealed record ServerSettingsRequest(string Host);
 public sealed record CertificateUploadRequest(string PfxBase64, string? Password);
 
 public sealed record SettingsTestResult(bool Succeeded, string Message);
+
+/// <summary>
+/// The Snowflake destination: where Lakeflow writes, and how it signs in (a key pair the server generates; the private
+/// key is never returned, the public key and the setup script are).
+/// </summary>
+public sealed record SnowflakeSettingsDto
+{
+    public bool Enabled { get; init; }
+    /// <summary><c>orgname-accountname</c>, or a locator with its region (<c>xy12345.east-us-2.azure</c>).</summary>
+    public string Account { get; init; } = "";
+    public string User { get; init; } = "LAKEFLOW_FORWARDER";
+    public string Role { get; init; } = "LAKEFLOW_FORWARDER";
+    public string Warehouse { get; init; } = "LAKEFLOW_WH";
+    public string Database { get; init; } = "LAKEFLOW";
+    /// <summary>How often silver is rebuilt from bronze (the warehouse runs only then).</summary>
+    public int SilverIntervalMinutes { get; init; } = 5;
+    /// <summary>Read only: for <c>ALTER USER ... SET RSA_PUBLIC_KEY</c>.</summary>
+    public string? PublicKey { get; init; }
+    public string? PublicKeyFingerprint { get; init; }
+    /// <summary>Read only: the one-time script for a Snowflake administrator, with this key in it.</summary>
+    public string? SetupScript { get; init; }
+    public IReadOnlyList<SnowflakeHubDto> Hubs { get; init; } = [];
+}
+
+/// <param name="HubConfigured">The division's Event Hub is set up (Destinations), so there is something to read.</param>
+/// <param name="HasListenKey">The hub's <c>snowflake-listen</c> connection string is stored.</param>
+public sealed record SnowflakeHubDto(Division Division, bool HubConfigured, string? Namespace, string? HubName, bool HasListenKey);
+
+public sealed record SnowflakeSettingsRequest(bool Enabled, string Account, string User, string Role, string Warehouse, string Database,
+    int SilverIntervalMinutes);
+
+public sealed record SnowflakePartitionDto(string Division, string PartitionId, long? Position, DateTimeOffset? LastEnqueuedUtc,
+    DateTimeOffset? LastSentUtc, long RowsSent, int ConsecutiveFailures, string? LastError);
+
+public sealed record SnowflakeStatusDto(bool Running, string? SetupError, IReadOnlyList<SnowflakePartitionDto> Partitions,
+    DateTimeOffset? SilverLastRunUtc, DateTimeOffset? SilverLastSuccessUtc, long SilverLastRows, string? SilverLastError, DateTimeOffset? SilverNextRunUtc);

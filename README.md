@@ -301,6 +301,95 @@ fleet view keeps working).
 | reconciliation `mismatch` | the site page shows source vs silver counts; a resnapshot of that table (site page) rebuilds it |
 | long numbers lose digits in silver | the pilot check in `fabric/README.md` ("does Eventstream keep numbers exact?") |
 
+## Connecting to Snowflake
+
+Optional, alongside Fabric or instead of it. Nothing extra is installed: the Lakeflow server reads each division's
+Event Hub with its own consumer group (`snowflake`), streams every change into `BRONZE.EVENTS` with Snowpipe
+Streaming, and builds the `SILVER` tables (current state, one per source table, same rules as Fabric's silver) on a
+schedule with SQL. The console shows what it is doing and, nightly, the reconciliation results.
+
+### Before you start
+
+- A Snowflake account (any edition, any cloud) and someone who can use the **ACCOUNTADMIN** role once.
+- Your account identifier: in Snowsight, click your name (bottom left), then **Account**, then hover the account and
+  **Copy account identifier**. It looks like `MYORG.MYACCOUNT`; Lakeflow wants it as `myorg-myaccount` (dot made a hyphen).
+- The Lakeflow server must be able to connect out on **443** to `myorg-myaccount.snowflakecomputing.com` and to the
+  Snowpipe Streaming ingest host that account hands out (also under `*.snowflakecomputing.com`). If your firewall
+  inspects HTTPS, allow `*.snowflakecomputing.com` through without inspection, or Snowflake will refuse the connection.
+- Each division's Event Hub already set up in **Configuration → Destinations** (the collectors are sending).
+
+### 1. Listen keys and consumer groups on the hubs
+
+Deploy (or re-deploy) the Bicep template with `snowflake=true`:
+
+```bash
+az deployment group create -g rg-lakeflow -f infra/main.bicep -p infra/main.example.bicepparam -p snowflake=true
+```
+
+That adds, on every hub, a consumer group `snowflake` and a shared access policy `snowflake-listen` with only
+**Listen**. Its output prints, per hub, the command that shows the connection string. Without the template: in the
+Azure portal, open the namespace, then the hub, then **Consumer groups → + Consumer group** (`snowflake`), then
+**Shared access policies → + Add** (`snowflake-listen`, tick only **Listen**), then open the policy and copy
+**Connection string–primary key**.
+
+### 2. Account and key pair (console)
+
+**Configuration → Snowflake**: enter the account identifier and keep the default user, role, warehouse and database
+names unless you have a naming standard. **Save**, then **Generate key pair**. The private key stays on the Lakeflow
+server (encrypted with its master key); the page shows the public key and a setup script containing it.
+
+### 3. Run the setup script (Snowflake)
+
+Copy the script from the page. In Snowsight: **Projects → Worksheets → + → SQL worksheet**, paste, and **Run All**
+(top right, the arrow menu) as ACCOUNTADMIN. It creates:
+
+| Object | What it is |
+| --- | --- |
+| role `LAKEFLOW_FORWARDER` | owns the `LAKEFLOW` database; nothing else in the account |
+| warehouse `LAKEFLOW_WH` | X-Small, suspends after 60 seconds; runs only while silver is built |
+| database `LAKEFLOW` | Lakeflow creates its `BRONZE` and `SILVER` schemas and tables itself |
+| user `LAKEFLOW_FORWARDER` | `TYPE = SERVICE`: signs in only with the key pair, no password |
+| role `LAKEFLOW_READER` | grant it to analysts and BI tools: read access to everything Lakeflow writes |
+
+Back in the console, **Test connection** should say "Connected as LAKEFLOW_FORWARDER ...".
+
+### 4. Hubs to forward, then turn it on (console)
+
+Still on **Configuration → Snowflake**: for each division, paste the `snowflake-listen` connection string and
+**Save** (the hub must be the same one the collectors send to; the page checks). Then tick **Forward changes to
+Snowflake**. Within a minute the status table shows rows sent per hub partition, and silver is built every 5
+minutes (change it on the page; the warehouse runs only then).
+
+### What lands where
+
+| Table | Contents |
+| --- | --- |
+| `BRONZE.EVENTS` | every change, one row each: site, source, table, operation, key, sequence, times; key, before and after as exact JSON text (`KEY_JSON`, `BEFORE_JSON`, `AFTER_JSON`) and `AFTER_VALUES` (a VARIANT with every value as text) |
+| `SILVER.<SOURCESYSTEM>_<SCHEMA>_<TABLE>` | current state of each source table: source columns as text, plus `_SITE_ID`, `_SOURCE_ID`, `_KEY_ID`, `_SEQ`, `_OP`, `_DELETED`, `_CAPTURE_TS`, `_SOURCE_TS`, `_MERGED_AT`. Deleted rows stay as tombstones (`_DELETED = TRUE`) for 8 days |
+| `SILVER.LAKEFLOW_RECONCILIATION` | nightly source vs silver row counts and checksums, shown in the console |
+| `BRONZE.LAKEFLOW_PROGRESS`, `BRONZE.LAKEFLOW_BATCH` | Lakeflow's own bookkeeping; leave them alone |
+
+Bronze rows are written exactly once per hub position (the channel's offset token is the Event Hubs sequence
+number), so a restart neither loses nor repeats changes. Silver is rebuilt idempotently from what bronze holds.
+
+### Cost
+
+The forwarder itself uses no warehouse: Snowpipe Streaming is billed by data ingested. The warehouse runs a few
+seconds every silver build. An X-Small warehouse costs 1 credit per hour running, billed at least 60 seconds each
+time it resumes, so a 5-minute schedule is about 288 one-minute runs, roughly 5 credits a day; every 60 minutes is
+under half a credit a day. Pick the interval to match how fresh reports need to be.
+
+### Troubleshooting
+
+| Symptom | Check |
+| --- | --- |
+| Test: "No such account" | the account identifier: `myorg-myaccount`, not the URL, not the locator without its region |
+| Test: "refused the key" | the setup script's `ALTER USER ... SET RSA_PUBLIC_KEY` was not run with the key now shown (a new key pair needs it again) |
+| Test: "Could not reach" | outbound 443 to `*.snowflakecomputing.com`, without HTTPS inspection |
+| status: setup error | the role cannot create schemas in the database: run the setup script again (the `GRANT OWNERSHIP` line) |
+| a partition shows an error, rows stop | the `snowflake-listen` key (regenerated in Azure?) and the `snowflake` consumer group exist on that hub |
+| silver behind, bronze growing | the silver error under Status; the warehouse is not suspended by a resource monitor |
+
 ## Status
 
 Phase 1 (pilot: one grain site, SQL Server), built step by step:
@@ -314,6 +403,7 @@ Phase 1 (pilot: one grain site, SQL Server), built step by step:
 - [x] Central collector serving many sites, in Docker (see docs/collector.md, docs/decisions.md)
 - [x] One Docker stack, set up entirely in the browser (setup wizard, local + LDAP sign-in, settings in the console)
 - [x] 7. Azure: Event Hubs namespace and hubs (Bicep, see infra/README.md); the site-agent MSI (see docs/collector.md)
+- [x] Snowflake as a destination ("Connecting to Snowflake" above; forwarder built into the server)
 
 ## Layout
 

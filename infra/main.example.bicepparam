@@ -9,3 +9,5 @@ param partitionCount = 4
 param retentionDays = 7
 // The Lakeflow server's outbound public address, if the namespace should accept only it (see infra/README.md).
 param allowedIpRanges = []
+// true also creates the snowflake consumer group and snowflake-listen policy on each hub (Lakeflow's Snowflake forwarder).
+param snowflake = false

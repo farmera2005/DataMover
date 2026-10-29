@@ -35,6 +35,7 @@ from their groups at every sign-in.
     create the install file for a collector on another server (for sites this server cannot reach), or a token for an
     agent installed at a site.
   - **Destinations:** each division's Event Hub; the Fabric SQL endpoint for reconciliation results (with a Test).
+  - **Snowflake:** account, server-generated key pair and its setup script, each hub's `snowflake-listen` key, a Test, on/off, and the forwarder's status per hub partition and silver build.
   - **Users:** local accounts (create, role, disable, reset password); directory users after their first sign-in.
   - **Sign-in & LDAP:** directory sign-in (URL, CA certificate, service account, where users are, the Admin, Operator and
     Viewer groups), with a test sign-in that saves nothing.

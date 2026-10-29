@@ -44,7 +44,7 @@ public static class FleetHealth
         // Spec: a row-count mismatch over 0.1% in the nightly reconciliation is a warning.
         foreach (var check in reconciliation ?? [])
             if (check.Status == "mismatch")
-                amber.Add($"{check.SourceId}/{check.Table} reconciliation: source {check.SourceRows} rows, silver {check.SilverRows} ({check.MismatchPercent:F2}%).");
+                amber.Add($"{check.SourceId}/{check.Table} reconciliation{(check.Destination == "fabric" ? "" : $" ({check.Destination})")}: source {check.SourceRows} rows, silver {check.SilverRows} ({check.MismatchPercent:F2}%).");
         var health = red.Count > 0 ? Health.Red : amber.Count > 0 ? Health.Amber : Health.Green;
         return (health, [.. red, .. amber]);
     }

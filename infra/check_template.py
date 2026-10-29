@@ -29,9 +29,9 @@ def main(template_path: str, config_cs: str) -> int:
     for rule in rules:
         rights = rule["properties"]["rights"]
         name = rule["name"]
-        expected = ["Send"] if "lakeflow-send" in str(name) else ["Listen"] if "fabric-listen" in str(name) else None
+        expected = ["Send"] if "lakeflow-send" in str(name) else ["Listen"] if "fabric-listen" in str(name) or "snowflake-listen" in str(name) else None
         if expected is None or rights != expected:
-            errors.append(f"policy {name} has rights {rights}; only lakeflow-send (Send) and fabric-listen (Listen) are allowed")
+            errors.append(f"policy {name} has rights {rights}; only lakeflow-send (Send), fabric-listen and snowflake-listen (Listen) are allowed")
 
     divisions = re.search(r"enum Division \{([^}]*)\}", open(config_cs).read()).group(1)
     console = sorted(d.strip().lower() for d in divisions.split(",") if d.strip())

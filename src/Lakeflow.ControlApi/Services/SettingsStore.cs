@@ -16,7 +16,12 @@ public sealed class SettingsStore(LakeflowDb db, ISecretProtector protector, Tim
     public const string Ldap = "ldap";
     public const string WebCertificate = "web_certificate";
 
+    public const string Snowflake = "snowflake";
+
     public static string EventHub(Division division) => $"eventhubs.{LakeNames.HubName(division)}";
+
+    /// <summary>The hub's Listen-only connection string for the Snowflake forwarder (the key is the secret).</summary>
+    public static string SnowflakeHub(Division division) => $"snowflake.listen.{LakeNames.HubName(division)}";
 
     public async Task<T?> GetAsync<T>(string key, CancellationToken ct) where T : class =>
         await db.Settings.AsNoTracking().FirstOrDefaultAsync(s => s.Key == key, ct) is { Json: { } json } ? EnvelopeJson.Deserialize<T>(json) : null;
@@ -61,3 +66,6 @@ public sealed record FabricSetting(string Server, string Database, string Client
 
 /// <summary>Stored form of <see cref="SettingsStore.Server"/>.</summary>
 public sealed record ServerSetting(string Host);
+
+/// <summary>Stored form of the Snowflake destination (the private key PEM is the secret).</summary>
+public sealed record SnowflakeSetting(bool Enabled, string Account, string User, string Role, string Warehouse, string Database, int SilverIntervalMinutes);

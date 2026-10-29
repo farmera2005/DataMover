@@ -12,6 +12,7 @@ console, database and collector run in the Docker stack on-prem (see the main RE
 | Per hub: policy `lakeflow-send` | **Send** only. Its key stays in the control API, which hands collectors 24-hour SAS tokens signed with it |
 | Per hub: policy `fabric-listen` | **Listen** only, for Fabric Eventstream |
 | Per hub: consumer group `fabric` | what Eventstream reads with |
+| With `snowflake=true`, per hub: policy `snowflake-listen` and consumer group `snowflake` | **Listen** only, for Lakeflow's Snowflake forwarder (README, "Connecting to Snowflake") |
 | Optional IP firewall | only the addresses in `allowedIpRanges` (your Lakeflow server's outbound address) |
 
 There is no namespace-wide key: a key can send to its own division's hub only (CI checks the compiled template for this).

@@ -84,6 +84,17 @@ public sealed class SetupWizardTests : IAsyncLifetime
         Assert.True(destinations.FabricHasSecret);
         Assert.Equal("", destinations.FabricClientSecret);
 
+        var snowflake = new SnowflakeViewModel(browser);
+        await snowflake.LoadCommand.ExecuteAsync(null);
+        Assert.Null(snowflake.Settings.PublicKey);
+        snowflake.Settings = snowflake.Settings with { Account = "mercer-lake" };
+        await snowflake.SaveCommand.ExecuteAsync(null);
+        await snowflake.GenerateKeyCommand.ExecuteAsync(null);
+        Assert.Contains("RSA_PUBLIC_KEY", snowflake.Settings.SetupScript);
+        await snowflake.SetEnabledAsync(true, default);
+        Assert.Contains("snowflake-listen", snowflake.Error); // no hub's listen key yet
+        Assert.False(snowflake.Settings.Enabled);
+
         var signIn = new SignInSettingsViewModel(browser);
         await signIn.LoadCommand.ExecuteAsync(null);
         Assert.False(signIn.Settings.Enabled);

@@ -59,6 +59,9 @@ param allowedIpRanges array = []
 @description('Consumer group Fabric Eventstream reads with.')
 param fabricConsumerGroup string = 'fabric'
 
+@description('Also create, on each hub, the snowflake consumer group and a snowflake-listen (Listen only) policy for Lakeflow\'s Snowflake forwarder (Configuration, then Snowflake).')
+param snowflake bool = false
+
 param tags object = {
   application: 'Lakeflow'
 }
@@ -135,6 +138,22 @@ resource consumerGroups 'Microsoft.EventHub/namespaces/eventhubs/consumergroups@
   properties: {}
 }]
 
+resource snowflakeListenPolicies 'Microsoft.EventHub/namespaces/eventhubs/authorizationRules@2024-01-01' = [for (division, i) in divisions: if (snowflake) {
+  parent: hubs[i]
+  name: 'snowflake-listen'
+  properties: {
+    rights: [
+      'Listen'
+    ]
+  }
+}]
+
+resource snowflakeConsumerGroups 'Microsoft.EventHub/namespaces/eventhubs/consumergroups@2024-01-01' = [for (division, i) in divisions: if (snowflake) {
+  parent: hubs[i]
+  name: 'snowflake'
+  properties: {}
+}]
+
 @description('Fully qualified namespace, as the console shows it for each hub.')
 output namespaceHost string = '${namespace.name}.servicebus.windows.net'
 
@@ -146,4 +165,5 @@ output hubs array = [for (division, i) in divisions: {
   listenPolicy: listenPolicies[i].name
   consumerGroup: consumerGroups[i].name
   sendConnectionStringCommand: 'az eventhubs eventhub authorization-rule keys list -g ${resourceGroup().name} --namespace-name ${namespace.name} --eventhub-name ${division} -n lakeflow-send --query primaryConnectionString -o tsv'
+  snowflakeListenConnectionStringCommand: snowflake ? 'az eventhubs eventhub authorization-rule keys list -g ${resourceGroup().name} --namespace-name ${namespace.name} --eventhub-name ${division} -n snowflake-listen --query primaryConnectionString -o tsv' : ''
 }]

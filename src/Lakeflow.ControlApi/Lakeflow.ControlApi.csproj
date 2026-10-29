@@ -17,6 +17,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Lakeflow.Contracts\Lakeflow.Contracts.csproj" />
+    <ProjectReference Include="..\Lakeflow.Snowflake\Lakeflow.Snowflake.csproj" />
     <!-- The web console, served at /console. -->
     <ProjectReference Include="..\Lakeflow.Console.Web\Lakeflow.Console.Web.csproj" />
   </ItemGroup>
