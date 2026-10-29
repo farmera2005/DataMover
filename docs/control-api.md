@@ -25,6 +25,7 @@ ports with `LAKEFLOW_HTTP_PORT`, `LAKEFLOW_HTTPS_PORT` and `LAKEFLOW_COLLECTOR_P
 | `GET/POST/PUT/DELETE /users` | Admin | local accounts; directory users' status (their role comes from groups) |
 | `/settings/event-hubs/{division}` | Admin | the hub per division, from a Send-only policy's connection string (key write-only) |
 | `/settings/fabric` (+ `/test`) | Admin | SQL analytics endpoint and service principal for reconciliation (secret write-only) |
+| `/settings/snowflake` (+ `/key`, `/hubs/{division}`, `/test`, `/status`) | Admin | Snowflake account, server-generated key pair (private key never returned), per-hub `snowflake-listen` keys (write-only), forwarder status |
 | `/settings/ldap` (+ `/test`) | Admin | directory sign-in (bind password write-only; never empty) |
 | `/settings/server` (+ `/certificate`) | Admin | the server's name; upload or remove the browser certificate |
 | `GET /settings/server/ca.crt` | signed in | the Lakeflow CA certificate (public), to trust on PCs |
