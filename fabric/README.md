@@ -15,7 +15,7 @@ lakeflow_maintenance (monthly): purge old tombstones, OPTIMIZE, VACUUM
 
 ## Setting up (once per workspace)
 
-Step by step, with the Eventstream and console settings: [docs/fabric-setup.md](../docs/fabric-setup.md). In short:
+Step by step, with the Eventstream and console settings: [Connecting to Microsoft Fabric](../README.md#connecting-to-microsoft-fabric) in the main README. In short:
 
 1. Two lakehouses: `bronze` and `silver`.
 2. One Eventstream per division hub (`grain`, `feed`, `agronomy`, `erp`, `other`; only the ones in use) with

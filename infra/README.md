@@ -52,7 +52,7 @@ the firewall (FortiGate FQDN object).
 
 ## Connect Fabric to it
 
-One Eventstream per hub in use (step by step: `docs/fabric-setup.md`): source Azure Event Hubs, the hub, consumer group `fabric`,
+One Eventstream per hub in use (step by step: "Connecting to Microsoft Fabric" in the main README): source Azure Event Hubs, the hub, consumer group `fabric`,
 shared access key `fabric-listen`.
 
 With `allowedIpRanges` set, the namespace refuses everyone else, Fabric included. Either leave the list empty (keys
