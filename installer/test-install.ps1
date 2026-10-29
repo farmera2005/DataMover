@@ -30,6 +30,7 @@ Check ($who -contains 'NT SERVICE\LakeflowAgent') 'the service can write its dat
 
 $key = 'HKLM:\SOFTWARE\Lakeflow\Agent\Enrollment'
 Check ((Get-ItemProperty $key).ControlApi -eq 'https://lakeflow.invalid:8444/') 'enrollment written for the agent'
+Check ((Get-ItemProperty $key).Token -eq $token) 'the token reached the agent (written by the agent itself, not the Registry table)'
 $keyWho = (Get-Acl $key).Access | ForEach-Object { $_.IdentityReference.Value }
 Check (-not ($keyWho | Where-Object { $_ -match 'Users|Everyone' })) "enrollment key access: $($keyWho -join ', ')"
 

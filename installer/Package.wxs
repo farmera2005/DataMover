@@ -9,7 +9,7 @@
   - Runs as its own virtual account, NT SERVICE\LakeflowAgent (no password, no rights beyond its own folders).
   - Its data folder (buffer, checkpoints, credentials, logs) is readable only by that account, SYSTEM and Administrators.
   - The token goes into a registry key only those can read; the agent enrolls with it on first start and deletes it.
-    The token is a hidden property, so it never appears in an MSI log.
+    It never appears in an MSI log: it is a hidden property, and the agent (not the Registry table) writes it.
   - Uninstalling removes the program and the service; the data folder is kept (its buffer may hold changes not yet sent).
 -->
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
@@ -69,10 +69,20 @@
                Condition="ENROLLMENT_TOKEN AND CONTROL_API">
       <RegistryKey Root="HKLM" Key="SOFTWARE\Lakeflow\Agent\Enrollment" ForceCreateOnInstall="yes" ForceDeleteOnUninstall="yes">
         <RegistryValue Name="ControlApi" Type="string" Value="[CONTROL_API]" KeyPath="yes" />
-        <RegistryValue Name="Token" Type="string" Value="[ENROLLMENT_TOKEN]" />
         <RegistryValue Name="CaSha256" Type="string" Value="[CA_SHA256]" />
         <PermissionEx Sddl="O:SYG:SYD:PAI(A;CI;KA;;;SY)(A;CI;KA;;;BA)(A;CI;KA;;;$(var.ServiceSid))" />
       </RegistryKey>
     </Component>
+
+    <!--
+      The token itself is not in the Registry table: Windows Installer logs registry values it writes. The installed
+      agent writes it into the key above instead, run by a deferred custom action whose command line is hidden from the
+      log (HideTarget), as SYSTEM, before the service starts.
+    -->
+    <CustomAction Id="StoreEnrollmentToken" FileRef="AgentExe" ExeCommand="store-enrollment-token [ENROLLMENT_TOKEN]"
+                  Execute="deferred" Impersonate="no" Return="check" HideTarget="yes" />
+    <InstallExecuteSequence>
+      <Custom Action="StoreEnrollmentToken" After="WriteRegistryValues" Condition="ENROLLMENT_TOKEN AND CONTROL_API AND NOT REMOVE" />
+    </InstallExecuteSequence>
   </Package>
 </Wix>
