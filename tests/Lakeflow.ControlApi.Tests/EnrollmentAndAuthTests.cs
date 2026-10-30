@@ -169,10 +169,12 @@ public sealed class EnrollmentAndAuthTests(ApiFactory api) : IClassFixture<ApiFa
         "GET /status", "GET /reconciliation", "GET /sites", "GET /sites/{siteId}", "GET /sites/{siteId}/sources",
         "GET /sites/{siteId}/sources/{sourceId}/tables", "GET /agents", "GET /agents/{agentId}", "GET /sites/{siteId}/commands/{commandId:guid}",
         "GET /sites/{siteId}/commands", "GET /events", "GET /audit", "GET /auth/me", "POST /auth/password", "GET /settings/server/ca.crt",
+        "GET /alerts",
     ];
 
     /// <summary>What an Operator may call on top (the API itself refuses Admin-only command types).</summary>
-    private static readonly HashSet<string> OperatorRoutes = ["POST /sites/{siteId}/commands"];
+    private static readonly HashSet<string> OperatorRoutes =
+        ["POST /sites/{siteId}/commands", "POST /alerts/{id:guid}/acknowledge", "POST /alerts/{id:guid}/notes"];
 
     private static readonly HashSet<string> OpenRoutes =
         ["GET /health", "GET /", "GET /auth/setup", "POST /auth/setup", "POST /auth/sign-in", "POST /auth/sign-out", "POST /agents/enroll", "GET /agents/ca", "GET /console/{*path:nonfile}", "HEAD /console/{*path:nonfile}"];

@@ -18,8 +18,9 @@ public sealed class Retention(IServiceScopeFactory scopes, TimeProvider time, IL
         var audit = await db.AuditEntries.Where(a => a.AtUtc < now - Audit).ExecuteDeleteAsync(ct);
         var events = await db.AgentEvents.Where(e => e.ReceivedUtc < now - Events).ExecuteDeleteAsync(ct);
         var logs = await db.LogBundles.Where(l => l.ReceivedUtc < now - Logs).ExecuteDeleteAsync(ct);
+        var alerts = await db.Alerts.Where(a => a.ResolvedUtc < now - Audit).ExecuteDeleteAsync(ct);
         var tokens = await db.EnrollmentTokens.Where(t => t.ExpiresUtc < now - Logs).ExecuteDeleteAsync(ct);
-        log.LogInformation("Retention removed {Audit} audit entries, {Events} events, {Logs} log bundles, {Tokens} tokens", audit, events, logs, tokens);
+        log.LogInformation("Retention removed {Audit} audit entries, {Events} events, {Logs} log bundles, {Alerts} alerts, {Tokens} tokens", audit, events, logs, alerts, tokens);
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)

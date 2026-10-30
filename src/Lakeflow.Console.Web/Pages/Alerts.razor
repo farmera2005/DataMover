@@ -1,0 +1,47 @@
+@page "/alerts"
+@inherits ViewModelComponent<AlertsViewModel>
+@inject ConsoleApi Api
+@inject ShellViewModel Shell
+@implements IAsyncDisposable
+
+<h1>Alerts</h1>
+@if (ViewModel is { } vm)
+{
+    <p class="muted">Raised by the alert rules (no heartbeat for 5 minutes, table lag, a failing source, a full buffer, a blocked
+       table, a reconciliation mismatch) and cleared by themselves when the problem goes away. Acknowledge one to tell the
+       team you are on it; going from warning to critical needs a new acknowledgement.</p>
+    <div class="toolbar">
+        <select @bind="vm.State">
+            <option value="open">Open</option>
+            <option value="resolved">Cleared</option>
+            <option value="all">All</option>
+        </select>
+        <button @onclick="() => vm.RefreshCommand.ExecuteAsync(null)">Refresh</button>
+        @if (vm.IsBusy) { <span class="muted">refreshing…</span> }
+    </div>
+    <AlertList Model="vm" />
+}
+
+@code {
+    private PeriodicTimer? _timer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        ViewModel = new AlertsViewModel(Api, Shell.User?.CanOperate == true);
+        await ViewModel.RefreshCommand.ExecuteAsync(null);
+        _timer = new PeriodicTimer(TimeSpan.FromSeconds(30));
+        _ = RefreshLoopAsync(_timer);
+    }
+
+    private async Task RefreshLoopAsync(PeriodicTimer timer)
+    {
+        while (await timer.WaitForNextTickAsync()) await ViewModel!.RefreshCommand.ExecuteAsync(null);
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        _timer?.Dispose();
+        base.Dispose();
+        return ValueTask.CompletedTask;
+    }
+}

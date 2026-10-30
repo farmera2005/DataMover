@@ -37,6 +37,8 @@ public sealed class LakeflowDb(DbContextOptions<LakeflowDb> options, IActor acto
     public DbSet<AuditEntry> AuditEntries => Set<AuditEntry>();
     public DbSet<User> Users => Set<User>();
     public DbSet<AppSetting> Settings => Set<AppSetting>();
+    public DbSet<Alert> Alerts => Set<Alert>();
+    public DbSet<AlertNote> AlertNotes => Set<AlertNote>();
 
     protected override void OnModelCreating(ModelBuilder model)
     {
@@ -171,6 +173,32 @@ public sealed class LakeflowDb(DbContextOptions<LakeflowDb> options, IActor acto
         {
             e.HasKey(x => x.Key);
             e.Property(x => x.Key).HasMaxLength(64);
+            e.Ignore(x => x.AuditName);
+        });
+        model.Entity<Alert>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Key).HasMaxLength(600);
+            e.Property(x => x.Rule).HasMaxLength(32);
+            e.Property(x => x.Severity).HasConversion<string>().HasMaxLength(16);
+            e.Property(x => x.SiteId).HasMaxLength(64);
+            e.Property(x => x.SourceId).HasMaxLength(64);
+            e.Property(x => x.TableName).HasMaxLength(260);
+            e.Property(x => x.Message).HasMaxLength(2000);
+            e.Property(x => x.AcknowledgedBy).HasMaxLength(256);
+            // At most one open alert per problem.
+            e.HasIndex(x => x.Key).IsUnique().HasFilter("\"ResolvedUtc\" IS NULL");
+            e.HasIndex(x => new { x.SiteId, x.OpenedUtc });
+            e.HasIndex(x => x.ResolvedUtc);
+            e.HasOne<Site>().WithMany().HasForeignKey(x => x.SiteId).OnDelete(DeleteBehavior.Cascade);
+            e.HasMany(x => x.Notes).WithOne().HasForeignKey(x => x.AlertId).OnDelete(DeleteBehavior.Cascade);
+        });
+        model.Entity<AlertNote>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Author).HasMaxLength(256);
+            e.Property(x => x.Kind).HasMaxLength(16);
+            e.Property(x => x.Text).HasMaxLength(2000);
             e.Ignore(x => x.AuditName);
         });
         model.Entity<AuditEntry>(e =>

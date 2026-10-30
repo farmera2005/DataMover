@@ -405,6 +405,13 @@ Phase 1 (pilot: one grain site, SQL Server), built step by step:
 - [x] 7. Azure: Event Hubs namespace and hubs (Bicep, see infra/README.md); the site-agent MSI (see docs/collector.md)
 - [x] Snowflake as a destination ("Connecting to Snowflake" above; forwarder built into the server)
 
+Phase 2 (SQL Server rollout to all grain, feed and agronomy sites):
+
+- [x] 1. Alerts: the spec's rules raise and clear alerts; console Alerts page with acknowledge and notes (see docs/console.md)
+- [ ] 2. Alert delivery: email (Microsoft Graph) and a Teams channel, quiet hours, harvest-season overrides
+- [ ] 3. Self-update: signed MSI uploaded in the console, target version, install in the site's maintenance window
+- [ ] 4. Rollout aids: bulk site import, division filters
+
 ## Layout
 
 ```

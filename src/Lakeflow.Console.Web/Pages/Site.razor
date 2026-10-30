@@ -25,6 +25,12 @@
         <dt>Health</dt><dd>@(vm.Status is { Reasons.Count: > 0 } s ? string.Join(" ", s.Reasons) : "All tables streaming.")</dd>
     </dl>
 
+    @if (_alerts is not null)
+    {
+        <h2>Open alerts</h2>
+        <AlertList Model="_alerts" ShowSite="false" />
+    }
+
     <h2>Tables</h2>
     <table class="grid">
         <thead><tr><th>Table</th><th>State</th><th>Method</th><th>Lag</th><th>Rows/min</th><th>Last capture</th><th>Last night's check</th><th></th></tr></thead>
@@ -106,12 +112,15 @@ else
     [Parameter] public string SiteId { get; set; } = "";
 
     private (TableRow Row, CommandType Type)? _pending;
+    private AlertsViewModel? _alerts;
 
     protected override async Task OnParametersSetAsync()
     {
         var user = Shell.User ?? new SignedInUser("", null, ConsoleRole.Viewer, "local");
         ViewModel = new SiteDetailViewModel(Api, user, SiteId);
         await ViewModel.LoadCommand.ExecuteAsync(null);
+        _alerts = new AlertsViewModel(Api, user.CanOperate, SiteId);
+        await _alerts.RefreshCommand.ExecuteAsync(null);
     }
 
     private void Confirm(TableRow row, CommandType type) => _pending = (row, type);

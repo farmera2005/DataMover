@@ -1,0 +1,57 @@
+@* Alerts with acknowledge and notes; used by the Alerts page and the site page. *@
+@inherits ViewModelComponent<AlertsViewModel>
+@if (ViewModel is { } vm)
+{
+    @if (vm.Error is not null) { <p class="error">@vm.Error</p> }
+    @if (vm.Alerts.Count == 0)
+    {
+        <p class="muted">@(vm.State == "open" ? "No open alerts." : "No alerts.")</p>
+    }
+    <table class="grid">
+        <tbody>
+            @foreach (var alert in vm.Alerts)
+            {
+                <tr>
+                    <td><span class="dot @(alert.ResolvedUtc is not null ? "green" : alert.Severity == AlertSeverity.Critical ? "red" : "amber")"
+                              title="@(alert.ResolvedUtc is not null ? "Cleared" : alert.Severity.ToString())"></span></td>
+                    <td>
+                        <strong>@alert.Message</strong>
+                        <div class="muted">
+                            @if (ShowSite) { <a href="sites/@alert.SiteId">@(alert.SiteName ?? alert.SiteId)</a><text> · </text> }
+                            @alert.Severity since @alert.OpenedUtc.ToLocalTime().ToString("g")
+                            @if (alert.EscalatedUtc is { } up) { <text> · critical since @up.ToLocalTime().ToString("g")</text> }
+                            @if (alert.ResolvedUtc is { } done) { <text> · cleared @done.ToLocalTime().ToString("g")</text> }
+                            @if (alert.AcknowledgedUtc is { } ack) { <text> · acknowledged by @alert.AcknowledgedBy at @ack.ToLocalTime().ToString("g")</text> }
+                        </div>
+                        @foreach (var note in alert.Notes.Where(n => n.Text is not null))
+                        {
+                            <div class="note"><span class="muted">@note.Author, @note.CreatedUtc.ToLocalTime().ToString("g"):</span> @note.Text</div>
+                        }
+                        @if (vm.CanOperate && alert.ResolvedUtc is null)
+                        {
+                            <div class="toolbar">
+                                <input placeholder="Note" title="Optional when acknowledging" value="@(vm.Drafts.GetValueOrDefault(alert.Id))"
+                                       @onchange="e => vm.Drafts[alert.Id] = e.Value?.ToString() ?? string.Empty" />
+                                @if (alert.AcknowledgedUtc is null)
+                                {
+                                    <button class="primary" disabled="@vm.IsBusy" @onclick="() => vm.AcknowledgeAsync(alert, default)">Acknowledge</button>
+                                }
+                                <button disabled="@vm.IsBusy" @onclick="() => vm.AddNoteAsync(alert, default)">Add note</button>
+                            </div>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    [Parameter, EditorRequired] public AlertsViewModel? Model { get; set; }
+    [Parameter] public bool ShowSite { get; set; } = true;
+
+    protected override void OnParametersSet()
+    {
+        if (!ReferenceEquals(ViewModel, Model)) ViewModel = Model;
+    }
+}

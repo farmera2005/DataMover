@@ -32,7 +32,8 @@
                 <tr>
                     <td><span class="dot @site.Health.ToString().ToLowerInvariant()" title="@site.HealthText"></span></td>
                     <td><a href="sites/@site.SiteId"><strong>@site.Name</strong></a><div class="muted">@site.SiteId</div></td>
-                    <td>@site.Reason @if (site.MoreReasons > 0) { <span class="muted"> (+@site.MoreReasons more)</span> }</td>
+                    <td>@site.Reason @if (site.MoreReasons > 0) { <span class="muted"> (+@site.MoreReasons more)</span> }
+                        @if (site.Status.OpenAlerts > 0) { <div><a href="sites/@site.SiteId">@site.Status.OpenAlerts open alert@(site.Status.OpenAlerts == 1 ? "" : "s")</a></div> }</td>
                     <td>@site.WorstLag</td>
                     <td>@site.Buffer</td>
                     <td>@site.LastHeartbeat</td>

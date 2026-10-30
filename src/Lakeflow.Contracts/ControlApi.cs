@@ -137,6 +137,8 @@ public sealed record SiteStatus
     public double? BufferPercent { get; init; }
     /// <summary>The latest heartbeat, for site and table detail.</summary>
     public Heartbeat? Heartbeat { get; init; }
+    /// <summary>Alerts open for the site now.</summary>
+    public int OpenAlerts { get; init; }
 }
 
 public sealed record FleetStatus(DateTimeOffset AsOfUtc, int Green, int Amber, int Red, IReadOnlyList<SiteStatus> Sites);
@@ -169,3 +171,19 @@ public sealed record ReconciliationResult
     /// <summary>Where silver was checked: <c>fabric</c> or <c>snowflake</c>.</summary>
     public string Destination { get; init; } = "fabric";
 }
+
+public enum AlertSeverity { Warning, Critical }
+
+/// <summary>
+/// An alert: opened when one of the spec's rules fires for a site (or a source or table in it), kept up to date while it
+/// holds, resolved by itself when it clears. Operators acknowledge it and add notes.
+/// </summary>
+/// <param name="Rule">heartbeat_missing, source_failing, table_lag, table_blocked, table_failing, buffer, event_hubs, reconciliation or hub_missing.</param>
+public sealed record AlertDto(Guid Id, string Rule, AlertSeverity Severity, string SiteId, string? SiteName, string? SourceId, string? Table,
+    string Message, DateTimeOffset OpenedUtc, DateTimeOffset LastSeenUtc, DateTimeOffset? EscalatedUtc, DateTimeOffset? ResolvedUtc,
+    DateTimeOffset? AcknowledgedUtc, string? AcknowledgedBy, IReadOnlyList<AlertNoteDto> Notes);
+
+/// <param name="Kind">note or acknowledged.</param>
+public sealed record AlertNoteDto(string Author, string Kind, string? Text, DateTimeOffset CreatedUtc);
+
+public sealed record AlertNoteRequest(string? Text);

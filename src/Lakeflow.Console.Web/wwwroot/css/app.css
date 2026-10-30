@@ -55,3 +55,4 @@ ol.steps li.current { background: var(--accent); border-color: var(--accent); co
 .warning { background: #fff3cd; padding: 8px 12px; border: 1px solid #f0d27a; border-radius: 4px; }
 .mono { font-family: ui-monospace, monospace; font-size: 12px; word-break: break-all; }
 header.top .user { opacity: .9; }
+.note { margin-top: 4px; }

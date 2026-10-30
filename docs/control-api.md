@@ -35,6 +35,8 @@ ports with `LAKEFLOW_HTTP_PORT`, `LAKEFLOW_HTTPS_PORT` and `LAKEFLOW_COLLECTOR_P
 | `GET /agents/{id}/config` | collector cert | per assigned site: sources, tables, hubs + SAS tokens, commands, sealed credentials |
 | `POST /agents/{id}/heartbeat`, `/events`, `/logs` | collector cert | per-site health, events, log bundles; only for sites assigned to it |
 | `GET /status` | Viewer | fleet rollup, green/amber/red with reasons |
+| `GET /alerts?state=open\|resolved\|all&siteId=` | Viewer | alerts with acknowledgements and notes |
+| `POST /alerts/{id}/acknowledge`, `POST /alerts/{id}/notes` | Operator | acknowledge (optional note), add a note; audited |
 | `GET/PUT/DELETE /sites/{site}`, `.../sources/{source}`, `.../tables/{table}` | Viewer reads, Admin writes | configuration (incl. the site's `collector_id`), validated with the collector's own rules |
 | `PUT /sites/{site}/sources/{source}/credential` | Admin | a password for the site's collector: sealed in the browser, or sealed here on arrival |
 | `POST /enrollment-tokens` | Admin | token (24 h, single use) and install file for a collector on another server, or for a site agent |

@@ -56,6 +56,8 @@ public class ApiFactory : WebApplicationFactory<Program>
         builder.UseSetting("ConnectionStrings:Lakeflow", ConnectionString);
         builder.UseSetting("Server:DataDirectory", DataDirectory);
         builder.UseSetting("Listen:Enabled", "false");
+        // Tests run the alert rules themselves (AlertBook), so the 30-second monitor stays off.
+        builder.UseSetting("Alerts:Enabled", "false");
         builder.UseSetting("RateLimits:EnrollPerMinute", EnrollPerMinute.ToString());
         builder.UseSetting("RateLimits:SignInPerMinute", SignInPerMinute.ToString());
         builder.ConfigureTestServices(services => services.AddSingleton<TimeProvider>(Time));

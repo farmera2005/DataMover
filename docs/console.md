@@ -17,14 +17,17 @@ The setup wizard appears on a fresh install:
 
 ## Roles
 
-**Viewer** (read), **Operator** (also pause, resume, resnapshot), **Admin** (also sites, sources, collectors, users,
+**Viewer** (read), **Operator** (also pause, resume, resnapshot, acknowledge alerts and add notes), **Admin** (also sites, sources, collectors, users,
 settings, collect logs, restart). Local accounts get their role in Configuration, then Users; directory users get theirs
 from their groups at every sign-in.
 
 ## Pages
 
 - **Fleet:** every site green, amber or red, worst first, with the reason, worst lag, buffer, last heartbeat and
-  collector version. Refreshes every 30 s; filter by name or state.
+  collector version, and how many alerts are open. Refreshes every 30 s; filter by name or state.
+- **Alerts:** open alerts, critical first (or cleared ones, or all), each with its site, since when, who acknowledged it
+  and the notes. Operators acknowledge (with an optional note) and add notes. Alerts open and clear by themselves
+  (below); going from warning to critical needs a new acknowledgement. The site page lists that site's open alerts.
 - **Site:** the collector serving it, each table's state, method, lag, rows/min and last night's reconciliation,
   recent commands and events. Pause, resume, resnapshot (confirmed first); collect logs; restart the collector.
 - **Add source (wizard):** engine and ids; the connection as the collector reaches it and a read-only login; **Test
@@ -41,6 +44,26 @@ from their groups at every sign-in.
     Viewer groups), with a test sign-in that saves nothing.
   - **Server & certificate:** the server's name (used in certificates and install files); the certificate browsers see:
     upload your own (PFX), or trust the Lakeflow CA on PCs (download it here; IT can deploy it by group policy).
+
+## Alert rules
+
+The server checks every site every 30 seconds against the spec's thresholds; the fleet colours come from the same rules.
+
+| Rule | Fires when | Severity |
+| --- | --- | --- |
+| `heartbeat_missing` | no heartbeat from the site's collector for 5 minutes | Critical |
+| `source_failing` | a source failed 3 connection attempts in a row | Critical |
+| `table_lag` | a table's lag is over its warning threshold (default 15 min), critical over its critical one (60 min); paused tables excluded | Warning, then Critical |
+| `table_blocked` | a table is paused by a schema change | Warning |
+| `table_failing` | a table's capture keeps failing | Warning |
+| `buffer` | the collector's local buffer is over 80% full | Warning |
+| `event_hubs` | the collector cannot reach Event Hubs | Warning |
+| `reconciliation` | last night's row counts differ by more than 0.1% (Fabric or Snowflake) | Warning |
+| `hub_missing` | the site's division has no Event Hub set up | Critical |
+
+A site still being set up (no collector, or no heartbeat yet) is red in the fleet view but raises no alert. One problem is
+one alert from when it starts until it clears; if it comes back later it is a new alert. Cleared alerts are kept a year.
+Email and Teams delivery come next (phase 2, step 2).
 
 ## HTTP or HTTPS
 

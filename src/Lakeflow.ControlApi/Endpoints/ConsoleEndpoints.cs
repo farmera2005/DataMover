@@ -145,58 +145,8 @@ public static class ConsoleEndpoints
 
         """;
 
-    private static async Task<Ok<FleetStatus>> StatusAsync(LakeflowDb db, TimeProvider time, IReconciliationSource reconciliation,
-        ConfigBuilder builder, ILogger<FleetStatus> log, CancellationToken ct)
-    {
-        IReadOnlyList<ReconciliationResult> checks = [];
-        try
-        {
-            checks = await reconciliation.LatestAsync(null, ct);
-        }
-        catch (SqlException ex)
-        {
-            // The fleet view must not go down with the lakehouse.
-            log.LogWarning("Reconciliation results unavailable: {Error}", ex.Message);
-        }
-        var now = time.GetUtcNow();
-        var sites = await db.Sites.OrderBy(s => s.Name).ToListAsync(ct);
-        var agents = await db.Agents.ToDictionaryAsync(a => a.AgentId, ct);
-        var beats = await db.SiteHeartbeats.ToDictionaryAsync(h => h.SiteId, ct);
-        var tables = await db.Tables.ToListAsync(ct);
-        var divisions = await db.Sources.Select(s => new { s.SiteId, s.Division }).Distinct().ToListAsync(ct);
-        var hubs = await builder.HubsAsync(ct);
-        var result = new List<SiteStatus>();
-        foreach (var site in sites)
-        {
-            var agent = site.AgentId is { } id ? agents.GetValueOrDefault(id) : null;
-            if (agent?.RevokedUtc is not null) agent = null;
-            // Only a heartbeat from the collector now serving the site counts.
-            var beat = agent is not null && beats.TryGetValue(site.SiteId, out var b) && b.AgentId == agent.AgentId ? b : null;
-            var heartbeat = beat is null ? null : EnvelopeJson.Deserialize<Heartbeat>(beat.Json);
-            var (health, reasons) = FleetHealth.Evaluate(agent is not null, heartbeat, beat?.ReceivedUtc, now, (sourceId, table) =>
-                tables.FirstOrDefault(t => t.SiteId == site.SiteId && t.SourceId == sourceId && t.TableName == table) is { } t
-                    ? new FleetHealth.TableThresholds(t.LagWarningMinutes, t.LagCriticalMinutes)
-                    : new FleetHealth.TableThresholds(15, 60),
-                checks.Where(c => c.SiteId == site.SiteId));
-            var missing = divisions.Where(d => d.SiteId == site.SiteId && !hubs.ContainsKey(d.Division)).Select(d => d.Division).ToList();
-            if (missing.Count > 0)
-            {
-                // Without its Event Hub the site is not sent to its collector at all; say so first.
-                health = Health.Red;
-                reasons = [$"The Event Hub for {string.Join(", ", missing.Select(m => LakeNames.HubName(m)))} is not set up yet (Configuration, then Destinations).", .. reasons];
-            }
-            result.Add(new SiteStatus
-            {
-                SiteId = site.SiteId, Name = site.Name, Latitude = site.Latitude, Longitude = site.Longitude,
-                Health = health, Reasons = reasons, AgentId = agent?.AgentId, AgentVersion = agent?.AgentVersion,
-                LastHeartbeatUtc = beat?.ReceivedUtc,
-                WorstLagSeconds = heartbeat?.Tables.Select(t => t.LagSeconds).DefaultIfEmpty(0).Max(),
-                BufferBytes = heartbeat?.BufferBytes, BufferPercent = heartbeat?.BufferPercent, Heartbeat = heartbeat,
-            });
-        }
-        return TypedResults.Ok(new FleetStatus(now, result.Count(s => s.Health == Health.Green), result.Count(s => s.Health == Health.Amber),
-            result.Count(s => s.Health == Health.Red), result));
-    }
+    private static async Task<Ok<FleetStatus>> StatusAsync(FleetStatusService fleet, CancellationToken ct) =>
+        TypedResults.Ok((await fleet.ComputeAsync(null, ct)).Fleet);
 
     private static async Task<Results<Ok<SiteDto>, ValidationProblem>> PutSiteAsync(string siteId, SiteDto dto, LakeflowDb db, CancellationToken ct)
     {

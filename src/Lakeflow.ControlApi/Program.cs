@@ -50,6 +50,8 @@ builder.Services.AddSingleton<LdapDirectory>();
 builder.Services.AddScoped<SettingsStore>();
 builder.Services.AddScoped<Accounts>();
 builder.Services.AddScoped<ConfigBuilder>();
+builder.Services.AddScoped<FleetStatusService>();
+builder.Services.AddScoped<AlertBook>();
 builder.Services.AddScoped<SettingsReconciliation>();
 builder.Services.AddScoped<SnowflakeSettingsReader>();
 builder.Services.AddScoped<SnowflakeReconciliation>();
@@ -64,6 +66,8 @@ builder.Services.AddSingleton(sp => new Lakeflow.Snowflake.SnowflakeRunner(
 builder.Services.AddSingleton<SnowflakeHost>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<SnowflakeHost>());
 builder.Services.AddHostedService<Retention>();
+builder.Services.AddSingleton<AlertMonitor>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<AlertMonitor>());
 builder.Services.AddHostedService<BuiltInCollector>();
 
 builder.Services.AddLakeflowAuth();
@@ -186,6 +190,7 @@ app.MapAuthEndpoints();
 app.MapSettingsEndpoints();
 app.MapSnowflakeEndpoints();
 app.MapConsoleEndpoints();
+app.MapAlertEndpoints();
 
 app.Run();
 

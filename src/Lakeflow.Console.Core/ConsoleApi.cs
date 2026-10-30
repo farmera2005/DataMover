@@ -62,6 +62,13 @@ public sealed class ConsoleApi(HttpClient http)
 
     // ---- users ----
 
+    public Task<List<AlertDto>> GetAlertsAsync(string state = "open", string? siteId = null, CancellationToken ct = default) =>
+        GetAsync<List<AlertDto>>($"alerts?state={Uri.EscapeDataString(state)}{(siteId is null ? "" : $"&siteId={Uri.EscapeDataString(siteId)}")}", ct);
+    public async Task<AlertDto> AcknowledgeAlertAsync(Guid id, string? note, CancellationToken ct = default) =>
+        await ReadAsync<AlertDto>(await http.PostAsJsonAsync($"alerts/{id}/acknowledge", new AlertNoteRequest(note), Json, ct), ct);
+    public async Task<AlertDto> AddAlertNoteAsync(Guid id, string note, CancellationToken ct = default) =>
+        await ReadAsync<AlertDto>(await http.PostAsJsonAsync($"alerts/{id}/notes", new AlertNoteRequest(note), Json, ct), ct);
+
     public Task<List<UserDto>> GetUsersAsync(CancellationToken ct = default) => GetAsync<List<UserDto>>("users", ct);
     public async Task<UserDto> CreateUserAsync(UserRequest request, CancellationToken ct = default) =>
         await ReadAsync<UserDto>(await http.PostAsJsonAsync("users", request, Json, ct), ct);

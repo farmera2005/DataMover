@@ -95,6 +95,14 @@ public sealed class SetupWizardTests : IAsyncLifetime
         Assert.Contains("snowflake-listen", snowflake.Error); // no hub's listen key yet
         Assert.False(snowflake.Settings.Enabled);
 
+        var alerts = new AlertsViewModel(browser, canOperate: true);
+        await alerts.RefreshCommand.ExecuteAsync(null);
+        Assert.Null(alerts.Error);
+        Assert.Empty(alerts.Alerts); // nothing has heartbeated, and sites being set up raise nothing
+        alerts.State = "all";
+        await alerts.RefreshCommand.ExecuteAsync(null);
+        Assert.Null(alerts.Error);
+
         var signIn = new SignInSettingsViewModel(browser);
         await signIn.LoadCommand.ExecuteAsync(null);
         Assert.False(signIn.Settings.Enabled);

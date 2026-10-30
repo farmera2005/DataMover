@@ -222,3 +222,40 @@ public sealed class AppSetting : IAudited
     public DateTimeOffset UpdatedUtc { get; set; }
     public string AuditName => $"setting {Key}";
 }
+
+/// <summary>
+/// An alert raised by <see cref="Services.AlertBook"/>: one row per occurrence, from when a rule fires (for <see cref="Key"/>)
+/// until it clears. Written by the server, so not audited; acknowledgements and notes are (<see cref="AlertNote"/>).
+/// </summary>
+public sealed class Alert
+{
+    public Guid Id { get; set; }
+    /// <summary>Rule, site, source, table and detail: the same problem keeps the same key.</summary>
+    public required string Key { get; set; }
+    public required string Rule { get; set; }
+    public Lakeflow.Contracts.AlertSeverity Severity { get; set; }
+    public required string SiteId { get; set; }
+    public string? SourceId { get; set; }
+    public string? TableName { get; set; }
+    public required string Message { get; set; }
+    public DateTimeOffset OpenedUtc { get; set; }
+    public DateTimeOffset LastSeenUtc { get; set; }
+    /// <summary>When it went from warning to critical (which clears an acknowledgement).</summary>
+    public DateTimeOffset? EscalatedUtc { get; set; }
+    public DateTimeOffset? ResolvedUtc { get; set; }
+    public DateTimeOffset? AcknowledgedUtc { get; set; }
+    public string? AcknowledgedBy { get; set; }
+    public List<AlertNote> Notes { get; set; } = [];
+}
+
+public sealed class AlertNote : IAudited
+{
+    public Guid Id { get; set; }
+    public Guid AlertId { get; set; }
+    public required string Author { get; set; }
+    /// <summary>note or acknowledged.</summary>
+    public required string Kind { get; set; }
+    public string? Text { get; set; }
+    public DateTimeOffset CreatedUtc { get; set; }
+    public string AuditName => $"alert {AlertId} {Kind}";
+}
