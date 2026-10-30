@@ -118,3 +118,63 @@ public sealed record SnowflakePartitionDto(string Division, string PartitionId, 
 
 public sealed record SnowflakeStatusDto(bool Running, string? SetupError, IReadOnlyList<SnowflakePartitionDto> Partitions,
     DateTimeOffset? SilverLastRunUtc, DateTimeOffset? SilverLastSuccessUtc, long SilverLastRows, string? SilverLastError, DateTimeOffset? SilverNextRunUtc);
+
+/// <summary>Configuration → Notifications: where alerts are sent and when.</summary>
+public sealed record NotificationSettingsDto(EmailNotificationDto Email, TeamsNotificationDto Teams, NotificationScheduleDto Schedule,
+    IReadOnlyList<NotificationChannelStatus> Status);
+
+/// <summary>
+/// Alert email through Microsoft Graph (<c>POST /users/{sender}/sendMail</c>), signed in as an Entra app with its
+/// client secret (write-only).
+/// </summary>
+public sealed record EmailNotificationDto
+{
+    public bool Enabled { get; init; }
+    public string TenantId { get; init; } = "";
+    public string ClientId { get; init; } = "";
+    public bool HasClientSecret { get; init; }
+    /// <summary>The mailbox alerts come from (a shared mailbox works), e.g. lakeflow-alerts@example.com.</summary>
+    public string Sender { get; init; } = "";
+    public IReadOnlyList<string> Recipients { get; init; } = [];
+    /// <summary>Warning sends both; Critical sends only critical alerts.</summary>
+    public AlertSeverity MinimumSeverity { get; init; } = AlertSeverity.Warning;
+}
+
+public sealed record EmailNotificationRequest(bool Enabled, string TenantId, string ClientId, string? ClientSecret, string Sender,
+    IReadOnlyList<string> Recipients, AlertSeverity MinimumSeverity);
+
+/// <summary>
+/// A Teams channel, through a Teams Workflows flow "Post to a channel when a webhook request is received". The flow's URL
+/// carries its own signature, so it is kept like a password (write-only); only its host is shown.
+/// </summary>
+public sealed record TeamsNotificationDto
+{
+    public bool Enabled { get; init; }
+    public bool HasWebhook { get; init; }
+    public string? WebhookHost { get; init; }
+    public AlertSeverity MinimumSeverity { get; init; } = AlertSeverity.Warning;
+}
+
+public sealed record TeamsNotificationRequest(bool Enabled, string? WebhookUrl, AlertSeverity MinimumSeverity);
+
+/// <summary>
+/// Quiet hours (local time, may run past midnight): only critical alerts are sent; warnings wait until quiet hours end and
+/// go then if still open. During a harvest season quiet hours do not apply.
+/// </summary>
+public sealed record NotificationScheduleDto
+{
+    public string TimeZone { get; init; } = "America/New_York";
+    /// <summary>"22:00"; empty for no quiet hours.</summary>
+    public string? QuietStart { get; init; }
+    public string? QuietEnd { get; init; }
+    public IReadOnlyList<HarvestSeasonDto> HarvestSeasons { get; init; } = [];
+}
+
+/// <summary>Every year from <see cref="Start"/> to <see cref="End"/> inclusive, as "MM-dd" (may run past New Year).</summary>
+public sealed record HarvestSeasonDto(string Name, string Start, string End);
+
+/// <param name="Channel">email or teams.</param>
+public sealed record NotificationChannelStatus(string Channel, DateTimeOffset? LastSentUtc, DateTimeOffset? LastFailureUtc, string? LastError,
+    DateTimeOffset? NextAttemptUtc);
+
+public sealed record NotificationTestRequest(string? To);

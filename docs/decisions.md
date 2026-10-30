@@ -2,6 +2,15 @@
 
 SPEC.md is the starting brief. These are the places the build deliberately departs from it, and why. Newest first.
 
+## 2026-10-30: Alert email through Microsoft Graph; Teams through Workflows
+
+The spec asks for email and Teams alerts. Email goes through Graph's `sendMail` as one mailbox, signed in as an Entra
+app (client credentials), as chosen over an SMTP relay; the README recommends Exchange RBAC for Applications so the
+app can send only as that mailbox. Teams uses a Workflows webhook ("Post to a channel when a webhook request is
+received") because Microsoft retired Office 365 connector webhooks. Both secrets (client secret, workflow URL) are
+write-only. What has been sent is recorded per alert and channel, so a restart or an outage neither repeats nor loses a
+message; during quiet hours only critical alerts go, and harvest seasons switch quiet hours off.
+
 ## 2026-10-29: Snowflake through Lakeflow's own forwarder, over REST
 
 Snowflake is a second destination next to Fabric, fed by a forwarder inside the control API rather than Snowflake's

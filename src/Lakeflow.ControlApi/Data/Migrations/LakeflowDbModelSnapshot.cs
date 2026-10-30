@@ -201,6 +201,40 @@ namespace Lakeflow.ControlApi.Data.Migrations
                     b.ToTable("Alerts");
                 });
 
+            modelBuilder.Entity("Lakeflow.ControlApi.Data.AlertDelivery", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AlertId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Channel")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("Event")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<DateTimeOffset>("SentUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Severity")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AlertId", "Channel");
+
+                    b.ToTable("AlertDeliveries");
+                });
+
             modelBuilder.Entity("Lakeflow.ControlApi.Data.AlertNote", b =>
                 {
                     b.Property<Guid>("Id")
@@ -732,6 +766,15 @@ namespace Lakeflow.ControlApi.Data.Migrations
                     b.HasOne("Lakeflow.ControlApi.Data.Site", null)
                         .WithMany()
                         .HasForeignKey("SiteId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Lakeflow.ControlApi.Data.AlertDelivery", b =>
+                {
+                    b.HasOne("Lakeflow.ControlApi.Data.Alert", null)
+                        .WithMany()
+                        .HasForeignKey("AlertId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

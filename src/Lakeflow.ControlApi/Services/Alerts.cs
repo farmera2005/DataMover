@@ -57,7 +57,10 @@ public sealed class AlertBook(LakeflowDb db, TimeProvider time)
     private static string Truncate(string message) => message.Length <= 2000 ? message : message[..1997] + "...";
 }
 
-/// <summary>Evaluates the alert rules every 30 seconds (reconciliation results, which change nightly, every 10 minutes).</summary>
+/// <summary>
+/// Evaluates the alert rules every 30 seconds (reconciliation results, which change nightly, every 10 minutes), then sends
+/// what is due by email and Teams.
+/// </summary>
 public sealed class AlertMonitor(IServiceScopeFactory scopes, TimeProvider time, IConfiguration configuration, ILogger<AlertMonitor> log) : BackgroundService
 {
     public static readonly TimeSpan Interval = TimeSpan.FromSeconds(30);
@@ -78,6 +81,8 @@ public sealed class AlertMonitor(IServiceScopeFactory scopes, TimeProvider time,
             log.LogWarning("Alert {Severity} at {Site}: {Message}", alert.Severity, alert.SiteId, alert.Message);
         foreach (var alert in changes.Resolved)
             log.LogInformation("Alert resolved at {Site}: {Message}", alert.SiteId, alert.Message);
+        // Email and Teams: whatever is not sent yet (each channel's failures are its own).
+        await scope.ServiceProvider.GetRequiredService<Notifier>().RunAsync(ct);
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)

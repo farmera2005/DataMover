@@ -190,6 +190,76 @@ public sealed partial class SnowflakeViewModel(ConsoleApi api) : FormViewModel
         new(enabled, Settings.Account, Settings.User, Settings.Role, Settings.Warehouse, Settings.Database, Settings.SilverIntervalMinutes);
 }
 
+/// <summary>
+/// Notifications: alert email through Microsoft Graph, a Teams channel through a Workflows webhook, quiet hours and
+/// harvest seasons, with a test for each channel and how each is doing.
+/// </summary>
+public sealed partial class NotificationsViewModel(ConsoleApi api) : FormViewModel
+{
+    public IReadOnlyList<AlertSeverity> Severities { get; } = Enum.GetValues<AlertSeverity>();
+
+    [ObservableProperty] private EmailNotificationDto _email = new();
+    /// <summary>One address per line (or separated by commas or semicolons).</summary>
+    [ObservableProperty] private string _recipients = "";
+    [ObservableProperty] private string _clientSecret = "";
+    [ObservableProperty] private string _testTo = "";
+    [ObservableProperty] private SettingsTestResult? _emailTest;
+
+    [ObservableProperty] private TeamsNotificationDto _teams = new();
+    [ObservableProperty] private string _webhookUrl = "";
+    [ObservableProperty] private SettingsTestResult? _teamsTest;
+
+    [ObservableProperty] private NotificationScheduleDto _schedule = new();
+    public ObservableCollection<HarvestSeasonDto> Seasons { get; } = [];
+    [ObservableProperty] private IReadOnlyList<NotificationChannelStatus> _status = [];
+
+    [RelayCommand]
+    public Task LoadAsync(CancellationToken ct) => RunAsync(async () => Show(await api.GetNotificationsAsync(ct)));
+
+    [RelayCommand]
+    public Task SaveEmailAsync(CancellationToken ct) => RunAsync(async () =>
+    {
+        Show(await api.PutEmailNotificationsAsync(new EmailNotificationRequest(Email.Enabled, Email.TenantId, Email.ClientId,
+            string.IsNullOrEmpty(ClientSecret) ? null : ClientSecret, Email.Sender, SplitRecipients(Recipients), Email.MinimumSeverity), ct));
+        ClientSecret = "";
+    }, "Email settings saved.");
+
+    [RelayCommand]
+    public Task TestEmailAsync(CancellationToken ct) => RunAsync(async () =>
+        EmailTest = await api.TestEmailNotificationAsync(string.IsNullOrWhiteSpace(TestTo) ? null : TestTo.Trim(), ct));
+
+    [RelayCommand]
+    public Task SaveTeamsAsync(CancellationToken ct) => RunAsync(async () =>
+    {
+        Show(await api.PutTeamsNotificationsAsync(new TeamsNotificationRequest(Teams.Enabled,
+            string.IsNullOrWhiteSpace(WebhookUrl) ? null : WebhookUrl.Trim(), Teams.MinimumSeverity), ct));
+        WebhookUrl = "";
+    }, "Teams settings saved.");
+
+    [RelayCommand]
+    public Task TestTeamsAsync(CancellationToken ct) => RunAsync(async () => TeamsTest = await api.TestTeamsNotificationAsync(ct));
+
+    public void AddSeason() => Seasons.Add(new HarvestSeasonDto("Fall harvest", "09-15", "11-30"));
+
+    public void SetSeason(int index, HarvestSeasonDto season) => Seasons[index] = season;
+
+    public void RemoveSeason(int index) => Seasons.RemoveAt(index);
+
+    [RelayCommand]
+    public Task SaveScheduleAsync(CancellationToken ct) => RunAsync(async () =>
+        Show(await api.PutNotificationScheduleAsync(Schedule with { HarvestSeasons = [.. Seasons] }, ct)), "Quiet hours saved.");
+
+    public static List<string> SplitRecipients(string text) =>
+        text.Split(new[] { '\n', '\r', ',', ';' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
+
+    private void Show(NotificationSettingsDto settings)
+    {
+        (Email, Teams, Schedule, Status) = (settings.Email, settings.Teams, settings.Schedule, settings.Status);
+        Recipients = string.Join("\n", settings.Email.Recipients);
+        Replace(Seasons, settings.Schedule.HarvestSeasons);
+    }
+}
+
 /// <summary>Sign-in: directory (AD/LDAP) sign-in, with roles from groups, tested with a real user before it is turned on.</summary>
 public sealed partial class SignInSettingsViewModel(ConsoleApi api) : FormViewModel
 {

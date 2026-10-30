@@ -105,6 +105,18 @@ public sealed class ConsoleApi(HttpClient http)
         await ReadAsync<SettingsTestResult>(await http.PostAsJsonAsync("settings/snowflake/test", new { }, Json, ct), ct);
     public Task<SnowflakeStatusDto> GetSnowflakeStatusAsync(CancellationToken ct = default) => GetAsync<SnowflakeStatusDto>("settings/snowflake/status", ct);
 
+    public Task<NotificationSettingsDto> GetNotificationsAsync(CancellationToken ct = default) => GetAsync<NotificationSettingsDto>("settings/notifications", ct);
+    public Task<NotificationSettingsDto> PutEmailNotificationsAsync(EmailNotificationRequest request, CancellationToken ct = default) =>
+        PutAsync<EmailNotificationRequest, NotificationSettingsDto>("settings/notifications/email", request, ct);
+    public Task<NotificationSettingsDto> PutTeamsNotificationsAsync(TeamsNotificationRequest request, CancellationToken ct = default) =>
+        PutAsync<TeamsNotificationRequest, NotificationSettingsDto>("settings/notifications/teams", request, ct);
+    public Task<NotificationSettingsDto> PutNotificationScheduleAsync(NotificationScheduleDto request, CancellationToken ct = default) =>
+        PutAsync<NotificationScheduleDto, NotificationSettingsDto>("settings/notifications/schedule", request, ct);
+    public async Task<SettingsTestResult> TestEmailNotificationAsync(string? to, CancellationToken ct = default) =>
+        await ReadAsync<SettingsTestResult>(await http.PostAsJsonAsync("settings/notifications/email/test", new NotificationTestRequest(to), Json, ct), ct);
+    public async Task<SettingsTestResult> TestTeamsNotificationAsync(CancellationToken ct = default) =>
+        await ReadAsync<SettingsTestResult>(await http.PostAsJsonAsync("settings/notifications/teams/test", new { }, Json, ct), ct);
+
     public Task<LdapSettingsDto> GetLdapAsync(CancellationToken ct = default) => GetAsync<LdapSettingsDto>("settings/ldap", ct);
     public Task<LdapSettingsDto> PutLdapAsync(LdapSettingsRequest request, CancellationToken ct = default) =>
         PutAsync<LdapSettingsRequest, LdapSettingsDto>("settings/ldap", request, ct);

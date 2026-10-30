@@ -38,6 +38,7 @@ from their groups at every sign-in.
     create the install file for a collector on another server (for sites this server cannot reach), or a token for an
     agent installed at a site.
   - **Destinations:** each division's Event Hub; the Fabric SQL endpoint for reconciliation results (with a Test).
+  - **Notifications:** alert email through Microsoft Graph (app, secret, sender mailbox, recipients), a Teams channel through a Workflows URL, warnings and critical or critical only, each with **Send test** and its last result; quiet hours and harvest seasons.
   - **Snowflake:** account, server-generated key pair and its setup script, each hub's `snowflake-listen` key, a Test, on/off, and the forwarder's status per hub partition and silver build.
   - **Users:** local accounts (create, role, disable, reset password); directory users after their first sign-in.
   - **Sign-in & LDAP:** directory sign-in (URL, CA certificate, service account, where users are, the Admin, Operator and
@@ -63,7 +64,7 @@ The server checks every site every 30 seconds against the spec's thresholds; the
 
 A site still being set up (no collector, or no heartbeat yet) is red in the fleet view but raises no alert. One problem is
 one alert from when it starts until it clears; if it comes back later it is a new alert. Cleared alerts are kept a year.
-Email and Teams delivery come next (phase 2, step 2).
+Email (Microsoft Graph) and a Teams channel are set up in Configuration, then Notifications (README, "Alert email and Teams").
 
 ## HTTP or HTTPS
 

@@ -1,0 +1,107 @@
+@page "/config/notifications"
+@layout ConfigLayout
+@inherits ViewModelComponent<NotificationsViewModel>
+@inject ConsoleApi Api
+
+<h1>Notifications</h1>
+@if (ViewModel is { } vm)
+{
+    @if (vm.Error is not null) { <p class="error">@vm.Error</p> }
+    @if (vm.Message is not null) { <p class="info">@vm.Message</p> }
+    <p class="muted">Alerts (see the Alerts page) are sent when they open, again if they become critical, and when they clear.
+       Several at once go in one message. Step by step: "Alert email and Teams" in the Lakeflow README.</p>
+    <div class="columns">
+        <section class="form">
+            <h2>Email (Microsoft Graph)</h2>
+            <p class="muted">An Entra app registration with permission to send as one mailbox. Its secret is stored encrypted and never shown again.</p>
+            <label class="check"><input type="checkbox" checked="@vm.Email.Enabled" @onchange="e => vm.Email = vm.Email with { Enabled = (bool)e.Value! }" /> Send alert email</label>
+            <label>Directory (tenant) ID<input value="@vm.Email.TenantId" @onchange="e => vm.Email = vm.Email with { TenantId = S(e) }" /></label>
+            <label>Application (client) ID<input value="@vm.Email.ClientId" @onchange="e => vm.Email = vm.Email with { ClientId = S(e) }" /></label>
+            <label>Client secret<input type="password" @bind="vm.ClientSecret" placeholder="@(vm.Email.HasClientSecret ? "(stored; leave empty to keep)" : "")" /></label>
+            <label>Send from<input value="@vm.Email.Sender" @onchange="e => vm.Email = vm.Email with { Sender = S(e) }" placeholder="lakeflow-alerts@example.com" /></label>
+            <label>Recipients (one per line)<textarea rows="3" @bind="vm.Recipients"></textarea></label>
+            <label>Send
+                <select value="@vm.Email.MinimumSeverity" @onchange="e => vm.Email = vm.Email with { MinimumSeverity = Enum.Parse<AlertSeverity>(S(e)) }">
+                    <option value="Warning">warnings and critical alerts</option>
+                    <option value="Critical">critical alerts only</option>
+                </select>
+            </label>
+            <div class="toolbar">
+                <button class="primary" @onclick="() => vm.SaveEmailCommand.ExecuteAsync(null)" disabled="@vm.IsBusy">Save</button>
+                <input placeholder="Test to (default: recipients)" @bind="vm.TestTo" />
+                <button @onclick="() => vm.TestEmailCommand.ExecuteAsync(null)" disabled="@(vm.IsBusy || !vm.Email.HasClientSecret)">Send test</button>
+            </div>
+            @if (vm.EmailTest is { } et) { <p class="@(et.Succeeded ? "info" : "error")">@et.Message</p> }
+            @if (Line(vm.Status.FirstOrDefault(s => s.Channel == "email")) is { } emailLine) { <p class="@emailLine.Class">@emailLine.Text</p> }
+        </section>
+        <section class="form">
+            <h2>Teams channel</h2>
+            <p class="muted">In the channel: ⋯, then Workflows, then "Post to a channel when a webhook request is received". Paste the URL it
+               gives you. The URL works like a password: it is stored encrypted and only its host is shown.</p>
+            <label class="check"><input type="checkbox" checked="@vm.Teams.Enabled" @onchange="e => vm.Teams = vm.Teams with { Enabled = (bool)e.Value! }" /> Post alerts to Teams</label>
+            <label>Workflow URL<input type="password" @bind="vm.WebhookUrl" placeholder="@(vm.Teams.HasWebhook ? $"(stored: {vm.Teams.WebhookHost}; leave empty to keep)" : "https://…")" /></label>
+            <label>Post
+                <select value="@vm.Teams.MinimumSeverity" @onchange="e => vm.Teams = vm.Teams with { MinimumSeverity = Enum.Parse<AlertSeverity>(S(e)) }">
+                    <option value="Warning">warnings and critical alerts</option>
+                    <option value="Critical">critical alerts only</option>
+                </select>
+            </label>
+            <div class="toolbar">
+                <button class="primary" @onclick="() => vm.SaveTeamsCommand.ExecuteAsync(null)" disabled="@vm.IsBusy">Save</button>
+                <button @onclick="() => vm.TestTeamsCommand.ExecuteAsync(null)" disabled="@(vm.IsBusy || !vm.Teams.HasWebhook)">Send test</button>
+            </div>
+            @if (vm.TeamsTest is { } tt) { <p class="@(tt.Succeeded ? "info" : "error")">@tt.Message</p> }
+            @if (Line(vm.Status.FirstOrDefault(s => s.Channel == "teams")) is { } teamsLine) { <p class="@teamsLine.Class">@teamsLine.Text</p> }
+        </section>
+        <section class="form">
+            <h2>Quiet hours</h2>
+            <p class="muted">During quiet hours only critical alerts are sent; warnings wait until they end and go then if still open.
+               During a harvest season quiet hours do not apply.</p>
+            <label>Time zone<input value="@vm.Schedule.TimeZone" @onchange="e => vm.Schedule = vm.Schedule with { TimeZone = S(e) }" /></label>
+            <div class="toolbar">
+                <label>From<input type="time" value="@vm.Schedule.QuietStart" @onchange="e => vm.Schedule = vm.Schedule with { QuietStart = S(e) }" /></label>
+                <label>to<input type="time" value="@vm.Schedule.QuietEnd" @onchange="e => vm.Schedule = vm.Schedule with { QuietEnd = S(e) }" /></label>
+            </div>
+            <table class="grid">
+                <thead><tr><th>Harvest season</th><th>From (MM-dd)</th><th>To (MM-dd)</th><th></th></tr></thead>
+                <tbody>
+                    @for (var i = 0; i < vm.Seasons.Count; i++)
+                    {
+                        var index = i;
+                        var season = vm.Seasons[i];
+                        <tr>
+                            <td><input value="@season.Name" @onchange="e => vm.SetSeason(index, season with { Name = S(e) })" /></td>
+                            <td><input value="@season.Start" @onchange="e => vm.SetSeason(index, season with { Start = S(e) })" /></td>
+                            <td><input value="@season.End" @onchange="e => vm.SetSeason(index, season with { End = S(e) })" /></td>
+                            <td><button class="link" @onclick="() => vm.RemoveSeason(index)">Remove</button></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+            <div class="toolbar">
+                <button @onclick="vm.AddSeason">Add harvest season</button>
+                <button class="primary" @onclick="() => vm.SaveScheduleCommand.ExecuteAsync(null)" disabled="@vm.IsBusy">Save</button>
+            </div>
+        </section>
+    </div>
+}
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        ViewModel = new NotificationsViewModel(Api);
+        await ViewModel.LoadCommand.ExecuteAsync(null);
+    }
+
+    private static string S(ChangeEventArgs e) => e.Value?.ToString()?.Trim() ?? "";
+
+    private static (string Class, string Text)? Line(NotificationChannelStatus? status)
+    {
+        if (status is null || (status.LastSentUtc is null && status.LastError is null)) return null;
+        var failing = status.LastFailureUtc is { } f && (status.LastSentUtc is not { } s || f > s);
+        return failing
+            ? ("error", $"Last attempt failed {status.LastFailureUtc!.Value.ToLocalTime():g}: {status.LastError}"
+                + (status.NextAttemptUtc is { } n ? $" Trying again at {n.ToLocalTime():t}." : ""))
+            : ("muted", $"Last sent {status.LastSentUtc!.Value.ToLocalTime():g}.");
+    }
+}

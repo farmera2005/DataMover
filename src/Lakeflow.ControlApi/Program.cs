@@ -52,6 +52,11 @@ builder.Services.AddScoped<Accounts>();
 builder.Services.AddScoped<ConfigBuilder>();
 builder.Services.AddScoped<FleetStatusService>();
 builder.Services.AddScoped<AlertBook>();
+builder.Services.AddScoped<Notifier>();
+builder.Services.AddSingleton<NotificationState>();
+builder.Services.AddSingleton<GraphMail>();
+builder.Services.AddSingleton<TeamsWorkflow>();
+builder.Services.AddHttpClient("notifications", c => c.Timeout = TimeSpan.FromSeconds(30));
 builder.Services.AddScoped<SettingsReconciliation>();
 builder.Services.AddScoped<SnowflakeSettingsReader>();
 builder.Services.AddScoped<SnowflakeReconciliation>();
@@ -191,6 +196,7 @@ app.MapSettingsEndpoints();
 app.MapSnowflakeEndpoints();
 app.MapConsoleEndpoints();
 app.MapAlertEndpoints();
+app.MapNotificationEndpoints();
 
 app.Run();
 

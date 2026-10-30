@@ -259,3 +259,16 @@ public sealed class AlertNote : IAudited
     public DateTimeOffset CreatedUtc { get; set; }
     public string AuditName => $"alert {AlertId} {Kind}";
 }
+
+/// <summary>An alert sent on a channel: raised (at a severity) or cleared. What has not been sent yet is worked out from these.</summary>
+public sealed class AlertDelivery
+{
+    public Guid Id { get; set; }
+    public Guid AlertId { get; set; }
+    /// <summary>email or teams.</summary>
+    public required string Channel { get; set; }
+    /// <summary>raised or cleared.</summary>
+    public required string Event { get; set; }
+    public Lakeflow.Contracts.AlertSeverity Severity { get; set; }
+    public DateTimeOffset SentUtc { get; set; }
+}

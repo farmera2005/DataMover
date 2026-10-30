@@ -103,6 +103,22 @@ public sealed class SetupWizardTests : IAsyncLifetime
         await alerts.RefreshCommand.ExecuteAsync(null);
         Assert.Null(alerts.Error);
 
+        var notifications = new NotificationsViewModel(browser);
+        await notifications.LoadCommand.ExecuteAsync(null);
+        Assert.Equal("America/New_York", notifications.Schedule.TimeZone);
+        notifications.Schedule = notifications.Schedule with { QuietStart = "22:00" };
+        await notifications.SaveScheduleCommand.ExecuteAsync(null);
+        Assert.Contains("both a start and an end", notifications.Error);
+        notifications.Schedule = notifications.Schedule with { QuietEnd = "06:00" };
+        notifications.AddSeason();
+        await notifications.SaveScheduleCommand.ExecuteAsync(null);
+        Assert.Null(notifications.Error);
+        Assert.Equal("Fall harvest", Assert.Single(notifications.Seasons).Name);
+        Assert.Equal(["a@x.com", "b@x.com", "c@x.com"], NotificationsViewModel.SplitRecipients("a@x.com\nb@x.com; c@x.com,"));
+        notifications.Email = notifications.Email with { Enabled = true };
+        await notifications.SaveEmailCommand.ExecuteAsync(null);
+        Assert.Contains("recipient", notifications.Error);
+
         var signIn = new SignInSettingsViewModel(browser);
         await signIn.LoadCommand.ExecuteAsync(null);
         Assert.False(signIn.Settings.Enabled);

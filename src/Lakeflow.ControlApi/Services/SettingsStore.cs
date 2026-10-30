@@ -18,6 +18,10 @@ public sealed class SettingsStore(LakeflowDb db, ISecretProtector protector, Tim
 
     public const string Snowflake = "snowflake";
 
+    public const string NotifyEmail = "notifications.email";
+    public const string NotifyTeams = "notifications.teams";
+    public const string NotifySchedule = "notifications.schedule";
+
     public static string EventHub(Division division) => $"eventhubs.{LakeNames.HubName(division)}";
 
     /// <summary>The hub's Listen-only connection string for the Snowflake forwarder (the key is the secret).</summary>
@@ -69,3 +73,10 @@ public sealed record ServerSetting(string Host);
 
 /// <summary>Stored form of the Snowflake destination (the private key PEM is the secret).</summary>
 public sealed record SnowflakeSetting(bool Enabled, string Account, string User, string Role, string Warehouse, string Database, int SilverIntervalMinutes);
+
+/// <summary>Stored form of the Graph email channel (the client secret is the secret).</summary>
+public sealed record EmailNotifySetting(bool Enabled, string TenantId, string ClientId, string Sender, IReadOnlyList<string> Recipients,
+    AlertSeverity MinimumSeverity);
+
+/// <summary>Stored form of the Teams channel (the workflow URL is the secret).</summary>
+public sealed record TeamsNotifySetting(bool Enabled, string? WebhookHost, AlertSeverity MinimumSeverity);

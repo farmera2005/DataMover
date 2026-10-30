@@ -390,6 +390,74 @@ under half a credit a day. Pick the interval to match how fresh reports need to 
 | a partition shows an error, rows stop | the `snowflake-listen` key (regenerated in Azure?) and the `snowflake` consumer group exist on that hub |
 | silver behind, bronze growing | the silver error under Status; the warehouse is not suspended by a resource monitor |
 
+## Alert email and Teams
+
+Alerts (the console's Alerts page) can also go out by email and to a Teams channel. Each alert is sent when it opens,
+again if it becomes critical, and when it clears; several at once go in one message. Set it up in
+**Configuration → Notifications**. The server must reach `login.microsoftonline.com` and `graph.microsoft.com` (email)
+and the Teams workflow's host (`*.logic.azure.com` or `*.environment.api.powerplatform.com`) on 443.
+
+### Email through Microsoft Graph
+
+Lakeflow sends as one mailbox, signed in as an Entra app with a client secret. No SMTP relay is involved.
+
+1. **The mailbox.** In the Exchange admin center: **Recipients → Mailboxes → Add a shared mailbox**, for example
+   `lakeflow-alerts@mercerlandmark.com`. A shared mailbox needs no licence.
+2. **The app.** In the Microsoft Entra admin center: **Identity → Applications → App registrations → New registration**.
+   Name it `Lakeflow alerts`, leave it single tenant with no redirect URI, and **Register**. From **Overview**, copy the
+   **Application (client) ID** and the **Directory (tenant) ID**. Under **Certificates & secrets → Client secrets → New
+   client secret**, pick an expiry (24 months, say) and copy the **Value** (not the Secret ID); it is shown only once.
+3. **Permission to send as that mailbox only (recommended).** Exchange Online's RBAC for Applications limits the app to
+   the one mailbox. In PowerShell with the ExchangeOnlineManagement module, as an Exchange administrator:
+
+   ```powershell
+   Connect-ExchangeOnline
+   # The Object ID from Entra: Enterprise applications -> Lakeflow alerts (not the one under App registrations).
+   New-ServicePrincipal -AppId <application-client-id> -ObjectId <enterprise-app-object-id> -DisplayName "Lakeflow alerts"
+   New-ManagementScope -Name "Lakeflow alerts mailbox" -RecipientRestrictionFilter "PrimarySmtpAddress -eq 'lakeflow-alerts@mercerlandmark.com'"
+   New-ManagementRoleAssignment -App <application-client-id> -Role "Application Mail.Send" -CustomResourceScope "Lakeflow alerts mailbox"
+   Test-ServicePrincipalAuthorization -Identity <application-client-id> -Resource lakeflow-alerts@mercerlandmark.com
+   ```
+
+   Do **not** also add Mail.Send under the app's **API permissions**: a permission granted in Entra applies to every
+   mailbox and makes the scope above pointless. The assignment can take up to two hours to take effect.
+
+   The quicker alternative: **API permissions → Add a permission → Microsoft Graph → Application permissions →
+   Mail.Send → Add**, then **Grant admin consent**. That lets the app send as any mailbox in the tenant.
+4. **The console.** **Configuration → Notifications → Email**: tenant ID, client ID, client secret, **Send from** (the
+   mailbox), recipients (a distribution list is fine), and whether warnings go too. **Save**, then **Send test**.
+5. **Before the secret expires,** create a new one in the app and paste it into the console. Until then the status
+   under Email shows `AADSTS7000222` (secret expired) and alerts wait.
+
+### A Teams channel
+
+1. In Teams, on the channel: **⋯ → Workflows → Post to a channel when a webhook request is received**. Name it, sign in
+   if asked, pick the team and channel, and **Add workflow**. Copy the URL it shows.
+2. **Configuration → Notifications → Teams**: paste the URL, choose warnings and critical or critical only, **Save**,
+   then **Send test**. The URL works like a password, so it is stored encrypted and only its host is shown.
+3. The workflow runs as the person who created it. If that account is disabled, posts stop: create it with a shared
+   account, or add co-owners to the flow in Power Automate.
+
+### Quiet hours and harvest seasons
+
+**Configuration → Notifications → Quiet hours**: a time zone (default `America/New_York`) and a start and end (they may
+run past midnight). During quiet hours only critical alerts are sent; warnings wait and go when quiet hours end, if
+they are still open. Add harvest seasons (month and day, every year, for example 09-15 to 11-30): during a season quiet
+hours do not apply. The console's Alerts page always shows everything, quiet or not.
+
+### Troubleshooting
+
+| Message | Fix |
+| --- | --- |
+| `AADSTS7000215` invalid client secret | paste the secret's **Value**, not its Secret ID |
+| `AADSTS700016` application not found | the client ID, or the tenant ID belongs to another directory |
+| `ErrorAccessDenied` / refused to send as | the RBAC assignment (or Mail.Send consent) is missing or not in effect yet; `Test-ServicePrincipalAuthorization` shows which |
+| Graph does not know the mailbox | the **Send from** address is not a mailbox in this tenant |
+| the Teams workflow refused the message | the flow was turned off, deleted or recreated (a new URL); paste the current URL |
+| Could not reach ... | outbound 443 from the Lakeflow server to the hosts listed above |
+
+A failing channel tries again after 30 seconds, doubling up to 15 minutes, and the other channel carries on.
+
 ## Status
 
 Phase 1 (pilot: one grain site, SQL Server), built step by step:
@@ -408,7 +476,7 @@ Phase 1 (pilot: one grain site, SQL Server), built step by step:
 Phase 2 (SQL Server rollout to all grain, feed and agronomy sites):
 
 - [x] 1. Alerts: the spec's rules raise and clear alerts; console Alerts page with acknowledge and notes (see docs/console.md)
-- [ ] 2. Alert delivery: email (Microsoft Graph) and a Teams channel, quiet hours, harvest-season overrides
+- [x] 2. Alert delivery: email (Microsoft Graph) and a Teams channel, quiet hours, harvest-season overrides ("Alert email and Teams" above)
 - [ ] 3. Self-update: signed MSI uploaded in the console, target version, install in the site's maintenance window
 - [ ] 4. Rollout aids: bulk site import, division filters
 

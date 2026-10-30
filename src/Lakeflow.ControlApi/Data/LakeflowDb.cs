@@ -39,6 +39,7 @@ public sealed class LakeflowDb(DbContextOptions<LakeflowDb> options, IActor acto
     public DbSet<AppSetting> Settings => Set<AppSetting>();
     public DbSet<Alert> Alerts => Set<Alert>();
     public DbSet<AlertNote> AlertNotes => Set<AlertNote>();
+    public DbSet<AlertDelivery> AlertDeliveries => Set<AlertDelivery>();
 
     protected override void OnModelCreating(ModelBuilder model)
     {
@@ -192,6 +193,15 @@ public sealed class LakeflowDb(DbContextOptions<LakeflowDb> options, IActor acto
             e.HasIndex(x => x.ResolvedUtc);
             e.HasOne<Site>().WithMany().HasForeignKey(x => x.SiteId).OnDelete(DeleteBehavior.Cascade);
             e.HasMany(x => x.Notes).WithOne().HasForeignKey(x => x.AlertId).OnDelete(DeleteBehavior.Cascade);
+        });
+        model.Entity<AlertDelivery>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Channel).HasMaxLength(16);
+            e.Property(x => x.Event).HasMaxLength(16);
+            e.Property(x => x.Severity).HasConversion<string>().HasMaxLength(16);
+            e.HasIndex(x => new { x.AlertId, x.Channel });
+            e.HasOne<Alert>().WithMany().HasForeignKey(x => x.AlertId).OnDelete(DeleteBehavior.Cascade);
         });
         model.Entity<AlertNote>(e =>
         {
