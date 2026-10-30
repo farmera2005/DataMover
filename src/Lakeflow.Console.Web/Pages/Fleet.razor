@@ -21,6 +21,13 @@
             <option value="Amber">Warning</option>
             <option value="Green">Healthy</option>
         </select>
+        @if (vm.Divisions.Count > 1)
+        {
+            <select @onchange="OnDivision">
+                <option value="">All divisions</option>
+                @foreach (var d in vm.Divisions) { <option value="@d" selected="@(d == vm.DivisionFilter)">@d</option> }
+            </select>
+        }
         <button @onclick="() => vm.RefreshCommand.ExecuteAsync(null)">Refresh</button>
         @if (vm.Error is not null) { <span class="error">@vm.Error</span> }
     </div>
@@ -31,7 +38,7 @@
             {
                 <tr>
                     <td><span class="dot @site.Health.ToString().ToLowerInvariant()" title="@site.HealthText"></span></td>
-                    <td><a href="sites/@site.SiteId"><strong>@site.Name</strong></a><div class="muted">@site.SiteId</div></td>
+                    <td><a href="sites/@site.SiteId"><strong>@site.Name</strong></a><div class="muted">@site.SiteId@(site.Status.Divisions.Count > 0 ? $" · {string.Join(", ", site.Status.Divisions)}" : "")</div></td>
                     <td>@site.Reason @if (site.MoreReasons > 0) { <span class="muted"> (+@site.MoreReasons more)</span> }
                         @if (site.Status.OpenAlerts > 0) { <div><a href="sites/@site.SiteId">@site.Status.OpenAlerts open alert@(site.Status.OpenAlerts == 1 ? "" : "s")</a></div> }</td>
                     <td>@site.WorstLag</td>
@@ -59,6 +66,9 @@
     {
         while (await timer.WaitForNextTickAsync()) await ViewModel!.RefreshCommand.ExecuteAsync(null);
     }
+
+    private void OnDivision(ChangeEventArgs e) =>
+        ViewModel!.DivisionFilter = Enum.TryParse<Division>(e.Value?.ToString(), out var division) ? division : null;
 
     private void OnHealth(ChangeEventArgs e) =>
         ViewModel!.HealthFilter = Enum.TryParse<Health>(e.Value?.ToString(), out var health) ? health : null;

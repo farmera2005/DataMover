@@ -39,9 +39,14 @@ public sealed partial class FleetViewModel(ConsoleApi api, TimeProvider? time = 
     [ObservableProperty] private string _filter = "";
     /// <summary>Show only sites in this state; null for all.</summary>
     [ObservableProperty] private Health? _healthFilter;
+    /// <summary>Show only sites with sources in this division; null for all.</summary>
+    [ObservableProperty] private Division? _divisionFilter;
+    /// <summary>The divisions the fleet has, for the filter.</summary>
+    [ObservableProperty] private IReadOnlyList<Division> _divisions = [];
 
     partial void OnFilterChanged(string value) => Apply();
     partial void OnHealthFilterChanged(Health? value) => Apply();
+    partial void OnDivisionFilterChanged(Division? value) => Apply();
 
     /// <summary>Called on open and every 30 s by the page.</summary>
     [RelayCommand]
@@ -56,6 +61,7 @@ public sealed partial class FleetViewModel(ConsoleApi api, TimeProvider? time = 
             _all = fleet.Sites.Select(s => new SiteRow(s, now))
                 .OrderByDescending(r => r.Health).ThenByDescending(r => r.Status.WorstLagSeconds ?? 0).ThenBy(r => r.Name).ToList();
             (Green, Amber, Red, AsOf) = (fleet.Green, fleet.Amber, fleet.Red, fleet.AsOfUtc);
+            Divisions = fleet.Sites.SelectMany(s => s.Divisions).Distinct().Order().ToList();
             Error = null;
             Apply();
         }
@@ -73,6 +79,7 @@ public sealed partial class FleetViewModel(ConsoleApi api, TimeProvider? time = 
     {
         Sites.Clear();
         foreach (var row in _all.Where(r => (HealthFilter is null || r.Health == HealthFilter)
+                     && (DivisionFilter is not { } division || r.Status.Divisions.Contains(division))
                      && (Filter.Length == 0 || r.Name.Contains(Filter, StringComparison.OrdinalIgnoreCase)
                          || r.SiteId.Contains(Filter, StringComparison.OrdinalIgnoreCase))))
             Sites.Add(row);

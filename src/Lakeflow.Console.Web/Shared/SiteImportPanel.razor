@@ -1,0 +1,56 @@
+@* Many sites at once from CSV: preview (row by row), then import all or nothing. *@
+@inherits ViewModelComponent<SiteImportViewModel>
+@inject ConsoleApi Api
+
+@if (ViewModel is { } vm)
+{
+    <section class="form">
+        <p class="muted">One site per line, after a header row. Columns: site_id and name (required), time_zone, latitude, longitude,
+           maintenance_start, maintenance_end (like 02:00) and collector (its name or id). For an existing site, an empty or missing
+           column keeps what it has. Sources are added per site afterwards, with Add source. Up to 1000 sites at a time.</p>
+        <label>CSV (paste, or choose a file)<textarea rows="8" @bind="vm.Csv" @bind:event="oninput" spellcheck="false"></textarea></label>
+        <div class="toolbar">
+            <InputFile OnChange="Picked" accept=".csv,text/csv" />
+            <button @onclick="() => vm.PreviewCommand.ExecuteAsync(null)" disabled="@vm.IsBusy">Preview</button>
+            <button class="primary" @onclick="Import" disabled="@(vm.IsBusy || !vm.CanImport)">Import</button>
+        </div>
+        @if (vm.Error is not null) { <p class="error">@vm.Error</p> }
+        @if (vm.Result is { } r)
+        {
+            var errors = r.Rows.Count(x => x.Action == "error");
+            <p class="@(errors > 0 ? "error" : "info")">
+                @(r.Applied ? "Imported: " : "Preview: ")@r.Created new, @r.Updated changed, @r.Unchanged unchanged@(errors > 0 ? $", {errors} with problems (fix them and preview again; nothing is saved until every line is right)" : "").
+            </p>
+            <table class="grid">
+                <thead><tr><th>Line</th><th>Site</th><th>Name</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var row in r.Rows)
+                    {
+                        <tr>
+                            <td>@row.Line</td><td>@row.SiteId</td><td>@row.Name</td>
+                            <td class="@(row.Action == "error" ? "error" : "")">@row.Action @foreach (var e in row.Errors) { <div>@e</div> }</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </section>
+}
+
+@code {
+    [Parameter] public EventCallback OnImported { get; set; }
+
+    protected override void OnInitialized() => ViewModel = new SiteImportViewModel(Api);
+
+    private async Task Picked(InputFileChangeEventArgs e)
+    {
+        using var reader = new StreamReader(e.File.OpenReadStream(maxAllowedSize: 2 * 1024 * 1024));
+        ViewModel!.Csv = await reader.ReadToEndAsync();
+    }
+
+    private async Task Import()
+    {
+        await ViewModel!.ImportCommand.ExecuteAsync(null);
+        if (ViewModel.Result is { Applied: true }) await OnImported.InvokeAsync();
+    }
+}

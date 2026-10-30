@@ -148,6 +148,8 @@ public sealed class ConsoleApi(HttpClient http)
 
     public Task<FleetStatus> GetStatusAsync(CancellationToken ct = default) => GetAsync<FleetStatus>("status", ct);
     public Task<List<SiteDto>> GetSitesAsync(CancellationToken ct = default) => GetAsync<List<SiteDto>>("sites", ct);
+    public async Task<SiteImportResult> ImportSitesAsync(string csv, bool apply, CancellationToken ct = default) =>
+        await ReadAsync<SiteImportResult>(await http.PostAsJsonAsync("sites/import", new SiteImportRequest(csv, apply), Json, ct), ct);
     public Task<SiteDto> GetSiteAsync(string siteId, CancellationToken ct = default) => GetAsync<SiteDto>($"sites/{E(siteId)}", ct);
     public Task<SiteDto> PutSiteAsync(SiteDto site, CancellationToken ct = default) => PutAsync<SiteDto, SiteDto>($"sites/{E(site.SiteId)}", site, ct);
 

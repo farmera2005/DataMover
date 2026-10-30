@@ -526,7 +526,7 @@ Phase 2 (SQL Server rollout to all grain, feed and agronomy sites):
 - [x] 1. Alerts: the spec's rules raise and clear alerts; console Alerts page with acknowledge and notes (see docs/console.md)
 - [x] 2. Alert delivery: email (Microsoft Graph) and a Teams channel, quiet hours, harvest-season overrides ("Alert email and Teams" above)
 - [x] 3. Self-update: signed MSI uploaded in the console, target version, install in the site's maintenance window ("Agent updates" above)
-- [ ] 4. Rollout aids: bulk site import, division filters
+- [x] 4. Rollout aids: bulk site import from CSV (preview, then all or nothing), division filter on the fleet (see docs/console.md)
 
 ## Layout
 

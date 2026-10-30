@@ -107,3 +107,37 @@ public sealed partial class SitesViewModel(ConsoleApi api) : ObservableObject
         foreach (var item in items) target.Add(item);
     }
 }
+
+/// <summary>
+/// Import sites from CSV: <see cref="PreviewAsync"/> checks every row and saves nothing; <see cref="ImportAsync"/> saves
+/// them all, or nothing if any row is wrong.
+/// </summary>
+public sealed partial class SiteImportViewModel(ConsoleApi api) : ObservableObject
+{
+    public const string Template = "site_id,name,time_zone,latitude,longitude,maintenance_start,maintenance_end,collector\n"
+        + "stmarys,St. Marys Grain,America/New_York,40.54,-84.39,02:00,04:00,Built-in collector\n";
+
+    [ObservableProperty] private string _csv = Template;
+    [ObservableProperty] private SiteImportResult? _result;
+    [ObservableProperty] private string? _error;
+    [ObservableProperty] private bool _isBusy;
+
+    public bool CanImport => Result is { Applied: false } r && r.Rows.Count > 0 && r.Rows.All(x => x.Action != "error") && r.Rows.Any(x => x.Action != "unchanged");
+
+    partial void OnCsvChanged(string value) => Result = null; // preview again after an edit
+    partial void OnResultChanged(SiteImportResult? value) => OnPropertyChanged(nameof(CanImport));
+
+    [RelayCommand]
+    public Task PreviewAsync(CancellationToken ct) => RunAsync(async () => Result = await api.ImportSitesAsync(Csv, apply: false, ct));
+
+    [RelayCommand]
+    public Task ImportAsync(CancellationToken ct) => RunAsync(async () => Result = await api.ImportSitesAsync(Csv, apply: true, ct));
+
+    private async Task RunAsync(Func<Task> action)
+    {
+        (Error, IsBusy) = (null, true);
+        try { await action(); }
+        catch (Exception ex) when (ex is ConsoleApiException or HttpRequestException) { Error = ex.Message; }
+        finally { IsBusy = false; }
+    }
+}

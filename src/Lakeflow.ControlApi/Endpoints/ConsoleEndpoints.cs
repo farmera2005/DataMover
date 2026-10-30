@@ -152,6 +152,16 @@ public static class ConsoleEndpoints
     {
         var site = await db.Sites.FindAsync([siteId], ct);
         if (site is null) db.Sites.Add(site = new Site { SiteId = siteId, Name = dto.Name });
+        var errors = await ApplySiteAsync(site, dto, db, ct);
+        if (errors.Count > 0) return Invalid(errors);
+        await db.SaveChangesAsync(ct);
+        return TypedResults.Ok(ToDto(site));
+    }
+
+    /// <summary>Copies <paramref name="dto"/> onto a tracked site and checks it; saves nothing (one site, or a whole import).</summary>
+    public static async Task<List<string>> ApplySiteAsync(Site site, SiteDto dto, LakeflowDb db, CancellationToken ct)
+    {
+        var siteId = site.SiteId;
         site.Name = dto.Name;
         site.TimeZone = dto.TimeZone;
         site.Latitude = dto.Latitude;
@@ -180,9 +190,7 @@ public static class ConsoleEndpoints
         if (dto.DesiredAgentVersion is { } desired && await db.AgentPackages.FindAsync([desired], ct) is null)
             errors.Add($"desired_agent_version {desired}: upload that package first (Configuration, then Updates).");
         errors.AddRange(ConfigBuilder.Validate(site, await new ConfigBuilderSources(db).ForSiteAsync(siteId, ct)));
-        if (errors.Count > 0) return Invalid(errors);
-        await db.SaveChangesAsync(ct);
-        return TypedResults.Ok(ToDto(site));
+        return errors;
     }
 
     private static async Task<Results<NoContent, NotFound, Conflict<ProblemList>>> DeleteSiteAsync(string siteId, LakeflowDb db, CancellationToken ct)
@@ -324,7 +332,7 @@ public static class ConsoleEndpoints
     private static ValidationProblem Invalid(IEnumerable<string> errors) =>
         TypedResults.ValidationProblem(new Dictionary<string, string[]> { ["config"] = errors.ToArray() });
 
-    private static SiteDto ToDto(Site s) => new()
+    public static SiteDto ToDto(Site s) => new()
     {
         SiteId = s.SiteId, Name = s.Name, TimeZone = s.TimeZone, Latitude = s.Latitude, Longitude = s.Longitude,
         MaintenanceStart = s.MaintenanceStart, MaintenanceEnd = s.MaintenanceEnd, DesiredAgentVersion = s.DesiredAgentVersion,

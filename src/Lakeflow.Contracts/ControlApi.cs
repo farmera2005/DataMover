@@ -139,6 +139,8 @@ public sealed record SiteStatus
     public Heartbeat? Heartbeat { get; init; }
     /// <summary>Alerts open for the site now.</summary>
     public int OpenAlerts { get; init; }
+    /// <summary>The divisions of the site's sources, for filtering the fleet.</summary>
+    public IReadOnlyList<Division> Divisions { get; init; } = [];
 }
 
 public sealed record FleetStatus(DateTimeOffset AsOfUtc, int Green, int Amber, int Red, IReadOnlyList<SiteStatus> Sites);
@@ -187,3 +189,17 @@ public sealed record AlertDto(Guid Id, string Rule, AlertSeverity Severity, stri
 public sealed record AlertNoteDto(string Author, string Kind, string? Text, DateTimeOffset CreatedUtc);
 
 public sealed record AlertNoteRequest(string? Text);
+
+/// <summary>
+/// Sites from CSV with a header row. Columns: <c>site_id</c> and <c>name</c> (required), <c>time_zone</c>, <c>latitude</c>,
+/// <c>longitude</c>, <c>maintenance_start</c>, <c>maintenance_end</c> (HH:mm), <c>collector</c> (a collector's name or
+/// id). For an existing site an empty or missing column keeps its value. Without <see cref="Apply"/> nothing is saved
+/// (a preview); with it, everything is saved only if every row is valid.
+/// </summary>
+public sealed record SiteImportRequest(string Csv, bool Apply);
+
+public sealed record SiteImportResult(bool Applied, int Created, int Updated, int Unchanged, IReadOnlyList<SiteImportRow> Rows);
+
+/// <param name="Line">The row's line in the CSV (the header is line 1).</param>
+/// <param name="Action">create, update, unchanged or error.</param>
+public sealed record SiteImportRow(int Line, string? SiteId, string? Name, string Action, IReadOnlyList<string> Errors);

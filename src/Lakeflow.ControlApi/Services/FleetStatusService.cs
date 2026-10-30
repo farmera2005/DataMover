@@ -66,6 +66,7 @@ public sealed class FleetStatusService(LakeflowDb db, TimeProvider time, IReconc
                 WorstLagSeconds = heartbeat?.Tables.Select(t => t.LagSeconds).DefaultIfEmpty(0).Max(),
                 BufferBytes = heartbeat?.BufferBytes, BufferPercent = heartbeat?.BufferPercent, Heartbeat = heartbeat,
                 OpenAlerts = openAlerts.GetValueOrDefault(site.SiteId),
+                Divisions = divisions.Where(d => d.SiteId == site.SiteId).Select(d => d.Division).Distinct().Order().ToList(),
             });
         }
         var fleet = new FleetStatus(now, statuses.Count(s => s.Health == Health.Green), statuses.Count(s => s.Health == Health.Amber),

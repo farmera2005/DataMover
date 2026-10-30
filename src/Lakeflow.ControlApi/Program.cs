@@ -199,6 +199,7 @@ app.MapConsoleEndpoints();
 app.MapAlertEndpoints();
 app.MapNotificationEndpoints();
 app.MapUpdateEndpoints();
+app.MapSiteImport();
 
 app.Run();
 

@@ -24,7 +24,7 @@ from their groups at every sign-in.
 ## Pages
 
 - **Fleet:** every site green, amber or red, worst first, with the reason, worst lag, buffer, last heartbeat and
-  collector version, and how many alerts are open. Refreshes every 30 s; filter by name or state.
+  collector version, its divisions, and how many alerts are open. Refreshes every 30 s; filter by name, state or division.
 - **Alerts:** open alerts, critical first (or cleared ones, or all), each with its site, since when, who acknowledged it
   and the notes. Operators acknowledge (with an optional note) and add notes. Alerts open and clear by themselves
   (below); going from warning to critical needs a new acknowledgement. The site page lists that site's open alerts.
@@ -37,6 +37,10 @@ from their groups at every sign-in.
   - **Sites and collectors:** add or edit sites and choose the collector that reads each (the built-in one by default);
     create the install file for a collector on another server (for sites this server cannot reach), or a token for an
     agent installed at a site.
+  - **Sites and collectors → Import sites:** many sites at once from CSV (paste or choose a file). Columns: `site_id`,
+    `name` (required), `time_zone`, `latitude`, `longitude`, `maintenance_start`, `maintenance_end`, `collector` (name
+    or id); for an existing site an empty or missing column keeps its value. **Preview** checks every line with the same
+    rules as saving one site and saves nothing; **Import** saves them all, or nothing if any line is wrong. Up to 1000.
   - **Destinations:** each division's Event Hub; the Fabric SQL endpoint for reconciliation results (with a Test).
   - **Notifications:** alert email through Microsoft Graph (app, secret, sender mailbox, recipients), a Teams channel through a Workflows URL, warnings and critical or critical only, each with **Send test** and its last result; quiet hours and harvest seasons.
   - **Updates:** upload signed agent MSIs, set the fleet's target version or a site's own, and see each collector's version and update state (README, "Agent updates").

@@ -129,6 +129,19 @@ public sealed class SetupWizardTests : IAsyncLifetime
         await updates.UploadAsync(new MemoryStream("not an msi"u8.ToArray()), "LakeflowAgent-1.4.0.msi", default);
         Assert.Contains("not an MSI", updates.Error);
 
+        var import = new SiteImportViewModel(browser);
+        import.Csv = "site_id,name,time_zone\nimported1,Imported One,Mars/Olympus\n";
+        await import.PreviewCommand.ExecuteAsync(null);
+        Assert.False(import.CanImport);
+        Assert.Contains("time zone", Assert.Single(import.Result!.Rows).Errors[0]);
+        import.Csv = "site_id,name\nimported1,Imported One\nimported2,\"Imported, Two\"\n";
+        Assert.Null(import.Result); // an edit needs a new preview
+        await import.PreviewCommand.ExecuteAsync(null);
+        Assert.True(import.CanImport);
+        await import.ImportCommand.ExecuteAsync(null);
+        Assert.Equal((true, 2), (import.Result!.Applied, import.Result.Created));
+        Assert.False(import.CanImport);
+
         var signIn = new SignInSettingsViewModel(browser);
         await signIn.LoadCommand.ExecuteAsync(null);
         Assert.False(signIn.Settings.Enabled);

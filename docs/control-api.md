@@ -35,6 +35,7 @@ ports with `LAKEFLOW_HTTP_PORT`, `LAKEFLOW_HTTPS_PORT` and `LAKEFLOW_COLLECTOR_P
 | `GET /agents/{id}/config` | collector cert | per assigned site: sources, tables, hubs + SAS tokens, commands, sealed credentials |
 | `POST /agents/{id}/heartbeat`, `/events`, `/logs` | collector cert | per-site health, events, log bundles; only for sites assigned to it |
 | `GET /status` | Viewer | fleet rollup, green/amber/red with reasons |
+| `POST /sites/import` | Admin | sites from CSV; `apply: false` previews every row, `apply: true` saves all or nothing |
 | `GET /alerts?state=open\|resolved\|all&siteId=` | Viewer | alerts with acknowledgements and notes |
 | `POST /alerts/{id}/acknowledge`, `POST /alerts/{id}/notes` | Operator | acknowledge (optional note), add a note; audited |
 | `/settings/notifications` (+ `/email`, `/teams`, `/schedule`, `/email/test`, `/teams/test`) | Admin | alert email (Graph) and Teams settings (secrets write-only), quiet hours, harvest seasons, channel status |

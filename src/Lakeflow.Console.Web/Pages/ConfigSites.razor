@@ -65,6 +65,9 @@
         </tbody>
     </table>
 
+    <h2>Import sites</h2>
+    <SiteImportPanel OnImported="() => vm.LoadCommand.ExecuteAsync(null)" />
+
     <h2>Collectors</h2>
     <table class="grid">
         <thead><tr><th>Name</th><th>Id</th><th>Host</th><th>Version</th><th>Sites</th><th>Last seen</th><th>Certificate until</th></tr></thead>
