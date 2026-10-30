@@ -38,6 +38,8 @@ public sealed record CollectorConfig
     public int ConfigPollSeconds { get; init; } = 60;
     public int HeartbeatSeconds { get; init; } = 30;
     public string? DesiredAgentVersion { get; init; }
+    /// <summary>The package for <see cref="DesiredAgentVersion"/>, when one has been uploaded in the console.</summary>
+    public UpdateOffer? Update { get; init; }
     public IReadOnlyList<AgentConfig> Sites { get; init; } = [];
 }
 
@@ -153,3 +155,9 @@ public sealed record TableConfig
     public int LagCriticalMinutes { get; init; } = 60;
     public bool Paused { get; init; }
 }
+
+/// <summary>
+/// A signed agent MSI the collector may install: downloaded from the control API at <see cref="DownloadPath"/> (relative
+/// to it), checked against <see cref="Sha256"/>, and installed only if signed by the same publisher as the running agent.
+/// </summary>
+public sealed record UpdateOffer(string Version, string Sha256, long SizeBytes, string DownloadPath);

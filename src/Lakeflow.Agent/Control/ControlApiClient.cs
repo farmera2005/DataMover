@@ -115,6 +115,15 @@ public sealed class ControlApiClient(HttpClient http, string agentId) : IDisposa
         return (await response.Content.ReadFromJsonAsync<EnrollResponse>(EnvelopeJson.Options, ct))!;
     }
 
+    /// <summary>Downloads a file the config offered (relative to the control API) into <paramref name="destination"/>.</summary>
+    public async Task DownloadAsync(string path, Stream destination, CancellationToken ct)
+    {
+        using var response = await http.GetAsync(path, HttpCompletionOption.ResponseHeadersRead, ct);
+        await EnsureAsync(response, ct);
+        await using var body = await response.Content.ReadAsStreamAsync(ct);
+        await body.CopyToAsync(destination, ct);
+    }
+
     private static async Task EnsureAsync(HttpResponseMessage response, CancellationToken ct)
     {
         if (response.IsSuccessStatusCode) return;

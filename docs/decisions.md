@@ -2,6 +2,18 @@
 
 SPEC.md is the starting brief. These are the places the build deliberately departs from it, and why. Newest first.
 
+## 2026-10-30: Self-update through a SYSTEM updater service, trusting only the agent's own publisher
+
+The spec's "agents download, verify the signature and self-update in a maintenance window" meets a low-privilege agent
+(`NT SERVICE\LakeflowAgent`) that cannot install software. The MSI therefore also installs a small updater service (the
+same program, LocalSystem). The agent downloads and stages the package; the updater copies it into a folder only SYSTEM
+and Administrators can write, and installs it only if Windows trusts its Authenticode signature and the signer is the
+same publisher as the updater's own executable. The trust anchor is the code that is already installed, not anything
+the control API says, so a compromised control plane cannot push its own software. Unsigned agents never self-update.
+Packages are uploaded in the console (the server checks only that the file is a signed MSI) and stored in the server's
+data folder. Downgrades stay manual (the MSI refuses them). Docker collectors are rebuilt from the repository and are
+shown as manual.
+
 ## 2026-10-30: Alert email through Microsoft Graph; Teams through Workflows
 
 The spec asks for email and Teams alerts. Email goes through Graph's `sendMail` as one mailbox, signed in as an Entra
@@ -33,7 +45,7 @@ moved into the Docker stack (entry below). Each hub gets its own Send-only and L
 namespace-wide key. The spec's "dedicated low-privilege service account" for the agent is the service's virtual
 account (`NT SERVICE\LakeflowAgent`): nothing to create in AD or rotate. The enrollment token reaches the agent through
 a registry key readable only by it, SYSTEM and Administrators (hidden from MSI logs), rather than a file in its folder.
-Self-update (phase 2) is not built yet: upgrades are a newer MSI.
+Self-update came in phase 2 (entry above).
 
 ## 2026-10-29: Everything in one Docker stack, set up in the browser
 

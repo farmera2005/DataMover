@@ -14,7 +14,7 @@ namespace Lakeflow.Agent.Control;
 /// </summary>
 public sealed class ControlLoop(
     CollectorHost host, ControlApiHandlerFactory handlers, TimeProvider time, ILogger<ControlLoop> log,
-    string logDirectory, Action requestRestart) : IDisposable
+    string logDirectory, Action requestRestart, Update.SelfUpdate? updates = null) : IDisposable
 {
     private LocalStore store => host.IdentityStore;
 
@@ -95,6 +95,7 @@ public sealed class ControlLoop(
                     HandleCredentials(site, siteConfig, now);
                     await HandleCommandsAsync(client, site, siteConfig, ct);
                 }
+                if (updates is not null) await TryAsync("update", () => updates.RunAsync(config, client, ct));
                 _nextConfig = now + TimeSpan.FromSeconds(config.ConfigPollSeconds);
                 if (ConsecutiveFailures > 0) log.LogInformation("Control API reachable again");
                 ConsecutiveFailures = 0;
@@ -117,7 +118,8 @@ public sealed class ControlLoop(
             foreach (var (siteId, site) in host.Sites.Where(s => s.Value.Pipeline.Config is not null))
             {
                 using var scope = host.SiteScope(siteId);
-                await TryAsync("heartbeat", () => client.SendHeartbeatAsync(site.Pipeline.BuildHeartbeat(), ct));
+                await TryAsync("heartbeat", () => client.SendHeartbeatAsync(
+                    site.Pipeline.BuildHeartbeat() with { Platform = updates?.Platform, Update = updates?.Status }, ct));
             }
         }
 

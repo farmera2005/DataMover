@@ -458,6 +458,54 @@ hours do not apply. The console's Alerts page always shows everything, quiet or 
 
 A failing channel tries again after 30 seconds, doubling up to 15 minutes, and the other channel carries on.
 
+## Agent updates
+
+Site agents (installed from the MSI) update themselves; Docker collectors are updated by hand. Everything happens in
+**Configuration → Updates**.
+
+### How a site agent updates
+
+1. An administrator uploads a signed MSI and sets it as the fleet's target version (or one site's, in the collectors
+   table).
+2. On its next config pull (within a minute) each site agent not on that version downloads the package from the
+   Lakeflow server, over its own client-certificate connection, and checks its SHA-256.
+3. It checks the package is signed by the **same publisher as the running agent**. An unsigned agent never updates
+   itself, so CI-built test agents without a signing certificate are upgraded by hand.
+4. In the site's maintenance window (the site's **maintenance start/end**, in the site's time zone; any time if none is
+   set), it asks the **Lakeflow Agent Updater** service to install it. That service runs as LocalSystem because the
+   agent's own account cannot install software. It copies the package into its own folder, checks the SHA-256 and
+   signature again (Windows must trust the signature, and the publisher must be its own), then runs `msiexec`. The
+   agent restarts on the new version; data, buffer and enrollment are kept.
+5. A failed install is retried in the next windows, three times per package; then the agent reports **Failed** with
+   msiexec's result. The install logs are in `C:\ProgramData\Lakeflow\Updater`.
+
+The Updates page shows what each collector runs, its target, and where it is (Downloading, Waiting for the window,
+Installing, Failed with the reason). Downgrades are not done automatically: uninstall, then install the older MSI.
+
+### Building and signing packages
+
+CI (`.github/workflows/build.yml`, job "Site agent MSI") builds `LakeflowAgent-<version>.msi` (version 0.2.<run>) as a
+workflow artifact. With the repository secrets `AGENT_SIGNING_PFX` (a code-signing certificate, PFX as base64) and
+`AGENT_SIGNING_PASSWORD`, it signs both `Lakeflow.Agent.exe` and the MSI. Agents compare the certificate's subject, so
+a renewed certificate for the same publisher keeps working. If the subject ever changes, install one MSI by hand on
+each agent; it updates itself again after that.
+
+To upload: download the artifact, unzip it, then in **Configuration → Updates** choose the `.msi` (the version is read
+from the file name) and **Upload**. The server accepts only signed MSIs.
+
+### Docker collectors
+
+The built-in collector and remote Docker collectors are rebuilt from this repository. The Updates page shows them as
+**Manual**. To update, in the stack's folder (or `deploy/collector` on a remote collector's server):
+
+```bash
+git pull
+```
+
+```bash
+docker compose up -d --build
+```
+
 ## Status
 
 Phase 1 (pilot: one grain site, SQL Server), built step by step:
@@ -477,7 +525,7 @@ Phase 2 (SQL Server rollout to all grain, feed and agronomy sites):
 
 - [x] 1. Alerts: the spec's rules raise and clear alerts; console Alerts page with acknowledge and notes (see docs/console.md)
 - [x] 2. Alert delivery: email (Microsoft Graph) and a Teams channel, quiet hours, harvest-season overrides ("Alert email and Teams" above)
-- [ ] 3. Self-update: signed MSI uploaded in the console, target version, install in the site's maintenance window
+- [x] 3. Self-update: signed MSI uploaded in the console, target version, install in the site's maintenance window ("Agent updates" above)
 - [ ] 4. Rollout aids: bulk site import, division filters
 
 ## Layout

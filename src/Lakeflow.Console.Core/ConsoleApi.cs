@@ -117,6 +117,20 @@ public sealed class ConsoleApi(HttpClient http)
     public async Task<SettingsTestResult> TestTeamsNotificationAsync(CancellationToken ct = default) =>
         await ReadAsync<SettingsTestResult>(await http.PostAsJsonAsync("settings/notifications/teams/test", new { }, Json, ct), ct);
 
+    public Task<UpdateSettingsDto> GetUpdatesAsync(CancellationToken ct = default) => GetAsync<UpdateSettingsDto>("settings/updates", ct);
+    public Task<UpdateSettingsDto> PutUpdatesAsync(string? targetVersion, CancellationToken ct = default) =>
+        PutAsync<UpdateSettingsRequest, UpdateSettingsDto>("settings/updates", new UpdateSettingsRequest(targetVersion), ct);
+    /// <summary>Uploads an agent MSI as the raw request body.</summary>
+    public async Task<UpdateSettingsDto> UploadPackageAsync(Stream msi, string version, string fileName, CancellationToken ct = default)
+    {
+        using var content = new StreamContent(msi);
+        content.Headers.ContentType = new("application/octet-stream");
+        return await ReadAsync<UpdateSettingsDto>(await http.PostAsync(
+            $"settings/updates/packages?version={Uri.EscapeDataString(version)}&fileName={Uri.EscapeDataString(fileName)}", content, ct), ct);
+    }
+    public async Task<UpdateSettingsDto> DeletePackageAsync(string version, CancellationToken ct = default) =>
+        await ReadAsync<UpdateSettingsDto>(await http.DeleteAsync($"settings/updates/packages/{Uri.EscapeDataString(version)}", ct), ct);
+
     public Task<LdapSettingsDto> GetLdapAsync(CancellationToken ct = default) => GetAsync<LdapSettingsDto>("settings/ldap", ct);
     public Task<LdapSettingsDto> PutLdapAsync(LdapSettingsRequest request, CancellationToken ct = default) =>
         PutAsync<LdapSettingsRequest, LdapSettingsDto>("settings/ldap", request, ct);

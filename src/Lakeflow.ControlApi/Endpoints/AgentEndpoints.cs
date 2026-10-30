@@ -30,7 +30,19 @@ public static class AgentEndpoints
         agent.MapPost("/heartbeat", HeartbeatAsync);
         agent.MapPost("/events", EventsAsync);
         agent.MapPost("/logs", LogsAsync).DisableAntiforgery();
+        // The package the console has set for this collector (it is offered in the config, nothing else).
+        agent.MapGet("/packages/{version}", async Task<Results<FileStreamHttpResult, NotFound>> (string agentId, string version, LakeflowDb db,
+            ConfigBuilder builder, AgentPackages packages, CancellationToken ct) =>
+        {
+            var agent = await db.Agents.SingleAsync(a => a.AgentId == agentId, ct);
+            if (await builder.TargetFor(agent, ct) != version || await db.AgentPackages.FindAsync([version], ct) is not { } package
+                || packages.Open(package) is not { } stream)
+                return TypedResults.NotFound();
+            return TypedResults.File(stream, "application/x-msi", package.FileName);
+        });
     }
+
+    private static string? Clip(string? text, int length) => text is null || text.Length <= length ? text : text[..length];
 
     public static byte[] HashToken(string token) => SHA256.HashData(Encoding.UTF8.GetBytes(token));
 
@@ -134,6 +146,11 @@ public static class AgentEndpoints
         var agent = await db.Agents.SingleAsync(a => a.AgentId == agentId, ct);
         agent.LastSeenUtc = now;
         agent.AgentVersion = heartbeat.AgentVersion;
+        if (heartbeat.Platform is { } platform) agent.Platform = platform.Length <= 32 ? platform : platform[..32];
+        agent.UpdateJson = heartbeat.Update is null ? null : EnvelopeJson.Serialize(heartbeat.Update with
+        {
+            Version = Clip(heartbeat.Update.Version, 32)!, Detail = Clip(heartbeat.Update.Detail, 1000),
+        });
         var row = await db.SiteHeartbeats.FindAsync([heartbeat.SiteId], ct);
         if (row is null) db.SiteHeartbeats.Add(row = new SiteHeartbeat { SiteId = heartbeat.SiteId, AgentId = agentId, Json = "" });
         row.AgentId = agentId;

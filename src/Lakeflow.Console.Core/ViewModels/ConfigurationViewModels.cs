@@ -260,6 +260,56 @@ public sealed partial class NotificationsViewModel(ConsoleApi api) : FormViewMod
     }
 }
 
+/// <summary>
+/// Updates: upload signed agent MSIs, choose the version collectors should run (fleet-wide, or for one site), and see
+/// where each collector is.
+/// </summary>
+public sealed partial class UpdatesViewModel(ConsoleApi api) : FormViewModel
+{
+    public ObservableCollection<AgentPackageDto> Packages { get; } = [];
+    public ObservableCollection<CollectorUpdateDto> Collectors { get; } = [];
+
+    /// <summary>The fleet's target; empty for none.</summary>
+    [ObservableProperty] private string _targetVersion = "";
+    /// <summary>For the next upload; filled from a file name like LakeflowAgent-1.4.0.msi.</summary>
+    [ObservableProperty] private string _uploadVersion = "";
+
+    [RelayCommand]
+    public Task LoadAsync(CancellationToken ct) => RunAsync(async () => Show(await api.GetUpdatesAsync(ct)));
+
+    [RelayCommand]
+    public Task SaveTargetAsync(CancellationToken ct) => RunAsync(async () =>
+        Show(await api.PutUpdatesAsync(string.IsNullOrWhiteSpace(TargetVersion) ? null : TargetVersion, ct)),
+        string.IsNullOrWhiteSpace(TargetVersion) ? "No fleet target: collectors stay on their versions." : $"Collectors move to {TargetVersion} in their maintenance windows.");
+
+    public Task UploadAsync(Stream msi, string fileName, CancellationToken ct) => RunAsync(async () =>
+    {
+        Show(await api.UploadPackageAsync(msi, UploadVersion.Trim(), fileName, ct));
+        UploadVersion = "";
+    }, "Package uploaded.");
+
+    public Task DeleteAsync(string version, CancellationToken ct) => RunAsync(async () => Show(await api.DeletePackageAsync(version, ct)), $"{version} deleted.");
+
+    /// <summary>A site's own target (empty to follow the fleet's).</summary>
+    public Task SetSiteTargetAsync(string siteId, string? version, CancellationToken ct) => RunAsync(async () =>
+    {
+        var site = await api.GetSiteAsync(siteId, ct);
+        await api.PutSiteAsync(site with { DesiredAgentVersion = string.IsNullOrWhiteSpace(version) ? null : version }, ct);
+        Show(await api.GetUpdatesAsync(ct));
+    }, string.IsNullOrWhiteSpace(version) ? $"{siteId} follows the fleet's target." : $"{siteId} moves to {version}.");
+
+    public static string? VersionFromFileName(string fileName) =>
+        System.Text.RegularExpressions.Regex.Match(fileName, @"(\d{1,3}\.\d{1,3}\.\d{1,5})\.msi$", System.Text.RegularExpressions.RegexOptions.IgnoreCase)
+            is { Success: true } m ? m.Groups[1].Value : null;
+
+    private void Show(UpdateSettingsDto settings)
+    {
+        TargetVersion = settings.TargetVersion ?? "";
+        Replace(Packages, settings.Packages);
+        Replace(Collectors, settings.Collectors);
+    }
+}
+
 /// <summary>Sign-in: directory (AD/LDAP) sign-in, with roles from groups, tested with a real user before it is turned on.</summary>
 public sealed partial class SignInSettingsViewModel(ConsoleApi api) : FormViewModel
 {

@@ -19,7 +19,7 @@ public sealed class LakeflowDb(DbContextOptions<LakeflowDb> options, IActor acto
 {
     private static readonly HashSet<string> NeverAudited = [nameof(EnrollmentToken.TokenHash), nameof(SealedCredentialRow.Sealed), nameof(Command.ResultDetails),
         nameof(Agent.LastSeenUtc), nameof(Agent.SasExpiresUtc), nameof(Agent.CertificatePem), nameof(User.SecurityStamp), nameof(User.LastSignInUtc),
-        nameof(AppSetting.UpdatedUtc)];
+        nameof(AppSetting.UpdatedUtc), nameof(Agent.Platform), nameof(Agent.UpdateJson)];
 
     /// <summary>Recorded only as "(changed)" when they change.</summary>
     private static readonly HashSet<string> Secrets = [nameof(User.PasswordHash), nameof(AppSetting.Secret)];
@@ -40,6 +40,7 @@ public sealed class LakeflowDb(DbContextOptions<LakeflowDb> options, IActor acto
     public DbSet<Alert> Alerts => Set<Alert>();
     public DbSet<AlertNote> AlertNotes => Set<AlertNote>();
     public DbSet<AlertDelivery> AlertDeliveries => Set<AlertDelivery>();
+    public DbSet<AgentPackage> AgentPackages => Set<AgentPackage>();
 
     protected override void OnModelCreating(ModelBuilder model)
     {
@@ -106,6 +107,7 @@ public sealed class LakeflowDb(DbContextOptions<LakeflowDb> options, IActor acto
             e.Property(x => x.CertificateThumbprint).HasMaxLength(64);
             e.Property(x => x.PreviousThumbprint).HasMaxLength(64);
             e.Property(x => x.RevokedBy).HasMaxLength(256);
+            e.Property(x => x.Platform).HasMaxLength(32);
             e.HasIndex(x => x.CertificateThumbprint).IsUnique();
             e.HasIndex(x => x.SiteId);
             e.HasOne<Site>().WithMany().HasForeignKey(x => x.SiteId).OnDelete(DeleteBehavior.Restrict);
@@ -193,6 +195,15 @@ public sealed class LakeflowDb(DbContextOptions<LakeflowDb> options, IActor acto
             e.HasIndex(x => x.ResolvedUtc);
             e.HasOne<Site>().WithMany().HasForeignKey(x => x.SiteId).OnDelete(DeleteBehavior.Cascade);
             e.HasMany(x => x.Notes).WithOne().HasForeignKey(x => x.AlertId).OnDelete(DeleteBehavior.Cascade);
+        });
+        model.Entity<AgentPackage>(e =>
+        {
+            e.HasKey(x => x.Version);
+            e.Property(x => x.Version).HasMaxLength(32);
+            e.Property(x => x.FileName).HasMaxLength(260);
+            e.Property(x => x.Sha256).HasMaxLength(64);
+            e.Property(x => x.UploadedBy).HasMaxLength(256);
+            e.Ignore(x => x.AuditName);
         });
         model.Entity<AlertDelivery>(e =>
         {

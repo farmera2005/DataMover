@@ -177,6 +177,8 @@ public static class ConsoleEndpoints
         if (string.IsNullOrWhiteSpace(dto.Name)) errors.Add("name is required.");
         if (!TimeZoneInfo.TryFindSystemTimeZoneById(dto.TimeZone, out _)) errors.Add($"time_zone '{dto.TimeZone}' is not a known time zone.");
         if ((dto.MaintenanceStart is null) != (dto.MaintenanceEnd is null)) errors.Add("maintenance_start and maintenance_end go together.");
+        if (dto.DesiredAgentVersion is { } desired && await db.AgentPackages.FindAsync([desired], ct) is null)
+            errors.Add($"desired_agent_version {desired}: upload that package first (Configuration, then Updates).");
         errors.AddRange(ConfigBuilder.Validate(site, await new ConfigBuilderSources(db).ForSiteAsync(siteId, ct)));
         if (errors.Count > 0) return Invalid(errors);
         await db.SaveChangesAsync(ct);

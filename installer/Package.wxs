@@ -10,7 +10,11 @@
   - Its data folder (buffer, checkpoints, credentials, logs) is readable only by that account, SYSTEM and Administrators.
   - The token goes into a registry key only those can read; the agent enrolls with it on first start and deletes it.
     It never appears in an MSI log: it is a hidden property, and the agent (not the Registry table) writes it.
-  - Uninstalling removes the program and the service; the data folder is kept (its buffer may hold changes not yet sent).
+  - A second service, Lakeflow Agent Updater (LocalSystem, the same program with "updater"), installs the updates the
+    console sets: the agent stages a package; the updater copies it into its own folder (SYSTEM and Administrators
+    write, the agent may only read) and installs it only if Windows trusts its signature and it is signed by the same
+    publisher as itself.
+  - Uninstalling removes the program and the services; the data folder is kept (its buffer may hold changes not yet sent).
 -->
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
   <Package Name="Lakeflow Agent" Manufacturer="Mercer Landmark" Version="$(var.Version)"
@@ -31,6 +35,7 @@
     <StandardDirectory Id="CommonAppDataFolder">
       <Directory Id="LakeflowDataRoot" Name="Lakeflow">
         <Directory Id="AGENTDATA" Name="Agent" />
+        <Directory Id="UPDATERDATA" Name="Updater" />
       </Directory>
     </StandardDirectory>
 
@@ -41,6 +46,7 @@
       </Files>
       <ComponentRef Id="Service" />
       <ComponentRef Id="DataFolder" />
+      <ComponentRef Id="UpdaterFolder" />
       <ComponentRef Id="Enrollment" />
     </Feature>
 
@@ -55,12 +61,26 @@
                             RestartServiceDelayInSeconds="60" ResetPeriodInDays="1" />
       </ServiceInstall>
       <ServiceControl Id="AgentServiceControl" Name="LakeflowAgent" Start="install" Stop="both" Remove="uninstall" Wait="yes" />
+      <ServiceInstall Id="UpdaterService" Name="LakeflowAgentUpdater" DisplayName="Lakeflow Agent Updater"
+                      Description="Installs Lakeflow Agent updates set in the Lakeflow console, if signed by the same publisher."
+                      Type="ownProcess" Start="auto" ErrorControl="normal" Arguments="updater" Vital="yes">
+        <util:ServiceConfig FirstFailureActionType="restart" SecondFailureActionType="restart" ThirdFailureActionType="restart"
+                            RestartServiceDelayInSeconds="60" ResetPeriodInDays="1" />
+      </ServiceInstall>
+      <ServiceControl Id="UpdaterServiceControl" Name="LakeflowAgentUpdater" Start="install" Stop="both" Remove="uninstall" Wait="yes" />
     </Component>
 
     <Component Id="DataFolder" Directory="AGENTDATA" Guid="9b3f5a5e-41f6-4c1e-9a7e-1f4a2b6d7c30" Permanent="yes">
       <CreateFolder>
         <!-- Protected (no inherited "Users can read" from ProgramData); full control for the service, SYSTEM, Administrators. -->
         <PermissionEx Sddl="O:SYG:SYD:PAI(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)(A;OICI;FA;;;$(var.ServiceSid))" />
+      </CreateFolder>
+    </Component>
+
+    <Component Id="UpdaterFolder" Directory="UPDATERDATA" Guid="c41e8f02-7a3b-4d6e-9c15-2b8f6a0d4e93" Permanent="yes">
+      <CreateFolder>
+        <!-- SYSTEM and Administrators write; the agent reads (the updater's result and install logs), nothing more. -->
+        <PermissionEx Sddl="O:SYG:SYD:PAI(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)(A;OICI;FR;;;$(var.ServiceSid))" />
       </CreateFolder>
     </Component>
 

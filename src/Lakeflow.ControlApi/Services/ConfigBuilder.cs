@@ -89,6 +89,12 @@ public sealed class ConfigBuilder(LakeflowDb db, SettingsStore settings, TimePro
     /// half its 24 hours have passed), commands not yet completed, and sealed credentials not yet acknowledged. A site
     /// whose division hub is not set up yet is left out (the collector waits; nothing is lost) and the fleet view says why.
     /// </summary>
+    /// <summary>The version a collector should run: its site's own target, else the fleet's (Configuration, then Updates).</summary>
+    public async Task<string?> TargetFor(Agent agent, CancellationToken ct) =>
+        await db.Sites.Where(s => s.AgentId == agent.AgentId && s.DesiredAgentVersion != null).OrderBy(s => s.SiteId)
+            .Select(s => s.DesiredAgentVersion).FirstOrDefaultAsync(ct)
+        ?? (await settings.GetAsync<UpdateSetting>(SettingsStore.Updates, ct))?.TargetVersion;
+
     public async Task<CollectorConfig> ForCollectorAsync(Agent agent, CancellationToken ct)
     {
         var now = time.GetUtcNow();
@@ -143,13 +149,17 @@ public sealed class ConfigBuilder(LakeflowDb db, SettingsStore settings, TimePro
             });
         }
         await db.SaveChangesAsync(ct);
+        var target = await TargetFor(agent, ct);
 
         return new CollectorConfig
         {
             AgentId = agent.AgentId,
             // Someone is waiting on a command (e.g. the setup wizard): poll every 10 s instead of 60 s for a while.
             ConfigPollSeconds = commands.Any(c => now - c.IssuedUtc < FastPollFor) ? 10 : 60,
-            DesiredAgentVersion = sites.Select(s => s.DesiredAgentVersion).FirstOrDefault(v => v is not null),
+            DesiredAgentVersion = target,
+            Update = target is not null && await db.AgentPackages.FindAsync([target], ct) is { } package
+                ? new UpdateOffer(package.Version, package.Sha256, package.SizeBytes, $"agents/{agent.AgentId}/packages/{package.Version}")
+                : null,
             Sites = configs,
         };
     }

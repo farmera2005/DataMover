@@ -178,3 +178,15 @@ public sealed record NotificationChannelStatus(string Channel, DateTimeOffset? L
     DateTimeOffset? NextAttemptUtc);
 
 public sealed record NotificationTestRequest(string? To);
+
+/// <summary>Configuration → Updates: uploaded agent packages, the fleet's target version, and where each collector is.</summary>
+public sealed record UpdateSettingsDto(string? TargetVersion, IReadOnlyList<AgentPackageDto> Packages, IReadOnlyList<CollectorUpdateDto> Collectors);
+
+public sealed record AgentPackageDto(string Version, string FileName, string Sha256, long SizeBytes, string UploadedBy, DateTimeOffset UploadedUtc);
+
+/// <param name="Target">The version it should be on (the site's own target, else the fleet's); null when none is set.</param>
+/// <param name="Update">What the collector last reported about the update; null when it is on the target.</param>
+public sealed record CollectorUpdateDto(string AgentId, string Name, string? SiteId, string? Platform, string? Version, string? Target,
+    UpdateStatus? Update, DateTimeOffset? LastSeenUtc);
+
+public sealed record UpdateSettingsRequest(string? TargetVersion);

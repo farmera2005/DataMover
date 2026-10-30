@@ -38,6 +38,8 @@ ports with `LAKEFLOW_HTTP_PORT`, `LAKEFLOW_HTTPS_PORT` and `LAKEFLOW_COLLECTOR_P
 | `GET /alerts?state=open\|resolved\|all&siteId=` | Viewer | alerts with acknowledgements and notes |
 | `POST /alerts/{id}/acknowledge`, `POST /alerts/{id}/notes` | Operator | acknowledge (optional note), add a note; audited |
 | `/settings/notifications` (+ `/email`, `/teams`, `/schedule`, `/email/test`, `/teams/test`) | Admin | alert email (Graph) and Teams settings (secrets write-only), quiet hours, harvest seasons, channel status |
+| `/settings/updates` (+ `POST /packages?version=&fileName=` with the MSI as the body, `DELETE /packages/{version}`) | Admin | agent packages (signed MSIs), the fleet's target version, each collector's version and update state |
+| `GET /agents/{agentId}/packages/{version}` | Collector | the MSI of the collector's target version (offered in its config as `update`) |
 | `GET/PUT/DELETE /sites/{site}`, `.../sources/{source}`, `.../tables/{table}` | Viewer reads, Admin writes | configuration (incl. the site's `collector_id`), validated with the collector's own rules |
 | `PUT /sites/{site}/sources/{source}/credential` | Admin | a password for the site's collector: sealed in the browser, or sealed here on arrival |
 | `POST /enrollment-tokens` | Admin | token (24 h, single use) and install file for a collector on another server, or for a site agent |

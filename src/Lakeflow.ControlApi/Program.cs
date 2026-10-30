@@ -53,6 +53,7 @@ builder.Services.AddScoped<ConfigBuilder>();
 builder.Services.AddScoped<FleetStatusService>();
 builder.Services.AddScoped<AlertBook>();
 builder.Services.AddScoped<Notifier>();
+builder.Services.AddSingleton<AgentPackages>();
 builder.Services.AddSingleton<NotificationState>();
 builder.Services.AddSingleton<GraphMail>();
 builder.Services.AddSingleton<TeamsWorkflow>();
@@ -197,6 +198,7 @@ app.MapSnowflakeEndpoints();
 app.MapConsoleEndpoints();
 app.MapAlertEndpoints();
 app.MapNotificationEndpoints();
+app.MapUpdateEndpoints();
 
 app.Run();
 

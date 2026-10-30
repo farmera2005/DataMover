@@ -1,0 +1,99 @@
+@page "/config/updates"
+@layout ConfigLayout
+@inherits ViewModelComponent<UpdatesViewModel>
+@inject ConsoleApi Api
+
+<h1>Updates</h1>
+@if (ViewModel is { } vm)
+{
+    @if (vm.Error is not null) { <p class="error">@vm.Error</p> }
+    @if (vm.Message is not null) { <p class="info">@vm.Message</p> }
+    <p class="muted">Site agents (installed from the MSI) update themselves: they download the package from this server, check that it is
+       signed by the same publisher as themselves, and install it in their site's maintenance window (any time if the site has none).
+       Docker collectors are updated by hand; the table says how. Step by step: "Agent updates" in the Lakeflow README.</p>
+    <div class="columns">
+        <section class="form">
+            <h2>Packages</h2>
+            <label>MSI (signed; CI names it LakeflowAgent-&lt;version&gt;.msi)<InputFile OnChange="Picked" accept=".msi" /></label>
+            <label>Version<input @bind="vm.UploadVersion" placeholder="1.4.0" /></label>
+            <button class="primary" @onclick="Upload" disabled="@(vm.IsBusy || _file is null)">Upload</button>
+            <table class="grid">
+                <thead><tr><th>Version</th><th>File</th><th>Uploaded</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var p in vm.Packages)
+                    {
+                        <tr>
+                            <td><strong>@p.Version</strong></td>
+                            <td>@p.FileName<div class="muted" title="SHA-256">@p.Sha256[..16]… · @(p.SizeBytes / 1024 / 1024) MB</div></td>
+                            <td>@p.UploadedUtc.ToLocalTime().ToString("g")<div class="muted">@p.UploadedBy</div></td>
+                            <td><button class="link" @onclick="() => vm.DeleteAsync(p.Version, default)">Delete</button></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+
+            <h2>Fleet target</h2>
+            <label>Every collector should run
+                <select @onchange="e => vm.TargetVersion = e.Value?.ToString() ?? string.Empty">
+                    <option value="" selected="@(vm.TargetVersion.Length == 0)">(no target: leave them as they are)</option>
+                    @foreach (var p in vm.Packages) { <option value="@p.Version" selected="@(p.Version == vm.TargetVersion)">@p.Version</option> }
+                </select>
+            </label>
+            <button class="primary" @onclick="() => vm.SaveTargetCommand.ExecuteAsync(null)" disabled="@vm.IsBusy">Save</button>
+        </section>
+        <section class="form">
+            <h2>Collectors</h2>
+            <table class="grid">
+                <thead><tr><th>Collector</th><th>Running</th><th>Target</th><th>Update</th></tr></thead>
+                <tbody>
+                    @foreach (var c in vm.Collectors)
+                    {
+                        <tr>
+                            <td><strong>@c.Name</strong><div class="muted">@(c.Platform ?? "unknown") · @(c.SiteId ?? "central")</div></td>
+                            <td>@(c.Version ?? "—")</td>
+                            <td>
+                                @if (c.SiteId is { } siteId)
+                                {
+                                    var own = c.Target == vm.TargetVersion || c.Target is null ? "" : c.Target;
+                                    <select @onchange="e => vm.SetSiteTargetAsync(siteId, e.Value?.ToString(), default)">
+                                        <option value="" selected="@(own.Length == 0)">fleet (@(string.IsNullOrEmpty(vm.TargetVersion) ? "none" : vm.TargetVersion))</option>
+                                        @foreach (var p in vm.Packages) { <option value="@p.Version" selected="@(p.Version == own)">@p.Version</option> }
+                                    </select>
+                                }
+                                else { @(c.Target ?? "—") }
+                            </td>
+                            <td class="@(c.Update?.State == UpdateState.Failed ? "error" : "")">
+                                @if (c.Update is { } u) { <strong>@u.State</strong><div>@u.Detail</div> }
+                                else if (c.Target is not null && c.Version == c.Target) { <span class="muted">up to date</span> }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </section>
+    </div>
+}
+
+@code {
+    private IBrowserFile? _file;
+
+    protected override async Task OnInitializedAsync()
+    {
+        ViewModel = new UpdatesViewModel(Api);
+        await ViewModel.LoadCommand.ExecuteAsync(null);
+    }
+
+    private void Picked(InputFileChangeEventArgs e)
+    {
+        _file = e.File;
+        if (UpdatesViewModel.VersionFromFileName(e.File.Name) is { } version) ViewModel!.UploadVersion = version;
+    }
+
+    private async Task Upload()
+    {
+        if (_file is null || ViewModel is null) return;
+        await using var stream = _file.OpenReadStream(maxAllowedSize: 300L * 1024 * 1024);
+        await ViewModel.UploadAsync(stream, _file.Name, default);
+        _file = null;
+    }
+}

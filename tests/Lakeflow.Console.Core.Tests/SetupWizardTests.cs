@@ -119,6 +119,16 @@ public sealed class SetupWizardTests : IAsyncLifetime
         await notifications.SaveEmailCommand.ExecuteAsync(null);
         Assert.Contains("recipient", notifications.Error);
 
+        var updates = new UpdatesViewModel(browser);
+        await updates.LoadCommand.ExecuteAsync(null);
+        Assert.Null(updates.Error);
+        Assert.Empty(updates.Packages);
+        Assert.Equal("1.4.0", UpdatesViewModel.VersionFromFileName("LakeflowAgent-1.4.0.msi"));
+        Assert.Null(UpdatesViewModel.VersionFromFileName("LakeflowAgent.msi"));
+        updates.UploadVersion = "1.4.0";
+        await updates.UploadAsync(new MemoryStream("not an msi"u8.ToArray()), "LakeflowAgent-1.4.0.msi", default);
+        Assert.Contains("not an MSI", updates.Error);
+
         var signIn = new SignInSettingsViewModel(browser);
         await signIn.LoadCommand.ExecuteAsync(null);
         Assert.False(signIn.Settings.Enabled);

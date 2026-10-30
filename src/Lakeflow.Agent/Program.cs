@@ -4,6 +4,7 @@ using Lakeflow.Agent.Capture;
 using Lakeflow.Agent.Control;
 using Lakeflow.Agent.Delivery;
 using Lakeflow.Agent.Storage;
+using Lakeflow.Agent.Update;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -24,6 +25,10 @@ var dataDirectory = Environment.GetEnvironmentVariable("LAKEFLOW_AGENT_DATA")
     ?? (OperatingSystem.IsWindows()
         ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Lakeflow", "Agent")
         : "/var/lib/lakeflow");
+
+// The Lakeflow Agent Updater service (LocalSystem, installer/Package.wxs): installs the packages the agent stages.
+if (args is ["updater"] && OperatingSystem.IsWindows()) return await UpdaterService.RunAsync(dataDirectory);
+
 Directory.CreateDirectory(dataDirectory);
 
 Log.Logger = AgentLogging.Configure(new LoggerConfiguration(), Path.Combine(dataDirectory, "logs"), () => null).CreateLogger();
@@ -56,6 +61,8 @@ try
         return new CollectorHost(LocalStore.Open(Path.Combine(dataDirectory, "collector"), protector), OpenSite,
             loggers.CreateLogger<CollectorHost>());
     });
+    builder.Services.AddSingleton(sp => new SelfUpdate(dataDirectory, version, new UpdatePlatform(), sp.GetRequiredService<TimeProvider>(),
+        sp.GetRequiredService<ILogger<SelfUpdate>>()));
     builder.Services.AddSingleton(ControlApiClient.DefaultHandler);
     builder.Services.AddSingleton(sp => ActivatorUtilities.CreateInstance<ControlLoop>(sp, Path.Combine(dataDirectory, "logs"),
         // Exit with an error so the service manager (Docker restart policy, Windows service recovery) starts it again.

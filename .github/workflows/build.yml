@@ -116,28 +116,35 @@ jobs:
     runs-on: windows-latest
     env:
       SIGNING_PFX: ${{ secrets.AGENT_SIGNING_PFX }}
+      # The agent and its MSI carry the same version; upload LakeflowAgent-<version>.msi in the console (Configuration, then Updates).
+      AGENT_VERSION: 0.2.${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
-      - run: dotnet publish src/Lakeflow.Agent -c Release -r win-x64 --self-contained -o out/agent
-      - run: dotnet build installer/Lakeflow.Agent.Installer.wixproj -c Release -p:AgentPublishDir=${{ github.workspace }}\out\agent -o out/msi
-      - name: Sign (when a code-signing certificate is configured)
+      - run: dotnet publish src/Lakeflow.Agent -c Release -r win-x64 --self-contained -p:Version=${{ env.AGENT_VERSION }} -o out/agent
+      - name: Sign the agent (when a code-signing certificate is configured)
         if: env.SIGNING_PFX != ''
         env:
           SIGNING_PASSWORD: ${{ secrets.AGENT_SIGNING_PASSWORD }}
         shell: pwsh
-        run: |
-          $pfx = Join-Path $env:RUNNER_TEMP 'signing.pfx'
-          [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:SIGNING_PFX))
-          $signtool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Recurse -Filter signtool.exe | Where-Object FullName -match 'x64' | Select-Object -Last 1
-          & $signtool.FullName sign /f $pfx /p $env:SIGNING_PASSWORD /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 out/msi/LakeflowAgent.msi
-          Remove-Item $pfx
+        # Agents install only updates signed by the same publisher as their own Lakeflow.Agent.exe, so it is signed too.
+        run: ./installer/sign.ps1 out/agent/Lakeflow.Agent.exe
+      - run: dotnet build installer/Lakeflow.Agent.Installer.wixproj -c Release -p:Version=${{ env.AGENT_VERSION }} -p:AgentPublishDir=${{ github.workspace }}\out\agent -o out/msi
+      - name: Sign the MSI (when a code-signing certificate is configured)
+        if: env.SIGNING_PFX != ''
+        env:
+          SIGNING_PASSWORD: ${{ secrets.AGENT_SIGNING_PASSWORD }}
+        shell: pwsh
+        run: ./installer/sign.ps1 out/msi/LakeflowAgent.msi
       - name: Install, check and uninstall
         shell: pwsh
         run: ./installer/test-install.ps1 out/msi/LakeflowAgent.msi
+      - name: Name the MSI after its version
+        shell: pwsh
+        run: Copy-Item out/msi/LakeflowAgent.msi "out/msi/LakeflowAgent-${{ env.AGENT_VERSION }}.msi"
       - uses: actions/upload-artifact@v4
         with:
-          name: LakeflowAgent-msi
-          path: out/msi/LakeflowAgent.msi
+          name: LakeflowAgent-${{ env.AGENT_VERSION }}
+          path: out/msi/LakeflowAgent-${{ env.AGENT_VERSION }}.msi

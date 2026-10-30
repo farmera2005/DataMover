@@ -107,6 +107,10 @@ public sealed class Agent : IAudited
     public DateTimeOffset? LastSeenUtc { get; set; }
     /// <summary>Expiry of the SAS tokens last handed out; tokens are reissued when less than half their life remains.</summary>
     public DateTimeOffset? SasExpiresUtc { get; set; }
+    /// <summary>From its heartbeats: windows-service, docker or other.</summary>
+    public string? Platform { get; set; }
+    /// <summary>Its last <see cref="Lakeflow.Contracts.UpdateStatus"/>, JSON; null when it is on its target version.</summary>
+    public string? UpdateJson { get; set; }
     public string AuditName => $"agent {AgentId}";
 }
 
@@ -271,4 +275,19 @@ public sealed class AlertDelivery
     public required string Event { get; set; }
     public Lakeflow.Contracts.AlertSeverity Severity { get; set; }
     public DateTimeOffset SentUtc { get; set; }
+}
+
+/// <summary>
+/// A signed agent MSI uploaded in the console. The file is kept in the server's data folder
+/// (<c>packages/&lt;sha256&gt;.msi</c>), not in the database.
+/// </summary>
+public sealed class AgentPackage : IAudited
+{
+    public required string Version { get; set; }
+    public required string FileName { get; set; }
+    public required string Sha256 { get; set; }
+    public long SizeBytes { get; set; }
+    public required string UploadedBy { get; set; }
+    public DateTimeOffset UploadedUtc { get; set; }
+    public string AuditName => $"agent package {Version}";
 }

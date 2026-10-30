@@ -60,6 +60,10 @@ namespace Lakeflow.ControlApi.Data.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<string>("Platform")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
                     b.Property<string>("PreviousThumbprint")
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
@@ -77,6 +81,9 @@ namespace Lakeflow.ControlApi.Data.Migrations
                     b.Property<string>("SiteId")
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
+
+                    b.Property<string>("UpdateJson")
+                        .HasColumnType("text");
 
                     b.HasKey("AgentId");
 
@@ -128,6 +135,38 @@ namespace Lakeflow.ControlApi.Data.Migrations
                     b.HasIndex("SiteId", "ReceivedUtc");
 
                     b.ToTable("AgentEvents");
+                });
+
+            modelBuilder.Entity("Lakeflow.ControlApi.Data.AgentPackage", b =>
+                {
+                    b.Property<string>("Version")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(260)
+                        .HasColumnType("character varying(260)");
+
+                    b.Property<string>("Sha256")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<long>("SizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("UploadedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<DateTimeOffset>("UploadedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Version");
+
+                    b.ToTable("AgentPackages");
                 });
 
             modelBuilder.Entity("Lakeflow.ControlApi.Data.Alert", b =>

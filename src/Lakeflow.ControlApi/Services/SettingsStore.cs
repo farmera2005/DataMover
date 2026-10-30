@@ -21,6 +21,7 @@ public sealed class SettingsStore(LakeflowDb db, ISecretProtector protector, Tim
     public const string NotifyEmail = "notifications.email";
     public const string NotifyTeams = "notifications.teams";
     public const string NotifySchedule = "notifications.schedule";
+    public const string Updates = "updates";
 
     public static string EventHub(Division division) => $"eventhubs.{LakeNames.HubName(division)}";
 
@@ -80,3 +81,6 @@ public sealed record EmailNotifySetting(bool Enabled, string TenantId, string Cl
 
 /// <summary>Stored form of the Teams channel (the workflow URL is the secret).</summary>
 public sealed record TeamsNotifySetting(bool Enabled, string? WebhookHost, AlertSeverity MinimumSeverity);
+
+/// <summary>Stored form of <see cref="SettingsStore.Updates"/>: the version every collector should run, unless its site says otherwise.</summary>
+public sealed record UpdateSetting(string? TargetVersion);

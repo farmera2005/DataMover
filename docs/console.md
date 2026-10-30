@@ -39,6 +39,7 @@ from their groups at every sign-in.
     agent installed at a site.
   - **Destinations:** each division's Event Hub; the Fabric SQL endpoint for reconciliation results (with a Test).
   - **Notifications:** alert email through Microsoft Graph (app, secret, sender mailbox, recipients), a Teams channel through a Workflows URL, warnings and critical or critical only, each with **Send test** and its last result; quiet hours and harvest seasons.
+  - **Updates:** upload signed agent MSIs, set the fleet's target version or a site's own, and see each collector's version and update state (README, "Agent updates").
   - **Snowflake:** account, server-generated key pair and its setup script, each hub's `snowflake-listen` key, a Test, on/off, and the forwarder's status per hub partition and silver build.
   - **Users:** local accounts (create, role, disable, reset password); directory users after their first sign-in.
   - **Sign-in & LDAP:** directory sign-in (URL, CA certificate, service account, where users are, the Admin, Operator and

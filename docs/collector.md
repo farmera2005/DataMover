@@ -59,7 +59,7 @@ Install the agent on a Windows PC at the site: the same program, as a Windows se
 
 1. In the console: **Configuration → Sites and collectors**, edit the site, **Token for an agent at this site**. It
    shows the command, with a one-time token (24 hours) and the SHA-256 of your stack's CA.
-2. On the PC, as an administrator, with `LakeflowAgent.msi` (from CI's `LakeflowAgent-msi` artifact):
+2. On the PC, as an administrator, with the MSI (CI's `LakeflowAgent-<version>` artifact, renamed to `LakeflowAgent.msi`):
    ```
    msiexec /i LakeflowAgent.msi /qn CONTROL_API="https://<server>:8444/" ENROLLMENT_TOKEN="<token>" CA_SHA256="<sha-256>"
    ```
@@ -76,7 +76,9 @@ What the MSI sets up (`installer/Package.wxs`):
 
 Network: outbound only, 8444 to the Lakeflow server, 443 to Event Hubs, and SQL to the site's databases.
 Uninstalling removes the program and the service but keeps the data folder, whose buffer may hold changes not yet sent.
-Upgrades: install a newer MSI over it (major upgrade; data and enrollment are kept).
+Upgrades: the agent updates itself from a signed MSI uploaded in the console (README, "Agent updates"); the MSI also
+installs the Lakeflow Agent Updater service (LocalSystem) that does the install. By hand: install a newer MSI over it
+(major upgrade; data and enrollment are kept).
 
 The MSI is signed when CI has a code-signing certificate (secrets `AGENT_SIGNING_PFX`, base64, and
 `AGENT_SIGNING_PASSWORD`); without them it is built unsigned. CI installs it on a Windows runner and checks all of the

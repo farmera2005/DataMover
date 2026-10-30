@@ -63,6 +63,10 @@ public sealed record Heartbeat
     public IReadOnlyList<SourceStatus> Sources { get; init; } = [];
     public IReadOnlyList<TableStatus> Tables { get; init; } = [];
     public string? LastError { get; init; }
+    /// <summary>windows-service (the site agent from the MSI), docker or other.</summary>
+    public string? Platform { get; init; }
+    /// <summary>Where the collector is with the version the console wants; null when it is on it.</summary>
+    public UpdateStatus? Update { get; init; }
 
     public double BufferPercent => BufferCapBytes <= 0 ? 0 : 100.0 * BufferBytes / BufferCapBytes;
 }
@@ -85,4 +89,19 @@ public sealed record AgentEvent
     public string? Table { get; init; }
     public Guid? CommandId { get; init; }
     public JsonObject? Details { get; init; }
+}
+
+/// <summary>The collector's side of an update to <see cref="Version"/>.</summary>
+public sealed record UpdateStatus(UpdateState State, string Version, string? Detail = null);
+
+public enum UpdateState
+{
+    /// <summary>Docker or another platform: an administrator updates it (the detail says how).</summary>
+    Manual,
+    Downloading,
+    /// <summary>Downloaded and checked; waiting for the site's maintenance window.</summary>
+    Waiting,
+    Installing,
+    /// <summary>It will not or could not install it (the detail says why).</summary>
+    Failed,
 }
